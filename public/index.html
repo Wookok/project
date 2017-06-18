@@ -4,9 +4,33 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>.io</title>
+  <style>
+    #infoScene{
+      display: block;
+    }
+    #gameScene{
+      display: none;
+    }
+    #standingScene{
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  Hello World!!
+  <div id="infoScene">
+    <h1>Info Scene</h1>
+    <input type="text" placeholder="Enter Your Nickname" id="name" />
+    <button id="startButton">start button</button>
+  </div>
+  <div id="gameScene">
+    <canvas id="canvas" height="1000" width="1000"></canvas>
+  </div>
+  <div id="standingScene">
+  </div>
+  <script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/main.js"></script>
 </body>
