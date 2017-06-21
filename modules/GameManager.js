@@ -37,12 +37,12 @@ GameManager.prototype.updateUser = function(user){
 GameManager.prototype.kickUser = function(user){
   var index = this.findUserIndex(user);
   if(index != -1){
-    users.splice(index, 1);
+    this.users.splice(index, 1);
     console.log(user.userID + ' exit GameManager');
   }
 };
 GameManager.prototype.findUserIndex = function(user){
-  for(var index in users){
+  for(var index in this.users){
     if(this.users[index].userID == user.userID){
       return index;
     }
