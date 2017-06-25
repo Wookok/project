@@ -26,29 +26,34 @@ var io = socketio.listen(server);
 
 io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
-  var user;
+  var user = new User(socket.id);
+  var updateUserInterval = false;
 
   socket.on('reqStartGame', function(){
-    user = new User(socket.id);
+    // initialize and join GameManager
     user.initialize();
     GM.joinUser(user);
-    var data = GM.updateDataSetting();
-    socket.emit('resStartGame', data);
+
+    //update user data
+    if(!updateUserInterval){
+      updateUserInterval = setInterval(function(){ GM.updateUser(user); }, 1000);
+    }
+    var data = GM.updateDataSetting(user);
+    socket.broadcast.emit('userJoined', data);
+
+    var datas = GM.updateDataSettings();
+    socket.emit('resStartGame', datas);
   });
 
   var temp = undefined;
   socket.on('reqMove', function(targetPosition){
-    user.setTargetPosition(targetPosition);
-    user.setTargetDirection(targetPosition);
-    user.stop();
-    user.setSpeed();
-    if(user.direction != user.targetDirection){
-      user.rotate();
-    }else{
-      user.move();
-    }
-    var data = { position : user.position, targetPosition : user.targetPosition };
-    socket.emit('resMove', data);
+    GM.setUserTargetAndMove(user, targetPosition);
+
+    var data = GM.updateDataSetting(user);
+    // var data = { position : user.position, targetPosition : user.targetPosition };
+    io.sockets.emit('resMove', data);
+
+    //debug
     clearInterval(temp);
     temp = setInterval(function(){
       // console.log('targetDirection : ' + user.targetDirection);
@@ -57,10 +62,15 @@ io.on('connection', function(socket){
       console.log(user.direction + ' : ' + user.position.x + ' : ' + user.position.y);
     }, 1000);
   })
+
   socket.on('disconnect', function(){
     if(user){
       user.stop();
       GM.kickUser(user);
+    }
+    if(updateUserInterval){
+      clearInterval(updateUserInterval);
+      updateUserInterval = false;
     }
     console.log('user disconnect :' + socket.id);
   });

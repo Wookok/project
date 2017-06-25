@@ -1,5 +1,5 @@
 var GameObject = require('./GameObject.js');
-var util = require('../public/js/util.js');
+var util = require('../public/js/utils/util.js');
 
 var gameConfig = require('../gameConfig.json');
 
@@ -7,6 +7,7 @@ var INTERVAL_TIMER = 1000/gameConfig;
 
 function LivingEntity(){
   GameObject.call(this);
+  this.objectID = null;
   this.speed = {x: 0, y:0};
   this.direction = 0;
   this.rotateSpeed = 0;
@@ -42,16 +43,16 @@ LivingEntity.prototype.move = function(){
   this.moveInterval = setInterval(util.move.bind(this), 1000);
 };
 
-//interval variable initialize
+//interval clear
 LivingEntity.prototype.stop = function(){
   if(this.moveInterval){
     clearInterval(this.moveInterval);
     this.moveInterval = false;
-  };
+  }
   if(this.rotateInterval){
     clearInterval(this.rotateInterval);
     this.rotateInterval = false;
-  };
+  }
 };
 
 // setup when click canvas for move
@@ -84,6 +85,9 @@ LivingEntity.prototype.setRotateSpeed = function(x){
 };
 LivingEntity.prototype.setMaxSpeed = function(x){
   this.maxSpeed = x;
+};
+LivingEntity.prototype.assignID = function(x){
+  this.objectID = x + util.assignRandomID();
 };
 
 module.exports = LivingEntity;

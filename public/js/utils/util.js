@@ -36,10 +36,7 @@ exports.move = function(){
     this.speed.y = distY;
   }
   this.position.x += this.speed.x;
-  // this.targetPosition.x -= this.speed.x;
-
   this.position.y += this.speed.y;
-  // this.targetPosition.y -= this.speed.y;
 }
 
 //must use with bind method
@@ -59,3 +56,11 @@ exports.setSpeed = function(){
     this.speed.y = (distY>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distY,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
   }
 };
+
+exports.assignRandomID = function(){
+  var output = "";
+  for(var i=0; i<6; i++){
+    output += Math.floor(Math.random()*16).toString(16);
+  }
+  return output;
+}
