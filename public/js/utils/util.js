@@ -57,10 +57,10 @@ exports.setSpeed = function(){
   }
 };
 
-exports.assignRandomID = function(){
-  var output = "";
-  for(var i=0; i<6; i++){
-    output += Math.floor(Math.random()*16).toString(16);
-  }
-  return output;
-}
+// exports.assignRandomID = function(){
+//   var output = "";
+//   for(var i=0; i<6; i++){
+//     output += Math.floor(Math.random()*16).toString(16);
+//   }
+//   return output;
+// }

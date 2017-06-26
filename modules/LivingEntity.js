@@ -68,26 +68,31 @@ LivingEntity.prototype.setTargetDirection = function(newPosition){
   var distX = this.targetPosition.x - this.localPosition.x;
   var distY = this.targetPosition.y - this.localPosition.y;
 
+  var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
+
   if(distX >= 0 && distY >=0){
-    this.targetDirection = Math.atan(distY/distX);
+    this.targetDirection =tangentDegree;
   }else if(distX < 0 && distY >=0){
-    this.targetDirection = Math.atan(distY/distX) + Math.PI/2;
+    this.targetDirection = 90 - tangentDegree;
   }else if(distX < 0 && distY < 0){
-    this.targetDirection = -Math.atan(distY/distX) - Math.PI/2;
+    this.targetDirection = tangentDegree - 180;
   }else{
-    this.targetDirection = Math.atan(distY/distX);
+    this.targetDirection = tangentDegree;
   }
 };
 
 // initialize method
 LivingEntity.prototype.setRotateSpeed = function(x){
-  this.rotateSpeed = x * Math.PI/180;
+  this.rotateSpeed = x;
 };
 LivingEntity.prototype.setMaxSpeed = function(x){
   this.maxSpeed = x;
 };
 LivingEntity.prototype.assignID = function(x){
-  this.objectID = x + util.assignRandomID();
+  this.objectID = x;
 };
+// LivingEntity.prototype.assignID = function(x){
+//   this.objectID = x + util.assignRandomID();
+// };
 
 module.exports = LivingEntity;

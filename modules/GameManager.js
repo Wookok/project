@@ -44,6 +44,32 @@ GameManager.prototype.updateUser = function(user){
   this.users[user.objectID] = user;
 };
 
+//user initialize
+GameManager.prototype.initializeUser = function(user){
+  // check ID is unique
+  var IDisUnique = false;
+  while(!IDisUnique){
+    var randomID = generateRandomID('U');
+    IDisUnique = true;
+    for(var i in users){
+      if(randomID == users[i].objectID){
+        IDisUnique = false;
+      }
+    }
+  }
+
+  //initialize variables;
+  user.assignID(randomID);
+  user.setPosition(10, 10);
+  user.setSize(64,64);
+  user.setRotateSpeed(10);
+  user.setMaxSpeed(10);
+};
+
+GameManager.prototype.stopUser = function(user){
+  user.stop();
+};
+
 // data setting for send to client
 GameManager.prototype.updateDataSettings = function(){
   var userData = [];
@@ -81,4 +107,12 @@ GameManager.prototype.updateDataSetting = function(user){
 
   return updateUser;
 };
+
+function generateRandomID(prefix){
+  var output = prefix;
+  for(var i=0; i<6; i++){
+    output += Math.floor(Math.random()*16).toString(16);
+  }
+  return output;
+}
 module.exports = GameManager;

@@ -28,11 +28,19 @@ io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
   var user = new User(socket.id);
   var updateUserInterval = false;
+  var localConfig = {};
+  socket.on('reqSetWindowSize', function(data){
+    localConfig.windowSize = data;
 
+    // do local canvas size setting
+
+    socket.emit('resSetWindowSize', data);
+  });
   socket.on('reqStartGame', function(){
     // initialize and join GameManager
-    user.initialize();
+    // user.initialize();
     GM.joinUser(user);
+    GM.initializeUser(user);
 
     //update user data
     if(!updateUserInterval){
@@ -45,28 +53,19 @@ io.on('connection', function(socket){
     socket.emit('resStartGame', datas);
   });
 
-  var temp = undefined;
   socket.on('reqMove', function(targetPosition){
     GM.setUserTargetAndMove(user, targetPosition);
 
     var data = GM.updateDataSetting(user);
-    // var data = { position : user.position, targetPosition : user.targetPosition };
     io.sockets.emit('resMove', data);
-
-    //debug
-    clearInterval(temp);
-    temp = setInterval(function(){
-      // console.log('targetDirection : ' + user.targetDirection);
-      // console.log('rotateSpeed : ' + user.rotateSpeed);
-      console.log(user.targetPosition.x + ' : ' +  user.targetPosition.y);
-      console.log(user.direction + ' : ' + user.position.x + ' : ' + user.position.y);
-    }, 1000);
   })
 
   socket.on('disconnect', function(){
     if(user){
-      user.stop();
+      GM.stopUser(user);
+      // user.stop();
       GM.kickUser(user);
+      user = null;
     }
     if(updateUserInterval){
       clearInterval(updateUserInterval);
