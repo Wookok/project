@@ -1,4 +1,4 @@
-var User = reqire('./CUser.js');
+var User = require('./CUser.js');
 
 var CManager = function(){
 	this.users = [];
@@ -28,15 +28,15 @@ CManager.prototype = {
 	},
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
-			users[data.objectID].position = data.position;
-	    users[data.objectID].targetPosition = data.targetPosition;
-	    users[data.objectID].speed = data.speed;
-	    users[data.objectID].direction = data.direction;
-	    users[data.objectID].rotateSpeed = data.rotateSpeed;
-	    users[data.objectID].targetDirection = data.targetDirection;
+			this.users[userData.objectID].position = userData.position;
+	    this.users[userData.objectID].targetPosition = userData.targetPosition;
+	    this.users[userData.objectID].speed = userData.speed;
+	    this.users[userData.objectID].direction = userData.direction;
+	    this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+	    this.users[userData.objectID].targetDirection = userData.targetDirection;
 
-	    users[data.objectID].stop();
-	    users[data.objectID].rotate();
+	    this.users[userData.objectID].stop();
+	    this.users[userData.objectID].rotate();
 		}else{
   		console.log('can`t find user data');
 		}

@@ -1,3 +1,10 @@
+var gameConfig = require('../gameConfig.json');
+
+var OBJECT_STATE_IDLE = 0;
+var OBJECT_STATE_MOVE = 1;
+
+var INTERVAL_TIMER = 1000/gameConfig.fps;
+
 function GameManager(){
   this.users = [];
   this.updateInteval = null;
@@ -9,7 +16,7 @@ GameManager.prototype.updateGame = function(){
   };
   this.updateInteval = setInterval(function(){
 
-  }, 1000/30);
+  }, INTERVAL_TIMER);
 };
 
 //setting User for moving and move user;
@@ -51,13 +58,13 @@ GameManager.prototype.initializeUser = function(user){
   while(!IDisUnique){
     var randomID = generateRandomID('U');
     IDisUnique = true;
-    for(var i in users){
-      if(randomID == users[i].objectID){
+    for(var index in this.users){
+      if(randomID == this.users[index].objectID){
         IDisUnique = false;
       }
     }
   }
-
+  console.log(randomID);
   //initialize variables;
   user.assignID(randomID);
   user.setPosition(10, 10);

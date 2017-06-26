@@ -2,29 +2,44 @@
 
 var socket = io();
 var userName;
-var canvas;
-var ctx;
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
 
 var util = require('./utils/util.js');
 var User = require('./utils/CUser.js');
+var CManager = require('./utils/CManager.js');
+var Manager = new CManager();
 
-var users = [];
 var userImage = new Image();
+
 userImage.src = '../images/Character.png';
+
+var localConfig = {};
 
 setupSocket();
 
 document.getElementById('startButton').onclick = function(){
+  reqSetWindowSize();
   reqStartGame();
+};
+
+window.onresize = function(e){
+  reqSetWindowSize();
 };
 
 function reqStartGame(){
   socket.emit('reqStartGame');
 };
 
+function reqSetWindowSize(){
+  var windowSize = {
+    width : window.innerWidth,
+    height : window.innerHeight
+  };
+  socket.emit('reqSetWindowSize', windowSize);
+};
+
 function canvasSetting(){
-  canvas = document.getElementById('canvas');
-  ctx = canvas.getContext('2d');
   canvas.addEventListener('click', function(e){
     var targetPosition ={
       x : e.clientX,
@@ -32,7 +47,6 @@ function canvasSetting(){
     }
     socket.emit('reqMove', targetPosition);
   }, false);
-  // ctx.drawImage(userImage, 0, 0, 69, 69, 0, 0, 64, 64);
   drawScreen();
   // userImage.addEventListener('load', userImageLoaded, false);
 }
@@ -43,24 +57,17 @@ function drawScreen(){
     ctx.fillStyle = "#aaaaaa";
     ctx.fillRect(0, 0, 1000, 1000);
 
-    for(var index in users){
-      // radian to degree
-      if(users[index].direction < 0){
-        var radian = users[index].direction + Math.PI*2
+    for(var index in Manager.users){
+      if(Manager.users[index].direction < 0){
+        var degree = Manager.users[index].direction + 360;
       }else{
-        radian = users[index].direction;
+        degree = Manager.users[index].direction;
       }
-      var degree = radian * 180 / Math.PI;
-      console.log('degree : ' + degree);
-      console.log('degree % 10 : ' + degree);
-      console.log('direction : ' +  users[index].direction);
-      var sourceX = Math.floor((degree / 10)) * 75;
+      var sourceX = Math.floor((degree % 90) / 10) * 75;
       var sourceY = Math.floor((degree / 90)) * 75;
-      console.log(sourceX + ' : ' + sourceY);
-      // console.log(users[index].position.x + ' : ' + users[index].position.y + ' : '
-      //  + users[index].size.width + ' : ' + users[index].size.height);
+
       ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
-      users[index].position.x, users[index].position.y, 64, 64);
+      Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
     }
   }, 1000/30);
 };
@@ -68,10 +75,10 @@ function drawScreen(){
 function setupSocket(){
 
   socket.on('resStartGame', function(data){
-    // console.log(data);
-    // users = data;
 
-    setUsers(data);
+    Manager.setUsers(data);
+    console.log(Manager.users);
+
     document.getElementById('infoScene').classList.remove('enable');
     document.getElementById('gameScene').classList.remove('disable');
 
@@ -81,70 +88,77 @@ function setupSocket(){
   });
 
   socket.on('userJoined', function(data){
-    setUser(data);
-    console.log(users);
+    Manager.setUser(data);
+    console.log(Manager.users);
   });
 
-  var temp = false;
   socket.on('resMove', function(data){
     console.log(data);
     console.log('move start');
-    if(checkUserAtUsers(data)){
-      users[data.objectID].position = data.position;
-      users[data.objectID].targetPosition = data.targetPosition;
-      users[data.objectID].speed = data.speed;
-      users[data.objectID].direction = data.direction;
-      users[data.objectID].rotateSpeed = data.rotateSpeed;
-      users[data.objectID].targetDirection = data.targetDirection;
+    Manager.moveUser(data);
+  });
 
-      users[data.objectID].stop();
-      users[data.objectID].rotate();
-    }else{
-      console.log('can`t find user data');
-    }
-    //debug
-    clearInterval(temp);
-    temp = setInterval(function(){
-      // console.log('targetDirection : ' + user.targetDirection);
-      // console.log('rotateSpeed : ' + user.rotateSpeed);
-      console.log(users[data.objectID].targetPosition.x + ' : ' +  users[data.objectID].targetPosition.y);
-      console.log(users[data.objectID].direction + ' : ' + users[data.objectID].position.x + ' : ' + users[data.objectID].position.y);
-    }, 1000);
+  socket.on('resSetWindowSize', function(data){
+    localConfig.windowSize = data;
+
+    setCanvasSize();
   });
 };
 
-function setUsers(userDatas){
-  for(var index in userDatas){
-    console.log(index);
-    var tempUser = new User(userDatas[index]);
-    users[tempUser.objectID] = tempUser;
-  }
-  console.log(users);
+function setCanvasSize(){
+  canvas.width = localConfig.windowSize.width;
+  canvas.height = localConfig.windowSize.height;
 };
 
-function setUser(userData){
-  if(!checkUserAtUsers(userData)){
-    var tempUser = new User(userData);
-    users[userData.objectID] = tempUser;
-  }else{
-    console.log('user.objectID duplicated. something is wrong.');
-  }
-}
+},{"./utils/CManager.js":2,"./utils/CUser.js":3,"./utils/util.js":4}],2:[function(require,module,exports){
+var User = require('./CUser.js');
 
-function checkUserAtUsers(userData){
-  if(userData.objectID in users){
-    return true;
-  }else{
-    return false;
-  }
+var CManager = function(){
+	this.users = [];
 };
 
-// add before sevice
-// window.onbeforeunload = function(e){
-//   return 'Are you sure';
-// }
+CManager.prototype = {
+	setUser : function(userData){
+		if(!this.checkUserAtUsers(userData)){
+			var tempUser = new User(userData);
+			this.users[userData.objectID] = tempUser;
+		}else{
+			console.log('user.objectID duplicated. something is wrong.');
+		}
+	},
+	setUsers : function(userDatas){
+		for(var index in userDatas){
+			var tempUser = new User(userDatas[index]);
+			this.users[userDatas[index].objectID] = tempUser;
+		}
+	},
+	checkUserAtUsers : function(userData){
+		if(userData.objectID in this.users){
+			return true;
+		}else{
+			return false;
+		}
+	},
+	moveUser : function(userData){
+		if(this.checkUserAtUsers(userData)){
+			this.users[userData.objectID].position = userData.position;
+	    this.users[userData.objectID].targetPosition = userData.targetPosition;
+	    this.users[userData.objectID].speed = userData.speed;
+	    this.users[userData.objectID].direction = userData.direction;
+	    this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+	    this.users[userData.objectID].targetDirection = userData.targetDirection;
 
-},{"./utils/CUser.js":2,"./utils/util.js":3}],2:[function(require,module,exports){
+	    this.users[userData.objectID].stop();
+	    this.users[userData.objectID].rotate();
+		}else{
+  		console.log('can`t find user data');
+		}
+	},
+};
+
+module.exports = CManager;
+
+},{"./CUser.js":3}],3:[function(require,module,exports){
 var util = require('./util.js');
 
 var User = function(userData){
@@ -190,7 +204,7 @@ User.prototype = {
 
 module.exports = User;
 
-},{"./util.js":3}],3:[function(require,module,exports){
+},{"./util.js":4}],4:[function(require,module,exports){
 
 //must use with bind method
 exports.rotate = function(){
@@ -249,13 +263,5 @@ exports.setSpeed = function(){
     this.speed.y = (distY>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distY,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
   }
 };
-
-exports.assignRandomID = function(){
-  var output = "";
-  for(var i=0; i<6; i++){
-    output += Math.floor(Math.random()*16).toString(16);
-  }
-  return output;
-}
 
 },{}]},{},[1]);

@@ -22,6 +22,8 @@ var GameManager = require('./modules/GameManager.js');
 var GM = new GameManager();
 var User = require('./modules/User.js');
 
+var INTERVAL_TIMER = 1000/gameConfig.fps;
+
 var io = socketio.listen(server);
 
 io.on('connection', function(socket){
@@ -39,12 +41,12 @@ io.on('connection', function(socket){
   socket.on('reqStartGame', function(){
     // initialize and join GameManager
     // user.initialize();
-    GM.joinUser(user);
     GM.initializeUser(user);
+    GM.joinUser(user);
 
     //update user data
     if(!updateUserInterval){
-      updateUserInterval = setInterval(function(){ GM.updateUser(user); }, 1000);
+      updateUserInterval = setInterval(function(){ GM.updateUser(user); }, INTERVAL_TIMER);
     }
     var data = GM.updateDataSetting(user);
     socket.broadcast.emit('userJoined', data);
