@@ -1,3 +1,7 @@
 {
-  "port": 52273
+  "port": 52273,
+
+
+  "canvasMaxSize" : {"x" : 5000 , "y" : 5000},
+  "canvasMaxLocalSize" : {"x" : 1000, "y" : 1000}
 }

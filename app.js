@@ -7,7 +7,7 @@ var path = require('path');
 
 var app = express();
 var config = require('./config.json');
-var gameConfig = require('./gameConfig.json');
+var gameConfig = require('./public/js/utils/gameConfig.json');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -52,6 +52,8 @@ io.on('connection', function(socket){
     socket.broadcast.emit('userJoined', data);
 
     var datas = GM.updateDataSettings();
+    console.log(datas);
+
     socket.emit('resStartGame', datas);
   });
 

@@ -1,7 +1,7 @@
 var GameObject = require('./GameObject.js');
 var util = require('../public/js/utils/util.js');
 
-var gameConfig = require('../gameConfig.json');
+var gameConfig = require('../public/js/utils/gameConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.fps;
 
@@ -9,7 +9,7 @@ function LivingEntity(){
   GameObject.call(this);
   this.objectID = null;
 
-  this.currentState = null;
+  this.currentState = gameConfig.OBJECT_STATE_IDLE;
 
   this.speed = {x: 0, y:0};
   this.direction = 0;
@@ -21,45 +21,45 @@ function LivingEntity(){
   };
   this.targetDirection = 0;
 
-  this.moveInterval = false;
-  this.rotateInterval = false;
+  this.updateInterval = false;
+  this.updateFunction = null;
 };
 LivingEntity.prototype = Object.create(GameObject.prototype);
 LivingEntity.prototype.constructor = LivingEntity;
 
-//state changer
+//state changer. change update listener
 LivingEntity.prototype.changeState = function(newState){
   this.currentState = newState;
-}
+
+  this.stop();
+  switch(this.currentState){
+    case gameConfig.OBJECT_STATE_IDLE :
+      this.updateFunction = null;
+      break;
+    case gameConfig.OBJECT_STATE_MOVE :
+      this.updateFunction = this.rotate.bind(this);
+      break;
+    }
+  this.update();
+};
+LivingEntity.prototype.update = function(){
+  this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
+};
 
 //rotate before move or fire skill etc..
 LivingEntity.prototype.rotate = function(){
-  if(this.rotateInterval){
-    clearInterval(this.rotateInterval);
-    this.rotateInterval = false;
-  }
-  this.rotateInterval = setInterval(util.rotate.bind(this), INTERVAL_TIMER);
+  util.rotate.call(this);
 };
-
 //move after rotate
 LivingEntity.prototype.move = function(){
-  if(this.moveInterval){
-    clearInterval(this.moveInterval);
-    this.moveInterval = false;
-  }
-  console.log('move' + this.speed.x + ' : ' + this.speed.y);
-  this.moveInterval = setInterval(util.move.bind(this), INTERVAL_TIMER);
+  util.move.call(this);
 };
 
 //interval clear
 LivingEntity.prototype.stop = function(){
-  if(this.moveInterval){
-    clearInterval(this.moveInterval);
-    this.moveInterval = false;
-  }
-  if(this.rotateInterval){
-    clearInterval(this.rotateInterval);
-    this.rotateInterval = false;
+  if(this.updateInterval){
+    clearInterval(this.updateInterval);
+    this.updateInterval = false;
   }
 };
 
@@ -69,7 +69,7 @@ LivingEntity.prototype.setTargetPosition = function(newPosition){
   this.targetPosition.y = newPosition.y;
 };
 LivingEntity.prototype.setSpeed = function(){
-  util.setSpeed.bind(this)();
+  util.setSpeed.call(this);
 };
 // setup when click canvas for move or fire skill
 LivingEntity.prototype.setTargetDirection = function(newPosition){

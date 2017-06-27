@@ -1,7 +1,11 @@
 var util = require('./util.js');
+var gameConfig = require('./gameConfig');
+
+var INTERVAL_TIMER = 1000/gameConfig.fps;
 
 var User = function(userData){
   this.objectID = userData.objectID;
+  this.currentState = null;
   this.position = userData.position;
   this.targetPosition = userData.targetPosition;
   this.speed = userData.speed;
@@ -9,34 +13,45 @@ var User = function(userData){
   this.rotateSpeed = userData.rotateSpeed;
   this.targetDirection = userData.targetDirection;
 
-  this.moveInterval = false;
-  this.rotateInterval = false;
+  this.updateInterval = false;
+  this.updateFunction = null;
+
+  this.rotateCount = 0;
 };
 
 User.prototype = {
-  rotate : function(){
-    if(this.rotateInterval){
-      clearInterval(this.rotateInterval);
-      this.rotateInterval = false;
+  changeState : function(newState){
+    console.log('inChangeState');
+    console.log(this);
+
+    this.currentState = newState;
+
+    this.stop();
+    switch (this.currentState) {
+      case gameConfig.OBJECT_STATE_IDLE:
+        this.updateFunction = null;
+        break;
+      case gameConfig.OBJECT_STATE_MOVE:
+        this.updateFunction = this.rotate.bind(this);
+        break;
     }
-    this.rotateInterval = setInterval(util.rotate.bind(this), 1000);
+    this.update();
+  },
+  update : function(){
+    this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
+  },
+  rotate : function(){
+    this.rotateCount++;
+    util.rotate.call(this);
   },
   move : function(){
-    if(this.moveInterval){
-      clearInterval(this.moveInterval);
-      this.moveInterval = false;
-    }
-    console.log('move' + this.speed.x + ' : ' + this.speed.y);
-    this.moveInterval = setInterval(util.move.bind(this), 1000);
+    util.move.call(this);
   },
   stop : function(){
-    if(this.moveInterval){
-      clearInterval(this.moveInterval);
-      this.moveInterval = false;
-    }
-    if(this.rotateInterval){
-      clearInterval(this.rotateInterval);
-      this.rotateInterval = false;
+    console.log('stop');
+    if(this.updateInterval){
+      clearInterval(this.updateInterval);
+      this.updateInterval = false;
     }
   }
 };

@@ -1,9 +1,13 @@
+var gameConfig = require('./gameConfig.json');
 
 //must use with bind method
 exports.rotate = function(){
+  console.log(this);
   if(this.targetDirection == this.direction){
     this.stop();
-    this.move();
+    if(this.currentState == gameConfig.OBJECT_STATE_MOVE){
+      this.move();
+    }
   }else if(this.targetDirection > this.direction){
     if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
       this.direction += Math.abs(this.targetDirection - this.direction);
@@ -27,7 +31,8 @@ exports.move = function(){
 
   if(distX == 0 && distY == 0){
     this.stop();
-    console.log('stop');
+    this.changeState(gameConfig.OBJECT_STATE_IDLE);
+    console.log('stop ' + this.currentState);
   }
   if(Math.abs(distX) < Math.abs(this.speed.x)){
     this.speed.x = distX;

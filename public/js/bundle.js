@@ -8,16 +8,18 @@ var ctx = canvas.getContext('2d');
 var util = require('./utils/util.js');
 var User = require('./utils/CUser.js');
 var CManager = require('./utils/CManager.js');
+
+var localConfig = require('./utils/gameConfig.json');
 var Manager = new CManager();
 
 var userImage = new Image();
 
 userImage.src = '../images/Character.png';
 
-var localConfig = {};
 
 setupSocket();
 
+//event config
 document.getElementById('startButton').onclick = function(){
   reqSetWindowSize();
   reqStartGame();
@@ -27,6 +29,7 @@ window.onresize = function(e){
   reqSetWindowSize();
 };
 
+//request to server
 function reqStartGame(){
   socket.emit('reqStartGame');
 };
@@ -51,27 +54,35 @@ function canvasSetting(){
   // userImage.addEventListener('load', userImageLoaded, false);
 }
 
+//draw
 var drawInterval = false;
 function drawScreen(){
-  drawInterval = setInterval(function(){
-    ctx.fillStyle = "#aaaaaa";
-    ctx.fillRect(0, 0, 1000, 1000);
+  // setInterval(function(){
+  //   for(var index in Manager.users){
+  //     console.log(Manager.users[index]);
+  //   }
+  // }, 1000);
 
-    for(var index in Manager.users){
-      if(Manager.users[index].direction < 0){
-        var degree = Manager.users[index].direction + 360;
-      }else{
-        degree = Manager.users[index].direction;
-      }
-      var sourceX = Math.floor((degree % 90) / 10) * 75;
-      var sourceY = Math.floor((degree / 90)) * 75;
-
-      ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
-      Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
-    }
-  }, 1000/30);
+  // drawInterval = setInterval(function(){
+  //   ctx.fillStyle = "#aaaaaa";
+  //   ctx.fillRect(0, 0, 1000, 1000);
+  //
+  //   for(var index in Manager.users){
+  //     if(Manager.users[index].direction < 0){
+  //       var degree = Manager.users[index].direction + 360;
+  //     }else{
+  //       degree = Manager.users[index].direction;
+  //     }
+  //     var sourceX = Math.floor((degree % 90) / 10) * 75;
+  //     var sourceY = Math.floor((degree / 90)) * 75;
+  //
+  //     ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
+  //     Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
+  //   }
+  // }, 1000/30);
 };
 
+// server response
 function setupSocket(){
 
   socket.on('resStartGame', function(data){
@@ -92,10 +103,10 @@ function setupSocket(){
     console.log(Manager.users);
   });
 
-  socket.on('resMove', function(data){
-    console.log(data);
+  socket.on('resMove', function(userData){
+    console.log(userData);
     console.log('move start');
-    Manager.moveUser(data);
+    Manager.moveUser(userData);
   });
 
   socket.on('resSetWindowSize', function(data){
@@ -105,13 +116,17 @@ function setupSocket(){
   });
 };
 
+// other utils
 function setCanvasSize(){
   canvas.width = localConfig.windowSize.width;
   canvas.height = localConfig.windowSize.height;
 };
 
-},{"./utils/CManager.js":2,"./utils/CUser.js":3,"./utils/util.js":4}],2:[function(require,module,exports){
+},{"./utils/CManager.js":2,"./utils/CUser.js":3,"./utils/gameConfig.json":4,"./utils/util.js":5}],2:[function(require,module,exports){
 var User = require('./CUser.js');
+var gameConfig = require('./gameConfig');
+
+var INTERVAL_TIMER = 1000/gameConfig.fps;
 
 var CManager = function(){
 	this.users = [];
@@ -122,6 +137,7 @@ CManager.prototype = {
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData);
 			this.users[userData.objectID] = tempUser;
+			this.users[userData.objectID].changeState(userData.currentState);
 		}else{
 			console.log('user.objectID duplicated. something is wrong.');
 		}
@@ -130,6 +146,7 @@ CManager.prototype = {
 		for(var index in userDatas){
 			var tempUser = new User(userDatas[index]);
 			this.users[userDatas[index].objectID] = tempUser;
+			this.users[userDatas[index].objectID].changeState(userDatas[index].currentState);
 		}
 	},
 	checkUserAtUsers : function(userData){
@@ -141,15 +158,18 @@ CManager.prototype = {
 	},
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
+
+			console.log(this.users[userData.objectID]);
+
 			this.users[userData.objectID].position = userData.position;
+			// this.users[userData.objectID].currentState = userData.currentState;
 	    this.users[userData.objectID].targetPosition = userData.targetPosition;
 	    this.users[userData.objectID].speed = userData.speed;
 	    this.users[userData.objectID].direction = userData.direction;
 	    this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
 	    this.users[userData.objectID].targetDirection = userData.targetDirection;
 
-	    this.users[userData.objectID].stop();
-	    this.users[userData.objectID].rotate();
+			this.users[userData.objectID].changeState(userData.currentState);
 		}else{
   		console.log('can`t find user data');
 		}
@@ -158,11 +178,15 @@ CManager.prototype = {
 
 module.exports = CManager;
 
-},{"./CUser.js":3}],3:[function(require,module,exports){
+},{"./CUser.js":3,"./gameConfig":4}],3:[function(require,module,exports){
 var util = require('./util.js');
+var gameConfig = require('./gameConfig');
+
+var INTERVAL_TIMER = 1000/gameConfig.fps;
 
 var User = function(userData){
   this.objectID = userData.objectID;
+  this.currentState = null;
   this.position = userData.position;
   this.targetPosition = userData.targetPosition;
   this.speed = userData.speed;
@@ -170,47 +194,70 @@ var User = function(userData){
   this.rotateSpeed = userData.rotateSpeed;
   this.targetDirection = userData.targetDirection;
 
-  this.moveInterval = false;
-  this.rotateInterval = false;
+  this.updateInterval = false;
+  this.updateFunction = null;
+
+  this.rotateCount = 0;
 };
 
 User.prototype = {
-  rotate : function(){
-    if(this.rotateInterval){
-      clearInterval(this.rotateInterval);
-      this.rotateInterval = false;
+  changeState : function(newState){
+    console.log('inChangeState');
+    console.log(this);
+
+    this.currentState = newState;
+
+    this.stop();
+    switch (this.currentState) {
+      case gameConfig.OBJECT_STATE_IDLE:
+        this.updateFunction = null;
+        break;
+      case gameConfig.OBJECT_STATE_MOVE:
+        this.updateFunction = this.rotate.bind(this);
+        break;
     }
-    this.rotateInterval = setInterval(util.rotate.bind(this), 1000);
+    this.update();
+  },
+  update : function(){
+    this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
+  },
+  rotate : function(){
+    this.rotateCount++;
+    util.rotate.call(this);
   },
   move : function(){
-    if(this.moveInterval){
-      clearInterval(this.moveInterval);
-      this.moveInterval = false;
-    }
-    console.log('move' + this.speed.x + ' : ' + this.speed.y);
-    this.moveInterval = setInterval(util.move.bind(this), 1000);
+    util.move.call(this);
   },
   stop : function(){
-    if(this.moveInterval){
-      clearInterval(this.moveInterval);
-      this.moveInterval = false;
-    }
-    if(this.rotateInterval){
-      clearInterval(this.rotateInterval);
-      this.rotateInterval = false;
+    console.log('stop');
+    if(this.updateInterval){
+      clearInterval(this.updateInterval);
+      this.updateInterval = false;
     }
   }
 };
 
 module.exports = User;
 
-},{"./util.js":4}],4:[function(require,module,exports){
+},{"./gameConfig":4,"./util.js":5}],4:[function(require,module,exports){
+module.exports={
+  "fps" : 1,
+
+  "OBJECT_STATE_IDLE" : 0,
+  "OBJECT_STATE_MOVE" : 1
+}
+
+},{}],5:[function(require,module,exports){
+var gameConfig = require('./gameConfig.json');
 
 //must use with bind method
 exports.rotate = function(){
+  console.log(this);
   if(this.targetDirection == this.direction){
     this.stop();
-    this.move();
+    if(this.currentState == gameConfig.OBJECT_STATE_MOVE){
+      this.move();
+    }
   }else if(this.targetDirection > this.direction){
     if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
       this.direction += Math.abs(this.targetDirection - this.direction);
@@ -234,7 +281,8 @@ exports.move = function(){
 
   if(distX == 0 && distY == 0){
     this.stop();
-    console.log('stop');
+    this.changeState(gameConfig.OBJECT_STATE_IDLE);
+    console.log('stop ' + this.currentState);
   }
   if(Math.abs(distX) < Math.abs(this.speed.x)){
     this.speed.x = distX;
@@ -264,4 +312,4 @@ exports.setSpeed = function(){
   }
 };
 
-},{}]},{},[1]);
+},{"./gameConfig.json":4}]},{},[1]);

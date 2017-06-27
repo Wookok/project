@@ -1,7 +1,4 @@
-var gameConfig = require('../gameConfig.json');
-
-var OBJECT_STATE_IDLE = 0;
-var OBJECT_STATE_MOVE = 1;
+var gameConfig = require('../public/js/utils/gameConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.fps;
 
@@ -23,13 +20,9 @@ GameManager.prototype.updateGame = function(){
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
   user.setTargetPosition(targetPosition);
   user.setTargetDirection(targetPosition);
-  user.stop();
   user.setSpeed();
-  if(user.direction != user.targetDirection){
-    user.rotate();
-  }else{
-    user.move();
-  }
+
+  user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
 
 // user join, kick, update
@@ -84,6 +77,8 @@ GameManager.prototype.updateDataSettings = function(){
   for(var index in this.users){
     var tempUser = {
       objectID : index,
+
+      currentState : this.users[index].currentState,
       position : this.users[index].position,
       targetPosition : this.users[index].targetPosition,
 
@@ -95,13 +90,14 @@ GameManager.prototype.updateDataSettings = function(){
     };
     userData.push(tempUser);
   };
-  console.log(userData);
 
   return userData;
 };
 GameManager.prototype.updateDataSetting = function(user){
   var updateUser = {
     objectID : user.objectID,
+
+    currentState : user.currentState,
     position : user.position,
     targetPosition : user.targetPosition,
 

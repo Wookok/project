@@ -7,16 +7,18 @@ var ctx = canvas.getContext('2d');
 var util = require('./utils/util.js');
 var User = require('./utils/CUser.js');
 var CManager = require('./utils/CManager.js');
+
+var localConfig = require('./utils/gameConfig.json');
 var Manager = new CManager();
 
 var userImage = new Image();
 
 userImage.src = '../images/Character.png';
 
-var localConfig = {};
 
 setupSocket();
 
+//event config
 document.getElementById('startButton').onclick = function(){
   reqSetWindowSize();
   reqStartGame();
@@ -26,6 +28,7 @@ window.onresize = function(e){
   reqSetWindowSize();
 };
 
+//request to server
 function reqStartGame(){
   socket.emit('reqStartGame');
 };
@@ -50,27 +53,35 @@ function canvasSetting(){
   // userImage.addEventListener('load', userImageLoaded, false);
 }
 
+//draw
 var drawInterval = false;
 function drawScreen(){
-  drawInterval = setInterval(function(){
-    ctx.fillStyle = "#aaaaaa";
-    ctx.fillRect(0, 0, 1000, 1000);
+  // setInterval(function(){
+  //   for(var index in Manager.users){
+  //     console.log(Manager.users[index]);
+  //   }
+  // }, 1000);
 
-    for(var index in Manager.users){
-      if(Manager.users[index].direction < 0){
-        var degree = Manager.users[index].direction + 360;
-      }else{
-        degree = Manager.users[index].direction;
-      }
-      var sourceX = Math.floor((degree % 90) / 10) * 75;
-      var sourceY = Math.floor((degree / 90)) * 75;
-
-      ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
-      Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
-    }
-  }, 1000/30);
+  // drawInterval = setInterval(function(){
+  //   ctx.fillStyle = "#aaaaaa";
+  //   ctx.fillRect(0, 0, 1000, 1000);
+  //
+  //   for(var index in Manager.users){
+  //     if(Manager.users[index].direction < 0){
+  //       var degree = Manager.users[index].direction + 360;
+  //     }else{
+  //       degree = Manager.users[index].direction;
+  //     }
+  //     var sourceX = Math.floor((degree % 90) / 10) * 75;
+  //     var sourceY = Math.floor((degree / 90)) * 75;
+  //
+  //     ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
+  //     Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
+  //   }
+  // }, 1000/30);
 };
 
+// server response
 function setupSocket(){
 
   socket.on('resStartGame', function(data){
@@ -91,10 +102,10 @@ function setupSocket(){
     console.log(Manager.users);
   });
 
-  socket.on('resMove', function(data){
-    console.log(data);
+  socket.on('resMove', function(userData){
+    console.log(userData);
     console.log('move start');
-    Manager.moveUser(data);
+    Manager.moveUser(userData);
   });
 
   socket.on('resSetWindowSize', function(data){
@@ -104,6 +115,7 @@ function setupSocket(){
   });
 };
 
+// other utils
 function setCanvasSize(){
   canvas.width = localConfig.windowSize.width;
   canvas.height = localConfig.windowSize.height;
