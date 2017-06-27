@@ -34,7 +34,7 @@ LivingEntity.prototype.changeState = function(newState){
   this.stop();
   switch(this.currentState){
     case gameConfig.OBJECT_STATE_IDLE :
-      this.updateFunction = null;
+      this.updateFunction = this.idle;
       break;
     case gameConfig.OBJECT_STATE_MOVE :
       this.updateFunction = this.rotate.bind(this);
@@ -54,7 +54,9 @@ LivingEntity.prototype.rotate = function(){
 LivingEntity.prototype.move = function(){
   util.move.call(this);
 };
-
+LivingEntity.prototype.idle = function(){
+  //do nothing;
+};
 //interval clear
 LivingEntity.prototype.stop = function(){
   if(this.updateInterval){
