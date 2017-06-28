@@ -8,6 +8,7 @@ var User = require('./utils/CUser.js');
 var CManager = require('./utils/CManager.js');
 
 var gameConfig = require('./utils/gameConfig.json');
+<<<<<<< HEAD
 
 var Manager;
 
@@ -20,6 +21,21 @@ userHand.src = '../images/CharHand.svg';
 document.getElementById('startButton').onclick = function(){
   setupSocket();
 
+=======
+
+var userID;
+var userOffset = {};
+var Manager;
+
+var userImage = new Image();
+
+userImage.src = '../images/Character.png';
+
+setupSocket();
+
+//event config
+document.getElementById('startButton').onclick = function(){
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
   reqSetCanvasSize();
   reqStartGame();
 };
@@ -56,6 +72,7 @@ function canvasSetting(){
 //draw
 var drawInterval = false;
 function drawScreen(){
+<<<<<<< HEAD
   drawInterval = setInterval(function(){
     ctx.fillStyle = "#aaaaaa";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -77,12 +94,38 @@ function drawScreen(){
       ctx.restore();
     }
   }, 1000/60);
+=======
+  // setInterval(function(){
+  //   for(var index in Manager.users){
+  //     console.log(Manager.users[index]);
+  //   }
+  // }, 1000);
+  //
+  // drawInterval = setInterval(function(){
+  //   ctx.fillStyle = "#aaaaaa";
+  //   ctx.fillRect(0, 0, 1000, 1000);
+  //
+  //   for(var index in Manager.users){
+  //     if(Manager.users[index].direction < 0){
+  //       var degree = Manager.users[index].direction + 360;
+  //     }else{
+  //       degree = Manager.users[index].direction;
+  //     }
+  //     var sourceX = Math.floor((degree % 90) / 10) * 75;
+  //     var sourceY = Math.floor((degree / 90)) * 75;
+  //
+  //     ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
+  //     Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
+  //   }
+  // }, 1000/30);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 };
 
 // server response
 function setupSocket(){
 
   socket.on('setCorrespondUser', function(user){
+<<<<<<< HEAD
     gameConfig.userID = user.objectID;
     gameConfig.userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
     Manager = new CManager(gameConfig);
@@ -91,6 +134,16 @@ function setupSocket(){
   socket.on('resStartGame', function(data){
     Manager.setUsers(data);
     Manager.synchronizeUser(gameConfig.userID);
+=======
+    userID = user.objectID;
+    userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
+    Manager = new CManager(userOffset);
+  });
+
+  socket.on('resStartGame', function(data){
+    Manager.setUsers(data, userOffset);
+    Manager.synchronizeUser(userID);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
     console.log(Manager.users);
 
     document.getElementById('infoScene').classList.remove('enable');
@@ -103,7 +156,11 @@ function setupSocket(){
   });
 
   socket.on('userJoined', function(data){
+<<<<<<< HEAD
     Manager.setUser(data);
+=======
+    Manager.setUser(data, userOffset);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 
     console.log(Manager.users);
   });
@@ -116,19 +173,32 @@ function setupSocket(){
 
   socket.on('resSetCanvasSize', function(canvasSize, scaleFactor){
     gameConfig.canvasSize = canvasSize;
+<<<<<<< HEAD
 
     //css height, width change
 
+=======
+
+    //css height, width change
+
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
     setCanvasSize(scaleFactor);
   });
 };
 
 // local utils
 function setCanvasSize(scaleFactor){
+<<<<<<< HEAD
   // canvas.style.width = (canvas.width * scaleFactor) + 'px';
   // canvas.style.height = (canvas.height * scaleFactor) + 'px';
   canvas.width = gameConfig.canvasSize.width;
   canvas.height = gameConfig.canvasSize.height;
+=======
+  canvas.width = gameConfig.canvasSize.width;
+  canvas.height = gameConfig.canvasSize.height;
+  canvas.style.width = (canvas.width * scaleFactor) + 'px';
+  canvas.style.height = (canvas.height * scaleFactor) + 'px';
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 };
 
 },{"./utils/CManager.js":2,"./utils/CUser.js":3,"./utils/gameConfig.json":4,"./utils/util.js":5}],2:[function(require,module,exports){
@@ -138,14 +208,21 @@ var util = require('./util.js');
 var CManager = function(gameConfig){
 	this.gameConfig = gameConfig;
 
+<<<<<<< HEAD
 	//user correspond client
 	this.user = null;
+=======
+var CManager = function(offset){
+	//user correspond client
+	this.user = null;
+	this.offset = offset;
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 	//all users
 	this.users = [];
 };
 
 CManager.prototype = {
-	setUser : function(userData){
+	setUser : function(userData, offset){
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData, this.gameConfig);
 			this.users[userData.objectID] = tempUser;
@@ -154,7 +231,7 @@ CManager.prototype = {
 			console.log('user.objectID duplicated. something is wrong.');
 		}
 	},
-	setUsers : function(userDatas){
+	setUsers : function(userDatas, offset){
 		for(var index in userDatas){
 			var tempUser = new User(userDatas[index], this.gameConfig);
 			this.users[userDatas[index].objectID] = tempUser;
@@ -174,6 +251,7 @@ CManager.prototype = {
 	},
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
+<<<<<<< HEAD
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
@@ -190,10 +268,26 @@ CManager.prototype = {
 			}else{
 				this.users[userData.objectID].changeState(userData.currentState);
 			}
+=======
+
+			console.log(this.users[userData.objectID]);
+
+			this.users[userData.objectID].position = userData.position;
+	    this.users[userData.objectID].targetPosition = userData.targetPosition;
+	    this.users[userData.objectID].speed = userData.speed;
+	    this.users[userData.objectID].direction = userData.direction;
+	    this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+	    this.users[userData.objectID].targetDirection = userData.targetDirection;
+
+			console.log(this.users[userData.objectID].direction);
+
+			this.users[userData.objectID].changeState(userData.currentState);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 		}else{
   		console.log('can`t find user data');
 		}
 	},
+<<<<<<< HEAD
 	//execute every frame this client user move
 	moveUsersOffset : function(){
 		for(var index in this.users){
@@ -211,11 +305,16 @@ CManager.prototype = {
 		}
 	},
 	// set this client user
+=======
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 	synchronizeUser : function(userID){
 		for(var index in this.users){
 			if(this.users[index].objectID === userID){
 				this.user = this.users[index];
+<<<<<<< HEAD
 				this.user.onMoveOffset = this.moveUsersOffset.bind(this);
+=======
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 			}
 		}
 		if(this.user === null){
@@ -392,12 +491,16 @@ exports.setSpeed = function(){
 exports.localToWorldPosition = function(position, offset){
   position.x += offset.x;
   position.y += offset.y;
+<<<<<<< HEAD
   return position;
+=======
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 };
 
 exports.worldToLocalPosition = function(position, offset){
   position.x -= offset.x;
   position.y -= offset.y;
+<<<<<<< HEAD
   return position;
 };
 
@@ -406,5 +509,13 @@ exports.calculateOffset = function(position, canvasSize){
   position.y -= canvasSize.height/2;
   return position;
 };
+=======
+};
+
+exports.calculateOffset = function(position, canvasSize){
+  position.x -= canvasSize.width;
+  position.y -= canvasSize.height;
+}
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 
 },{"./gameConfig.json":4}]},{},[1]);

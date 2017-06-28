@@ -6,9 +6,17 @@ exports.rotate = function(){
   if(this.targetDirection == this.direction){
     if(this.currentState == gameConfig.OBJECT_STATE_MOVE){
       this.move();
+<<<<<<< HEAD
     }else if(this.currentState == gameConfig.OBJECT_STATE_MOVE_OFFSET){
         this.moveOffset();
     }
+=======
+    }else if(
+      if(this.currentState == gameConfig.OBJECT_STATE_MOVE_OFFSET){
+        this.moveOffset();
+      }
+    )
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
   }else if(this.targetDirection > this.direction){
     if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
       this.direction += Math.abs(this.targetDirection - this.direction);
@@ -76,7 +84,12 @@ exports.worldToLocalPosition = function(position, offset){
 };
 
 exports.calculateOffset = function(position, canvasSize){
+<<<<<<< HEAD
   position.x -= canvasSize.width/2;
   position.y -= canvasSize.height/2;
+=======
+  position.x -= canvasSize.width;
+  position.y -= canvasSize.height;
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
   return position;
 };

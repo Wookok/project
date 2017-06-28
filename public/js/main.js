@@ -7,9 +7,19 @@ var User = require('./utils/CUser.js');
 var CManager = require('./utils/CManager.js');
 
 var gameConfig = require('./utils/gameConfig.json');
+<<<<<<< HEAD
+=======
+
+var userID;
+var userOffset = {};
+var Manager;
+
+var userImage = new Image();
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 
 var Manager;
 
+<<<<<<< HEAD
 var userImage = new Image();
 var userHand = new Image();
 userImage.src = '../images/CharBase.svg';
@@ -19,6 +29,12 @@ userHand.src = '../images/CharHand.svg';
 document.getElementById('startButton').onclick = function(){
   setupSocket();
 
+=======
+setupSocket();
+
+//event config
+document.getElementById('startButton').onclick = function(){
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
   reqSetCanvasSize();
   reqStartGame();
 };
@@ -82,6 +98,7 @@ function drawScreen(){
 function setupSocket(){
 
   socket.on('setCorrespondUser', function(user){
+<<<<<<< HEAD
     gameConfig.userID = user.objectID;
     gameConfig.userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
     Manager = new CManager(gameConfig);
@@ -90,6 +107,16 @@ function setupSocket(){
   socket.on('resStartGame', function(data){
     Manager.setUsers(data);
     Manager.synchronizeUser(gameConfig.userID);
+=======
+    userID = user.objectID;
+    userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
+    Manager = new CManager(userOffset);
+  });
+
+  socket.on('resStartGame', function(data){
+    Manager.setUsers(data, userOffset);
+    Manager.synchronizeUser(userID);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
     console.log(Manager.users);
 
     document.getElementById('infoScene').classList.remove('enable');
@@ -102,7 +129,11 @@ function setupSocket(){
   });
 
   socket.on('userJoined', function(data){
+<<<<<<< HEAD
     Manager.setUser(data);
+=======
+    Manager.setUser(data, userOffset);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 
     console.log(Manager.users);
   });
@@ -124,8 +155,13 @@ function setupSocket(){
 
 // local utils
 function setCanvasSize(scaleFactor){
+<<<<<<< HEAD
   // canvas.style.width = (canvas.width * scaleFactor) + 'px';
   // canvas.style.height = (canvas.height * scaleFactor) + 'px';
+=======
+  canvas.style.width = (canvas.width * scaleFactor) + 'px';
+  canvas.style.height = (canvas.height * scaleFactor) + 'px';
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
   canvas.width = gameConfig.canvasSize.width;
   canvas.height = gameConfig.canvasSize.height;
 };

@@ -3,7 +3,11 @@
 
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,
+<<<<<<< HEAD
 
 
   "OBJECT_STATE_MOVE_OFFSET" : 99
+=======
+  "OBJECT_STATE_MOVE_OFFSET" : 99 
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 }

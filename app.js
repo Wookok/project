@@ -44,7 +44,13 @@ io.on('connection', function(socket){
       //   width : config.canvasMaxLocalSize.width,
       //   height : config.canvasMaxLocalSize.height
       // };
+<<<<<<< HEAD
     }
+=======
+      console.log(scaleFactor);
+    }
+    console.log(scaleFactor);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
     localConfig.canvasSize = windowSize;
 
     socket.emit('resSetCanvasSize', localConfig.canvasSize, scaleFactor);
@@ -70,8 +76,13 @@ io.on('connection', function(socket){
   });
 
   socket.on('reqMove', function(targetPosition, localOffset){
+<<<<<<< HEAD
     var newTargetPosition = util.localToWorldPosition(targetPosition, localOffset);
     GM.setUserTargetAndMove(user, newTargetPosition);
+=======
+    util.localToWorldPosition(targetPosition, localOffset);
+    GM.setUserTargetAndMove(user, targetPosition);
+>>>>>>> 3304659e2266a91f30aaf3161c185bedfa22d38b
 
     var data = GM.updateDataSetting(user);
     io.sockets.emit('resMove', data);
