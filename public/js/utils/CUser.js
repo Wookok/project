@@ -41,7 +41,7 @@ User.prototype = {
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
   rotate : function(){
-    this.rotateCount++;
+    console.log(this.rotateCount++);
     util.rotate.call(this);
   },
   move : function(){

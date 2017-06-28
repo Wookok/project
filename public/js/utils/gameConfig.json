@@ -1,0 +1,6 @@
+{
+  "fps" : 1,
+
+  "OBJECT_STATE_IDLE" : 0,
+  "OBJECT_STATE_MOVE" : 1
+}

@@ -61,7 +61,7 @@ function drawScreen(){
   //     console.log(Manager.users[index]);
   //   }
   // }, 1000);
-
+  //
   // drawInterval = setInterval(function(){
   //   ctx.fillStyle = "#aaaaaa";
   //   ctx.fillRect(0, 0, 1000, 1000);

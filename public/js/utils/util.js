@@ -4,7 +4,6 @@ var gameConfig = require('./gameConfig.json');
 exports.rotate = function(){
   console.log(this);
   if(this.targetDirection == this.direction){
-    this.stop();
     if(this.currentState == gameConfig.OBJECT_STATE_MOVE){
       this.move();
     }

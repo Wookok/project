@@ -1,7 +1,8 @@
 {
   "port": 52273,
 
+  "maxUserCount" : 50,
 
-  "canvasMaxSize" : {"x" : 5000 , "y" : 5000},
-  "canvasMaxLocalSize" : {"x" : 1000, "y" : 1000}
+  "canvasMaxSize" : {"x" : 11200 , "y" : 11200},
+  "canvasMaxLocalSize" : {"x" : 1600, "y" : 1600}
 }
