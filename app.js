@@ -33,12 +33,22 @@ io.on('connection', function(socket){
   var user = new User(socket.id);
   var updateUserInterval = false;
   var localConfig = {};
-  socket.on('reqSetWindowSize', function(data){
-    localConfig.windowSize = data;
+  socket.on('reqSetCanvasSize', function(windowSize){
+    var scaleFactor = 1;
 
-    // do local canvas size setting
+    if(windowSize.width >= config.canvasMaxLocalSize.width || windowSize.height >= config.canvasMaxLocalSize.height){
+      scaleFactor = (windowSize.width / config.canvasMaxLocalSize.width) > (windowSize.height / config.canvasMaxLocalSize.height) ?
+                    (windowSize.width / config.canvasMaxLocalSize.width) : (windowSize.height / config.canvasMaxLocalSize.height);
+      // localConfig.canvasSize = {
+      //   width : config.canvasMaxLocalSize.width,
+      //   height : config.canvasMaxLocalSize.height
+      // };
+      console.log(scaleFactor);
+    }
+    console.log(scaleFactor);
+    localConfig.canvasSize = windowSize;
 
-    socket.emit('resSetWindowSize', data);
+    socket.emit('resSetCanvasSize', localConfig.canvasSize, scaleFactor);
   });
   socket.on('reqStartGame', function(){
     // initialize and join GameManager
@@ -51,6 +61,7 @@ io.on('connection', function(socket){
       updateUserInterval = setInterval(function(){ GM.updateUser(user); }, INTERVAL_TIMER);
     }
     var data = GM.updateDataSetting(user);
+    socket.emit('setCorrespondUser', data);
     socket.broadcast.emit('userJoined', data);
 
     var datas = GM.updateDataSettings();
@@ -59,7 +70,8 @@ io.on('connection', function(socket){
     socket.emit('resStartGame', datas);
   });
 
-  socket.on('reqMove', function(targetPosition){
+  socket.on('reqMove', function(targetPosition, localOffset){
+    util.localToWorldPosition(targetPosition, localOffset);
     GM.setUserTargetAndMove(user, targetPosition);
 
     var data = GM.updateDataSetting(user);
@@ -69,7 +81,6 @@ io.on('connection', function(socket){
   socket.on('disconnect', function(){
     if(user){
       GM.stopUser(user);
-      // user.stop();
       GM.kickUser(user);
       user = null;
     }

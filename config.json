@@ -3,6 +3,6 @@
 
   "maxUserCount" : 50,
 
-  "canvasMaxSize" : {"x" : 11200 , "y" : 11200},
-  "canvasMaxLocalSize" : {"x" : 1600, "y" : 1600}
+  "canvasMaxSize" : {"width" : 11200 , "height" : 11200},
+  "canvasMaxLocalSize" : {"width" : 1600, "height" : 1600}
 }

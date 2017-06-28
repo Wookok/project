@@ -1,7 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 
 var socket = io();
-var userName;
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
@@ -9,24 +8,26 @@ var util = require('./utils/util.js');
 var User = require('./utils/CUser.js');
 var CManager = require('./utils/CManager.js');
 
-var localConfig = require('./utils/gameConfig.json');
-var Manager = new CManager();
+var gameConfig = require('./utils/gameConfig.json');
+
+var userID;
+var userOffset = {};
+var Manager;
 
 var userImage = new Image();
 
 userImage.src = '../images/Character.png';
 
-
 setupSocket();
 
 //event config
 document.getElementById('startButton').onclick = function(){
-  reqSetWindowSize();
+  reqSetCanvasSize();
   reqStartGame();
 };
 
 window.onresize = function(e){
-  reqSetWindowSize();
+  reqSetCanvasSize();
 };
 
 //request to server
@@ -34,12 +35,12 @@ function reqStartGame(){
   socket.emit('reqStartGame');
 };
 
-function reqSetWindowSize(){
+function reqSetCanvasSize(){
   var windowSize = {
     width : window.innerWidth,
     height : window.innerHeight
   };
-  socket.emit('reqSetWindowSize', windowSize);
+  socket.emit('reqSetCanvasSize', windowSize);
 };
 
 function canvasSetting(){
@@ -57,37 +58,43 @@ function canvasSetting(){
 //draw
 var drawInterval = false;
 function drawScreen(){
-  setInterval(function(){
-    for(var index in Manager.users){
-      console.log(Manager.users[index]);
-    }
-  }, 1000);
-
-  drawInterval = setInterval(function(){
-    ctx.fillStyle = "#aaaaaa";
-    ctx.fillRect(0, 0, 1000, 1000);
-
-    for(var index in Manager.users){
-      if(Manager.users[index].direction < 0){
-        var degree = Manager.users[index].direction + 360;
-      }else{
-        degree = Manager.users[index].direction;
-      }
-      var sourceX = Math.floor((degree % 90) / 10) * 75;
-      var sourceY = Math.floor((degree / 90)) * 75;
-
-      ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
-      Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
-    }
-  }, 1000/30);
+  // setInterval(function(){
+  //   for(var index in Manager.users){
+  //     console.log(Manager.users[index]);
+  //   }
+  // }, 1000);
+  //
+  // drawInterval = setInterval(function(){
+  //   ctx.fillStyle = "#aaaaaa";
+  //   ctx.fillRect(0, 0, 1000, 1000);
+  //
+  //   for(var index in Manager.users){
+  //     if(Manager.users[index].direction < 0){
+  //       var degree = Manager.users[index].direction + 360;
+  //     }else{
+  //       degree = Manager.users[index].direction;
+  //     }
+  //     var sourceX = Math.floor((degree % 90) / 10) * 75;
+  //     var sourceY = Math.floor((degree / 90)) * 75;
+  //
+  //     ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
+  //     Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
+  //   }
+  // }, 1000/30);
 };
 
 // server response
 function setupSocket(){
 
-  socket.on('resStartGame', function(data){
+  socket.on('setCorrespondUser', function(user){
+    userID = user.objectID;
+    userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
+    Manager = new CManager(userOffset);
+  });
 
-    Manager.setUsers(data);
+  socket.on('resStartGame', function(data){
+    Manager.setUsers(data, userOffset);
+    Manager.synchronizeUser(userID);
     console.log(Manager.users);
 
     document.getElementById('infoScene').classList.remove('enable');
@@ -95,11 +102,13 @@ function setupSocket(){
 
     document.getElementById('infoScene').classList.add('disable');
     document.getElementById('gameScene').classList.add('enable');
+
     canvasSetting();
   });
 
   socket.on('userJoined', function(data){
-    Manager.setUser(data);
+    Manager.setUser(data, userOffset);
+
     console.log(Manager.users);
   });
 
@@ -109,17 +118,21 @@ function setupSocket(){
     Manager.moveUser(userData);
   });
 
-  socket.on('resSetWindowSize', function(data){
-    localConfig.windowSize = data;
+  socket.on('resSetCanvasSize', function(canvasSize, scaleFactor){
+    gameConfig.canvasSize = canvasSize;
 
-    setCanvasSize();
+    //css height, width change
+
+    setCanvasSize(scaleFactor);
   });
 };
 
-// other utils
-function setCanvasSize(){
-  canvas.width = localConfig.windowSize.width;
-  canvas.height = localConfig.windowSize.height;
+// local utils
+function setCanvasSize(scaleFactor){
+  canvas.width = gameConfig.canvasSize.width;
+  canvas.height = gameConfig.canvasSize.height;
+  canvas.style.width = (canvas.width * scaleFactor) + 'px';
+  canvas.style.height = (canvas.height * scaleFactor) + 'px';
 };
 
 },{"./utils/CManager.js":2,"./utils/CUser.js":3,"./utils/gameConfig.json":4,"./utils/util.js":5}],2:[function(require,module,exports){
@@ -128,12 +141,16 @@ var gameConfig = require('./gameConfig');
 
 var INTERVAL_TIMER = 1000/gameConfig.fps;
 
-var CManager = function(){
+var CManager = function(offset){
+	//user correspond client
+	this.user = null;
+	this.offset = offset;
+	//all users
 	this.users = [];
 };
 
 CManager.prototype = {
-	setUser : function(userData){
+	setUser : function(userData, offset){
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData);
 			this.users[userData.objectID] = tempUser;
@@ -142,12 +159,16 @@ CManager.prototype = {
 			console.log('user.objectID duplicated. something is wrong.');
 		}
 	},
-	setUsers : function(userDatas){
+	setUsers : function(userDatas, offset){
 		for(var index in userDatas){
 			var tempUser = new User(userDatas[index]);
 			this.users[userDatas[index].objectID] = tempUser;
 			this.users[userDatas[index].objectID].changeState(userDatas[index].currentState);
 		}
+	},
+	updateUsers : function(){
+
+
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){
@@ -162,7 +183,6 @@ CManager.prototype = {
 			console.log(this.users[userData.objectID]);
 
 			this.users[userData.objectID].position = userData.position;
-			// this.users[userData.objectID].currentState = userData.currentState;
 	    this.users[userData.objectID].targetPosition = userData.targetPosition;
 	    this.users[userData.objectID].speed = userData.speed;
 	    this.users[userData.objectID].direction = userData.direction;
@@ -176,6 +196,16 @@ CManager.prototype = {
   		console.log('can`t find user data');
 		}
 	},
+	synchronizeUser : function(userID){
+		for(var index in this.users){
+			if(this.users[index].objectID === userID){
+				this.user = this.users[index];
+			}
+		}
+		if(this.user === null){
+			console.log('if print me. Something is wrong');
+		}
+	}
 };
 
 module.exports = CManager;
@@ -312,5 +342,21 @@ exports.setSpeed = function(){
     this.speed.y = (distY>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distY,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
   }
 };
+
+//coordinate transform
+exports.localToWorldPosition = function(position, offset){
+  position.x += offset.x;
+  position.y += offset.y;
+};
+
+exports.worldToLocalPosition = function(position, offset){
+  position.x -= offset.x;
+  position.y -= offset.y;
+};
+
+exports.calculateOffset = function(position, canvasSize){
+  position.x -= canvasSize.width;
+  position.y -= canvasSize.height;
+}
 
 },{"./gameConfig.json":4}]},{},[1]);

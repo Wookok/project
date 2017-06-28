@@ -1,6 +1,5 @@
 
 var socket = io();
-var userName;
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
@@ -8,24 +7,26 @@ var util = require('./utils/util.js');
 var User = require('./utils/CUser.js');
 var CManager = require('./utils/CManager.js');
 
-var localConfig = require('./utils/gameConfig.json');
-var Manager = new CManager();
+var gameConfig = require('./utils/gameConfig.json');
+
+var userID;
+var userOffset = {};
+var Manager;
 
 var userImage = new Image();
 
 userImage.src = '../images/Character.png';
 
-
 setupSocket();
 
 //event config
 document.getElementById('startButton').onclick = function(){
-  reqSetWindowSize();
+  reqSetCanvasSize();
   reqStartGame();
 };
 
 window.onresize = function(e){
-  reqSetWindowSize();
+  reqSetCanvasSize();
 };
 
 //request to server
@@ -33,12 +34,12 @@ function reqStartGame(){
   socket.emit('reqStartGame');
 };
 
-function reqSetWindowSize(){
+function reqSetCanvasSize(){
   var windowSize = {
     width : window.innerWidth,
     height : window.innerHeight
   };
-  socket.emit('reqSetWindowSize', windowSize);
+  socket.emit('reqSetCanvasSize', windowSize);
 };
 
 function canvasSetting(){
@@ -84,9 +85,15 @@ function drawScreen(){
 // server response
 function setupSocket(){
 
-  socket.on('resStartGame', function(data){
+  socket.on('setCorrespondUser', function(user){
+    userID = user.objectID;
+    userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
+    Manager = new CManager(userOffset);
+  });
 
-    Manager.setUsers(data);
+  socket.on('resStartGame', function(data){
+    Manager.setUsers(data, userOffset);
+    Manager.synchronizeUser(userID);
     console.log(Manager.users);
 
     document.getElementById('infoScene').classList.remove('enable');
@@ -94,11 +101,13 @@ function setupSocket(){
 
     document.getElementById('infoScene').classList.add('disable');
     document.getElementById('gameScene').classList.add('enable');
+
     canvasSetting();
   });
 
   socket.on('userJoined', function(data){
-    Manager.setUser(data);
+    Manager.setUser(data, userOffset);
+
     console.log(Manager.users);
   });
 
@@ -108,15 +117,19 @@ function setupSocket(){
     Manager.moveUser(userData);
   });
 
-  socket.on('resSetWindowSize', function(data){
-    localConfig.windowSize = data;
+  socket.on('resSetCanvasSize', function(canvasSize, scaleFactor){
+    gameConfig.canvasSize = canvasSize;
 
-    setCanvasSize();
+    //css height, width change
+
+    setCanvasSize(scaleFactor);
   });
 };
 
-// other utils
-function setCanvasSize(){
-  canvas.width = localConfig.windowSize.width;
-  canvas.height = localConfig.windowSize.height;
+// local utils
+function setCanvasSize(scaleFactor){
+  canvas.style.width = (canvas.width * scaleFactor) + 'px';
+  canvas.style.height = (canvas.height * scaleFactor) + 'px';
+  canvas.width = gameConfig.canvasSize.width;
+  canvas.height = gameConfig.canvasSize.height;
 };
