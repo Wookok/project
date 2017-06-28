@@ -56,29 +56,29 @@ function canvasSetting(){
 //draw
 var drawInterval = false;
 function drawScreen(){
-  // setInterval(function(){
-  //   for(var index in Manager.users){
-  //     console.log(Manager.users[index]);
-  //   }
-  // }, 1000);
-  //
-  // drawInterval = setInterval(function(){
-  //   ctx.fillStyle = "#aaaaaa";
-  //   ctx.fillRect(0, 0, 1000, 1000);
-  //
-  //   for(var index in Manager.users){
-  //     if(Manager.users[index].direction < 0){
-  //       var degree = Manager.users[index].direction + 360;
-  //     }else{
-  //       degree = Manager.users[index].direction;
-  //     }
-  //     var sourceX = Math.floor((degree % 90) / 10) * 75;
-  //     var sourceY = Math.floor((degree / 90)) * 75;
-  //
-  //     ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
-  //     Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
-  //   }
-  // }, 1000/30);
+  setInterval(function(){
+    for(var index in Manager.users){
+      console.log(Manager.users[index]);
+    }
+  }, 1000);
+
+  drawInterval = setInterval(function(){
+    ctx.fillStyle = "#aaaaaa";
+    ctx.fillRect(0, 0, 1000, 1000);
+
+    for(var index in Manager.users){
+      if(Manager.users[index].direction < 0){
+        var degree = Manager.users[index].direction + 360;
+      }else{
+        degree = Manager.users[index].direction;
+      }
+      var sourceX = Math.floor((degree % 90) / 10) * 75;
+      var sourceY = Math.floor((degree / 90)) * 75;
+
+      ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
+      Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
+    }
+  }, 1000/30);
 };
 
 // server response
