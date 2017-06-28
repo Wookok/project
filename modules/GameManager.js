@@ -86,7 +86,9 @@ GameManager.prototype.updateDataSettings = function(){
       direction : this.users[index].direction,
 
       rotateSpeed :  this.users[index].rotateSpeed,
-      targetDirection : this.users[index].targetDirection
+      targetDirection : this.users[index].targetDirection,
+
+      size : this.users[index].size
     };
     userData.push(tempUser);
   };
@@ -105,7 +107,9 @@ GameManager.prototype.updateDataSetting = function(user){
     direction : user.direction,
 
     rotateSpeed :  user.rotateSpeed,
-    targetDirection : user.targetDirection
+    targetDirection : user.targetDirection,
+
+    size : user.size
   };
 
   return updateUser;

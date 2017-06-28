@@ -88,7 +88,6 @@ LivingEntity.prototype.setTargetDirection = function(newPosition){
   }else{
     this.targetDirection = tangentDegree;
   }
-  console.log(this.targetDirection);
 };
 
 // initialize method

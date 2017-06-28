@@ -1,6 +1,4 @@
-
 var socket = io();
-var userName;
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
@@ -8,24 +6,25 @@ var util = require('./utils/util.js');
 var User = require('./utils/CUser.js');
 var CManager = require('./utils/CManager.js');
 
-var localConfig = require('./utils/gameConfig.json');
-var Manager = new CManager();
+var gameConfig = require('./utils/gameConfig.json');
+
+var Manager;
 
 var userImage = new Image();
-
-userImage.src = '../images/Character.png';
-
-
-setupSocket();
+var userHand = new Image();
+userImage.src = '../images/CharBase.svg';
+userHand.src = '../images/CharHand.svg';
 
 //event config
 document.getElementById('startButton').onclick = function(){
-  reqSetWindowSize();
+  setupSocket();
+
+  reqSetCanvasSize();
   reqStartGame();
 };
 
 window.onresize = function(e){
-  reqSetWindowSize();
+  reqSetCanvasSize();
 };
 
 //request to server
@@ -33,12 +32,12 @@ function reqStartGame(){
   socket.emit('reqStartGame');
 };
 
-function reqSetWindowSize(){
+function reqSetCanvasSize(){
   var windowSize = {
     width : window.innerWidth,
     height : window.innerHeight
   };
-  socket.emit('reqSetWindowSize', windowSize);
+  socket.emit('reqSetCanvasSize', windowSize);
 };
 
 function canvasSetting(){
@@ -47,7 +46,7 @@ function canvasSetting(){
       x : e.clientX,
       y : e.clientY
     }
-    socket.emit('reqMove', targetPosition);
+    socket.emit('reqMove', targetPosition, gameConfig.userOffset);
   }, false);
   drawScreen();
   // userImage.addEventListener('load', userImageLoaded, false);
@@ -56,37 +55,41 @@ function canvasSetting(){
 //draw
 var drawInterval = false;
 function drawScreen(){
-  setInterval(function(){
-    for(var index in Manager.users){
-      console.log(Manager.users[index]);
-    }
-  }, 1000);
-
   drawInterval = setInterval(function(){
     ctx.fillStyle = "#aaaaaa";
-    ctx.fillRect(0, 0, 1000, 1000);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var index in Manager.users){
-      if(Manager.users[index].direction < 0){
-        var degree = Manager.users[index].direction + 360;
-      }else{
-        degree = Manager.users[index].direction;
-      }
-      var sourceX = Math.floor((degree % 90) / 10) * 75;
-      var sourceY = Math.floor((degree / 90)) * 75;
+      var degree = Manager.users[index].direction;
+      var radian = degree * Math.PI/180;
 
-      ctx.drawImage(userImage, sourceX, sourceY, 69, 69,
-      Manager.users[index].position.x, Manager.users[index].position.y, 64, 64);
+      var centerX = Manager.users[index].position.x + Manager.users[index].size.width/2;
+      var centerY = Manager.users[index].position.y + Manager.users[index].size.height/2;
+
+      ctx.save();
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.translate(centerX, centerY);
+      ctx.rotate(radian);
+      ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);
+      ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);
+
+      ctx.restore();
     }
-  }, 1000/30);
+  }, 1000/60);
 };
 
 // server response
 function setupSocket(){
 
-  socket.on('resStartGame', function(data){
+  socket.on('setCorrespondUser', function(user){
+    gameConfig.userID = user.objectID;
+    gameConfig.userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
+    Manager = new CManager(gameConfig);
+  });
 
+  socket.on('resStartGame', function(data){
     Manager.setUsers(data);
+    Manager.synchronizeUser(gameConfig.userID);
     console.log(Manager.users);
 
     document.getElementById('infoScene').classList.remove('enable');
@@ -94,11 +97,13 @@ function setupSocket(){
 
     document.getElementById('infoScene').classList.add('disable');
     document.getElementById('gameScene').classList.add('enable');
+
     canvasSetting();
   });
 
   socket.on('userJoined', function(data){
     Manager.setUser(data);
+
     console.log(Manager.users);
   });
 
@@ -108,15 +113,19 @@ function setupSocket(){
     Manager.moveUser(userData);
   });
 
-  socket.on('resSetWindowSize', function(data){
-    localConfig.windowSize = data;
+  socket.on('resSetCanvasSize', function(canvasSize, scaleFactor){
+    gameConfig.canvasSize = canvasSize;
 
-    setCanvasSize();
+    //css height, width change
+
+    setCanvasSize(scaleFactor);
   });
 };
 
-// other utils
-function setCanvasSize(){
-  canvas.width = localConfig.windowSize.width;
-  canvas.height = localConfig.windowSize.height;
+// local utils
+function setCanvasSize(scaleFactor){
+  // canvas.style.width = (canvas.width * scaleFactor) + 'px';
+  // canvas.style.height = (canvas.height * scaleFactor) + 'px';
+  canvas.width = gameConfig.canvasSize.width;
+  canvas.height = gameConfig.canvasSize.height;
 };

@@ -1,11 +1,13 @@
 var gameConfig = require('./gameConfig.json');
 
-//must use with bind method
+//must use with bind or call method
 exports.rotate = function(){
-  console.log(this);
+  // console.log(this);
   if(this.targetDirection == this.direction){
     if(this.currentState == gameConfig.OBJECT_STATE_MOVE){
       this.move();
+    }else if(this.currentState == gameConfig.OBJECT_STATE_MOVE_OFFSET){
+        this.moveOffset();
     }
   }else if(this.targetDirection > this.direction){
     if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
@@ -22,7 +24,7 @@ exports.rotate = function(){
   }
 };
 
-//must use with bind method
+//must use with bind or call method
 exports.move = function(){
   //calculate dist with target
   var distX = this.targetPosition.x - this.position.x;
@@ -31,7 +33,6 @@ exports.move = function(){
   if(distX == 0 && distY == 0){
     this.stop();
     this.changeState(gameConfig.OBJECT_STATE_IDLE);
-    console.log('stop ' + this.currentState);
   }
   if(Math.abs(distX) < Math.abs(this.speed.x)){
     this.speed.x = distX;
@@ -43,7 +44,7 @@ exports.move = function(){
   this.position.y += this.speed.y;
 }
 
-//must use with bind method
+//must use with bind or call method
 //setup when click canvas for move
 exports.setSpeed = function(){
   var distX = this.targetPosition.x - this.position.x;
@@ -59,4 +60,23 @@ exports.setSpeed = function(){
     this.speed.x = (distX>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distX,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
     this.speed.y = (distY>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distY,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
   }
+};
+
+//coordinate transform
+exports.localToWorldPosition = function(position, offset){
+  position.x += offset.x;
+  position.y += offset.y;
+  return position;
+};
+
+exports.worldToLocalPosition = function(position, offset){
+  position.x -= offset.x;
+  position.y -= offset.y;
+  return position;
+};
+
+exports.calculateOffset = function(position, canvasSize){
+  position.x -= canvasSize.width/2;
+  position.y -= canvasSize.height/2;
+  return position;
 };
