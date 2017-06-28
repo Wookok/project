@@ -1,7 +1,7 @@
 var util = require('./util.js');
 var gameConfig = require('./gameConfig');
 
-var INTERVAL_TIMER = 1000/gameConfig.fps;
+var INTERVAL_TIMER = 5000/gameConfig.fps;
 
 var User = function(userData){
   this.objectID = userData.objectID;

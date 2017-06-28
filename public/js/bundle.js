@@ -169,6 +169,8 @@ CManager.prototype = {
 	    this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
 	    this.users[userData.objectID].targetDirection = userData.targetDirection;
 
+			console.log(this.users[userData.objectID].direction);
+
 			this.users[userData.objectID].changeState(userData.currentState);
 		}else{
   		console.log('can`t find user data');
