@@ -4,16 +4,24 @@ var User = function(userData, gameConfig){
   this.gameConfig = gameConfig;
 
   this.objectID = userData.objectID;
+
   this.currentState = null;
+  this.size = userData.size;
 
   this.position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
   this.targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
-  this.speed = userData.speed;
   this.direction = userData.direction;
   this.rotateSpeed = userData.rotateSpeed;
-  this.targetDirection = userData.targetDirection;
 
-  this.size = userData.size;
+  this.maxSpeed = userData.maxSpeed;
+
+  this.center = {x : 0, y : 0};
+  this.speed = {x : 0, y : 0};
+  this.targetDirection = 0;
+
+  this.setCenter();
+  this.setSpeed();
+  this.setTargetDirection();
 
   this.updateInterval = false;
   this.updateFunction = null;
@@ -44,15 +52,25 @@ User.prototype = {
     var INTERVAL_TIMER = 1000/this.gameConfig.fps;
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
+  setCenter : function(){
+    this.center.x = this.position.x + this.size.width/2,
+    this.center.y = this.position.y + this.size.height/2
+  },
   rotate : function(){
     util.rotate.call(this);
   },
   move : function(){
     util.move.call(this);
   },
+  setTargetDirection : function(){
+    util.setTargetDirection.call(this);
+  },
+  setSpeed : function(){
+    util.setSpeed.call(this);
+  },
   moveOffset : function(){
-    var distX = this.targetPosition.x - this.position.x;
-    var distY = this.targetPosition.y - this.position.y;
+    var distX = this.targetPosition.x - this.center.x;
+    var distY = this.targetPosition.y - this.center.y;
 
     if(distX == 0 && distY == 0){
       this.stop();

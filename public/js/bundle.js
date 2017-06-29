@@ -11,6 +11,8 @@ var gameConfig = require('./utils/gameConfig.json');
 
 var Manager;
 
+var radianFactor = Math.PI/180;
+
 var userImage = new Image();
 var userHand = new Image();
 userImage.src = '../images/CharBase.svg';
@@ -61,15 +63,12 @@ function drawScreen(){
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var index in Manager.users){
-      var degree = Manager.users[index].direction;
-      var radian = degree * Math.PI/180;
-
-      var centerX = Manager.users[index].position.x + Manager.users[index].size.width/2;
-      var centerY = Manager.users[index].position.y + Manager.users[index].size.height/2;
+      console.log(Manager.users);
+      var radian = Manager.users[index].direction * radianFactor;
 
       ctx.save();
       ctx.setTransform(1,0,0,1,0,0);
-      ctx.translate(centerX, centerY);
+      ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
       ctx.rotate(radian);
       ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);
       ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);
@@ -163,7 +162,6 @@ CManager.prototype = {
 	},
 	updateUsers : function(){
 
-
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){
@@ -172,17 +170,22 @@ CManager.prototype = {
 			return false;
 		}
 	},
+	//will be merge to updateUser function
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
-			this.users[userData.objectID].speed.x = userData.speed.x;
-			this.users[userData.objectID].speed.y = userData.speed.y;
+			// this.users[userData.objectID].speed.x = userData.speed.x;
+			// this.users[userData.objectID].speed.y = userData.speed.y;
 
 			this.users[userData.objectID].direction = userData.direction;
 			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
-			this.users[userData.objectID].targetDirection = userData.targetDirection;
+			// this.users[userData.objectID].targetDirection = userData.targetDirection;
+
+			this.users[userData.objectID].setCenter();
+			this.users[userData.objectID].setTargetDirection();
+			this.users[userData.objectID].setSpeed();
 
 			if(this.user.objectID == userData.objectID){
 				//offset targetPosition change >> targetPosition == position
@@ -233,16 +236,24 @@ var User = function(userData, gameConfig){
   this.gameConfig = gameConfig;
 
   this.objectID = userData.objectID;
+
   this.currentState = null;
+  this.size = userData.size;
 
   this.position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
   this.targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
-  this.speed = userData.speed;
   this.direction = userData.direction;
   this.rotateSpeed = userData.rotateSpeed;
-  this.targetDirection = userData.targetDirection;
 
-  this.size = userData.size;
+  this.maxSpeed = userData.maxSpeed;
+
+  this.center = {x : 0, y : 0};
+  this.speed = {x : 0, y : 0};
+  this.targetDirection = 0;
+
+  this.setCenter();
+  this.setSpeed();
+  this.setTargetDirection();
 
   this.updateInterval = false;
   this.updateFunction = null;
@@ -273,15 +284,25 @@ User.prototype = {
     var INTERVAL_TIMER = 1000/this.gameConfig.fps;
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
+  setCenter : function(){
+    this.center.x = this.position.x + this.size.width/2,
+    this.center.y = this.position.y + this.size.height/2
+  },
   rotate : function(){
     util.rotate.call(this);
   },
   move : function(){
     util.move.call(this);
   },
+  setTargetDirection : function(){
+    util.setTargetDirection.call(this);
+  },
+  setSpeed : function(){
+    util.setSpeed.call(this);
+  },
   moveOffset : function(){
-    var distX = this.targetPosition.x - this.position.x;
-    var distY = this.targetPosition.y - this.position.y;
+    var distX = this.targetPosition.x - this.center.x;
+    var distY = this.targetPosition.y - this.center.y;
 
     if(distX == 0 && distY == 0){
       this.stop();
@@ -314,7 +335,7 @@ module.exports = User;
 
 },{"./util.js":5}],4:[function(require,module,exports){
 module.exports={
-  "fps" : 25,
+  "fps" : 20,
 
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,
@@ -329,11 +350,42 @@ var gameConfig = require('./gameConfig.json');
 //must use with bind or call method
 exports.rotate = function(){
   // console.log(this);
-  if(this.targetDirection == this.direction){
-    if(this.currentState == gameConfig.OBJECT_STATE_MOVE){
+  if(this.targetDirection === this.direction){
+    if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
       this.move();
-    }else if(this.currentState == gameConfig.OBJECT_STATE_MOVE_OFFSET){
+    }else if(this.currentState === gameConfig.OBJECT_STATE_MOVE_OFFSET){
+        //only use at client
         this.moveOffset();
+    }
+  }
+  //check rotate direction
+  else if(this.direction > 0 && this.targetDirection < 0){
+    if((180 - this.direction + 180 + this.targetDirection) < (this.direction - this.targetDirection)){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+        this.direction += Math.abs(this.targetDirection - this.direction);
+      }else{
+        this.direction += this.rotateSpeed;
+      }
+    }else if(this.targetDirection < this.direction){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+        this.direction -= Math.abs(this.targetDirection - this.direction);
+      }else{
+        this.direction -= this.rotateSpeed;
+      }
+    }
+  }else if(this.direction < 0 && this.targetDirection >0 ){
+    if((180 + this.direction + 180 - this.targetDirection) < (this.targetDirection - this.direction)){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+        this.direction -= Math.abs(this.targetDirection - this.direction);
+      }else{
+        this.direction -= this.rotateSpeed;
+      }
+    }else if(this.targetDirection > this.direction){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+        this.direction += Math.abs(this.targetDirection - this.direction);
+      }else{
+        this.direction += this.rotateSpeed;
+      }
     }
   }else if(this.targetDirection > this.direction){
     if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
@@ -348,13 +400,19 @@ exports.rotate = function(){
       this.direction -= this.rotateSpeed;
     }
   }
+
+  if(this.direction >= 180){
+    this.direction -= 360;
+  }else if(this.direction <= -180){
+    this.direction += 360;
+  }
 };
 
 //must use with bind or call method
 exports.move = function(){
   //calculate dist with target
-  var distX = this.targetPosition.x - this.position.x;
-  var distY = this.targetPosition.y - this.position.y;
+  var distX = this.targetPosition.x - this.center.x;
+  var distY = this.targetPosition.y - this.center.y;
 
   if(distX == 0 && distY == 0){
     this.stop();
@@ -368,13 +426,16 @@ exports.move = function(){
   }
   this.position.x += this.speed.x;
   this.position.y += this.speed.y;
-}
+
+  this.center.x += this.speed.x;
+  this.center.y += this.speed.y;
+};
 
 //must use with bind or call method
 //setup when click canvas for move
 exports.setSpeed = function(){
-  var distX = this.targetPosition.x - this.position.x;
-  var distY = this.targetPosition.y - this.position.y;
+  var distX = this.targetPosition.x - this.center.x;
+  var distY = this.targetPosition.y - this.center.y;
 
   if(distX == 0  && distY ==0){
     this.speed.x = 0;
@@ -385,6 +446,22 @@ exports.setSpeed = function(){
   }else{
     this.speed.x = (distX>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distX,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
     this.speed.y = (distY>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distY,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
+  }
+};
+
+//must use with bind or call method
+// setup when click canvas for move or fire skill
+exports.setTargetDirection = function(){
+  var distX = this.targetPosition.x - this.center.x;
+  var distY = this.targetPosition.y - this.center.y;
+
+  var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
+  if(distX < 0 && distY >= 0){
+    this.targetDirection = tangentDegree + 180;
+  }else if(distX < 0 && distY < 0){
+    this.targetDirection = tangentDegree - 180;
+  }else{
+    this.targetDirection = tangentDegree;
   }
 };
 

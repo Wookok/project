@@ -55,7 +55,7 @@ LivingEntity.prototype.move = function(){
   util.move.call(this);
 };
 LivingEntity.prototype.idle = function(){
-  //do nothing;
+  //do nothing or send packet;
 };
 //interval clear
 LivingEntity.prototype.stop = function(){
@@ -73,22 +73,25 @@ LivingEntity.prototype.setTargetPosition = function(newPosition){
 LivingEntity.prototype.setSpeed = function(){
   util.setSpeed.call(this);
 };
-// setup when click canvas for move or fire skill
-LivingEntity.prototype.setTargetDirection = function(newPosition){
-  var distX = this.targetPosition.x - this.position.x;
-  var distY = this.targetPosition.y - this.position.y;
-
-  var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
-  if(distX >= 0 && distY >=0){
-    this.targetDirection =tangentDegree;
-  }else if(distX < 0 && distY >=0){
-    this.targetDirection = tangentDegree + 180;
-  }else if(distX < 0 && distY < 0){
-    this.targetDirection = tangentDegree - 180;
-  }else{
-    this.targetDirection = tangentDegree;
-  }
+LivingEntity.prototype.setTargetDirection = function(){
+  util.setTargetDirection.call(this);
 };
+// setup when click canvas for move or fire skill
+// LivingEntity.prototype.setTargetDirection = function(newPosition){
+//   var distX = this.targetPosition.x - this.center.x;
+//   var distY = this.targetPosition.y - this.center.y;
+//
+//   var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
+//   if(distX >= 0 && distY >=0){
+//     this.targetDirection = tangentDegree;
+//   }else if(distX < 0 && distY >=0){
+//     this.targetDirection = tangentDegree + 180;
+//   }else if(distX < 0 && distY < 0){
+//     this.targetDirection = tangentDegree - 180;
+//   }else{
+//     this.targetDirection = tangentDegree;
+//   }
+// };
 
 // initialize method
 LivingEntity.prototype.setRotateSpeed = function(x){

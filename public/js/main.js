@@ -10,6 +10,8 @@ var gameConfig = require('./utils/gameConfig.json');
 
 var Manager;
 
+var radianFactor = Math.PI/180;
+
 var userImage = new Image();
 var userHand = new Image();
 userImage.src = '../images/CharBase.svg';
@@ -60,15 +62,12 @@ function drawScreen(){
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var index in Manager.users){
-      var degree = Manager.users[index].direction;
-      var radian = degree * Math.PI/180;
-
-      var centerX = Manager.users[index].position.x + Manager.users[index].size.width/2;
-      var centerY = Manager.users[index].position.y + Manager.users[index].size.height/2;
+      console.log(Manager.users);
+      var radian = Manager.users[index].direction * radianFactor;
 
       ctx.save();
       ctx.setTransform(1,0,0,1,0,0);
-      ctx.translate(centerX, centerY);
+      ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
       ctx.rotate(radian);
       ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);
       ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);

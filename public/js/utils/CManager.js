@@ -29,7 +29,6 @@ CManager.prototype = {
 	},
 	updateUsers : function(){
 
-
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){
@@ -38,17 +37,22 @@ CManager.prototype = {
 			return false;
 		}
 	},
+	//will be merge to updateUser function
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
-			this.users[userData.objectID].speed.x = userData.speed.x;
-			this.users[userData.objectID].speed.y = userData.speed.y;
+			// this.users[userData.objectID].speed.x = userData.speed.x;
+			// this.users[userData.objectID].speed.y = userData.speed.y;
 
 			this.users[userData.objectID].direction = userData.direction;
 			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
-			this.users[userData.objectID].targetDirection = userData.targetDirection;
+			// this.users[userData.objectID].targetDirection = userData.targetDirection;
+
+			this.users[userData.objectID].setCenter();
+			this.users[userData.objectID].setTargetDirection();
+			this.users[userData.objectID].setSpeed();
 
 			if(this.user.objectID == userData.objectID){
 				//offset targetPosition change >> targetPosition == position

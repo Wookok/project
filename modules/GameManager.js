@@ -1,4 +1,5 @@
 var gameConfig = require('../public/js/utils/gameConfig.json');
+var util = require('../public/js/utils/util.js');
 
 var INTERVAL_TIMER = 1000/gameConfig.fps;
 
@@ -19,7 +20,7 @@ GameManager.prototype.updateGame = function(){
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
   user.setTargetPosition(targetPosition);
-  user.setTargetDirection(targetPosition);
+  user.setTargetDirection();
   user.setSpeed();
 
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
@@ -82,11 +83,13 @@ GameManager.prototype.updateDataSettings = function(){
       position : this.users[index].position,
       targetPosition : this.users[index].targetPosition,
 
-      speed : this.users[index].speed,
+      // speed : this.users[index].speed,
+      maxSpeed : this.users[index].maxSpeed,
+
       direction : this.users[index].direction,
 
       rotateSpeed :  this.users[index].rotateSpeed,
-      targetDirection : this.users[index].targetDirection,
+      // targetDirection : this.users[index].targetDirection,
 
       size : this.users[index].size
     };
@@ -103,11 +106,12 @@ GameManager.prototype.updateDataSetting = function(user){
     position : user.position,
     targetPosition : user.targetPosition,
 
-    speed : user.speed,
+    // speed : user.speed,
+    maxSpeed : user.maxSpeed,
     direction : user.direction,
 
     rotateSpeed :  user.rotateSpeed,
-    targetDirection : user.targetDirection,
+    // targetDirection : user.targetDirection,
 
     size : user.size
   };
