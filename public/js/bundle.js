@@ -63,7 +63,7 @@ function drawScreen(){
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var index in Manager.users){
-      console.log(Manager.users);
+      console.log(Manager.users[index].position);
       var radian = Manager.users[index].direction * radianFactor;
 
       ctx.save();
@@ -75,7 +75,7 @@ function drawScreen(){
 
       ctx.restore();
     }
-  }, 1000/60);
+  }, 1000);
 };
 
 // server response
@@ -173,6 +173,8 @@ CManager.prototype = {
 	//will be merge to updateUser function
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
+			console.log(userData);
+			console.log(this.users[userData.objectID]);
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
@@ -204,6 +206,9 @@ CManager.prototype = {
 				if(this.users[index] !== this.user){
 					this.users[index].position.x -= this.user.speed.x;
 					this.users[index].position.y -= this.user.speed.y;
+
+					this.users[index].center.x -= this.user.speed.x;
+					this.users[index].center.y -= this.user.speed.y;
 
 					this.users[index].targetPosition.x -= this.user.speed.x;
 					this.users[index].targetPosition.y -= this.user.speed.y;
@@ -335,7 +340,7 @@ module.exports = User;
 
 },{"./util.js":5}],4:[function(require,module,exports){
 module.exports={
-  "fps" : 20,
+  "fps" : 1,
 
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,

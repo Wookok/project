@@ -130,7 +130,7 @@ exports.worldToLocalPosition = function(position, offset){
   position.y -= offset.y;
   return position;
 };
-
+//will change to calculate with center
 exports.calculateOffset = function(position, canvasSize){
   position.x -= canvasSize.width/2;
   position.y -= canvasSize.height/2;

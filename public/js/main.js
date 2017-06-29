@@ -62,7 +62,7 @@ function drawScreen(){
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var index in Manager.users){
-      console.log(Manager.users);
+      console.log(Manager.users[index].position);
       var radian = Manager.users[index].direction * radianFactor;
 
       ctx.save();
@@ -74,7 +74,7 @@ function drawScreen(){
 
       ctx.restore();
     }
-  }, 1000/60);
+  }, 1000);
 };
 
 // server response
