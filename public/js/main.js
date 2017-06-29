@@ -62,7 +62,6 @@ function drawScreen(){
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var index in Manager.users){
-      console.log(Manager.users[index].position);
       var radian = Manager.users[index].direction * radianFactor;
 
       ctx.save();
@@ -74,7 +73,7 @@ function drawScreen(){
 
       ctx.restore();
     }
-  }, 1000);
+  }, 1000/60);
 };
 
 // server response
@@ -82,7 +81,11 @@ function setupSocket(){
 
   socket.on('setCorrespondUser', function(user){
     gameConfig.userID = user.objectID;
-    gameConfig.userOffset = util.calculateOffset(user.position, gameConfig.canvasSize);
+    var center = {
+      x : user.position.x + user.size.width/2,
+      y : user.position.y + user.size.height/2
+    };
+    gameConfig.userOffset = util.calculateOffset(center, gameConfig.canvasSize);
     Manager = new CManager(gameConfig);
   });
 
