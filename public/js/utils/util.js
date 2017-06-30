@@ -120,19 +120,23 @@ exports.setTargetDirection = function(){
 
 //coordinate transform
 exports.localToWorldPosition = function(position, offset){
-  position.x += offset.x;
-  position.y += offset.y;
-  return position;
+  var newPosition = {
+    x : position.x + offset.x,
+    y : position.y + offset.y
+  };
+  return newPosition;
 };
-
 exports.worldToLocalPosition = function(position, offset){
-  position.x -= offset.x;
-  position.y -= offset.y;
-  return position;
+  var newPosition = {
+    x : position.x - offset.x,
+    y : position.y - offset.y
+  };
+  return newPosition;
 };
-//will change to calculate with center
-exports.calculateOffset = function(position, canvasSize){
-  position.x -= canvasSize.width/2;
-  position.y -= canvasSize.height/2;
-  return position;
+exports.calculateOffset = function(center, canvasSize){
+  var newOffset = {
+    x : center.x - canvasSize.width/2,
+    y : center.y - canvasSize.height/2
+  };
+  return newOffset;
 };

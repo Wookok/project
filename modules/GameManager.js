@@ -1,3 +1,4 @@
+var config = require('../config.json');
 var gameConfig = require('../public/js/utils/gameConfig.json');
 var util = require('../public/js/utils/util.js');
 
@@ -9,12 +10,12 @@ function GameManager(){
 };
 
 GameManager.prototype.updateGame = function(){
-  if(this.updateInteval != null){
-      return;
-  };
-  this.updateInteval = setInterval(function(){
-
-  }, INTERVAL_TIMER);
+  if(this.updateInteval === null){
+    this.updateInteval = setInterval(function(){
+      this.tree.clear();
+      this.tree.pushAll(this.usersInTree);
+    }, INTERVAL_TIMER);
+  }
 };
 
 //setting User for moving and move user;

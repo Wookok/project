@@ -80,6 +80,7 @@ function drawScreen(){
 function setupSocket(){
 
   socket.on('setCorrespondUser', function(user){
+
     gameConfig.userID = user.objectID;
     var center = {
       x : user.position.x + user.size.width/2,
