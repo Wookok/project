@@ -66,6 +66,8 @@ exports.move = function(){
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
+  console.log(this.center);
+  console.log('in move : ' + distX + ' : ' + distY);
 
   if(distX == 0 && distY == 0){
     this.stop();
@@ -133,10 +135,10 @@ exports.worldToLocalPosition = function(position, offset){
   };
   return newPosition;
 };
-exports.calculateOffset = function(center, canvasSize){
+exports.calculateOffset = function(user, canvasSize){
   var newOffset = {
-    x : center.x - canvasSize.width/2,
-    y : center.y - canvasSize.height/2
+    x : user.position.x + user.size.width/2 - canvasSize.width/2,
+    y : user.position.y + user.size.height/2 - canvasSize.height/2
   };
   return newOffset;
 };

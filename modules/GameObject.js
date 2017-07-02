@@ -24,6 +24,9 @@ GameObject.prototype.setSize = function(w, h){
 }
 
 GameObject.prototype.setCenter = function(){
+  if(this.size.width == 0 || this.size.height == 0){
+    console.log('setSize before setCenter');
+  }
   this.center.x = this.position.x + this.size.width/2;
   this.center.y = this.position.y + this.size.height/2;
 }

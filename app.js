@@ -67,7 +67,15 @@ io.on('connection', function(socket){
     socket.emit('resStartGame', datas);
   });
 
-  socket.on('reqMove', function(targetPosition, localOffset){
+  socket.on('reqMove', function(targetPosition, localOffset, tempPacket){
+    console.log(user.position);
+    console.log(user.targetPosition);
+
+    var newPosition = util.localToWorldPosition(tempPacket.position, localOffset);
+    console.log(newPosition);
+    var newTargetPosition = util.localToWorldPosition(tempPacket.targetPosition, localOffset);
+    console.log(newTargetPosition);
+    
     var newTargetPosition = util.localToWorldPosition(targetPosition, localOffset);
     GM.setUserTargetAndMove(user, newTargetPosition);
 

@@ -49,7 +49,7 @@ function canvasSetting(){
       x : e.clientX,
       y : e.clientY
     }
-    socket.emit('reqMove', targetPosition, gameConfig.userOffset);
+    socket.emit('reqMove', targetPosition, gameConfig.userOffset, Manager.user);
   }, false);
   drawScreen();
   // userImage.addEventListener('load', userImageLoaded, false);
@@ -81,6 +81,7 @@ function drawScreen(){
 function setupSocket(){
 
   socket.on('setCorrespondUser', function(user){
+
     gameConfig.userID = user.objectID;
     var center = {
       x : user.position.x + user.size.width/2,
@@ -311,6 +312,8 @@ User.prototype = {
   moveOffset : function(){
     var distX = this.targetPosition.x - this.center.x;
     var distY = this.targetPosition.y - this.center.y;
+    console.log(util.localToWorldPosition(this.center, this.gameConfig.userOffset));
+    console.log('in moveOffset : ' + distX + ' : ' + distY);
 
     if(distX == 0 && distY == 0){
       this.stop();
@@ -343,7 +346,7 @@ module.exports = User;
 
 },{"./util.js":5}],4:[function(require,module,exports){
 module.exports={
-  "fps" : 20,
+  "fps" : 15,
 
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,
@@ -421,6 +424,8 @@ exports.move = function(){
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
+  console.log(this.center);
+  console.log('in move : ' + distX + ' : ' + distY);
 
   if(distX == 0 && distY == 0){
     this.stop();
@@ -475,21 +480,25 @@ exports.setTargetDirection = function(){
 
 //coordinate transform
 exports.localToWorldPosition = function(position, offset){
-  position.x += offset.x;
-  position.y += offset.y;
-  return position;
+  var newPosition = {
+    x : position.x + offset.x,
+    y : position.y + offset.y
+  };
+  return newPosition;
 };
-
 exports.worldToLocalPosition = function(position, offset){
-  position.x -= offset.x;
-  position.y -= offset.y;
-  return position;
+  var newPosition = {
+    x : position.x - offset.x,
+    y : position.y - offset.y
+  };
+  return newPosition;
 };
-//will change to calculate with center
-exports.calculateOffset = function(position, canvasSize){
-  position.x -= canvasSize.width/2;
-  position.y -= canvasSize.height/2;
-  return position;
+exports.calculateOffset = function(center, canvasSize){
+  var newOffset = {
+    x : center.x - canvasSize.width/2,
+    y : center.y - canvasSize.height/2
+  };
+  return newOffset;
 };
 
 },{"./gameConfig.json":4}]},{},[1]);

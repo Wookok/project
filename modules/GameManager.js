@@ -62,8 +62,10 @@ GameManager.prototype.initializeUser = function(user){
   console.log(randomID);
   //initialize variables;
   user.assignID(randomID);
-  user.setPosition(10, 10);
+
   user.setSize(64,64);
+  user.setPosition(10, 10);
+  
   user.setRotateSpeed(10);
   user.setMaxSpeed(10);
 };

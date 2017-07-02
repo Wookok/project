@@ -71,6 +71,8 @@ User.prototype = {
   moveOffset : function(){
     var distX = this.targetPosition.x - this.center.x;
     var distY = this.targetPosition.y - this.center.y;
+    console.log(util.localToWorldPosition(this.center, this.gameConfig.userOffset));
+    console.log('in moveOffset : ' + distX + ' : ' + distY);
 
     if(distX == 0 && distY == 0){
       this.stop();
