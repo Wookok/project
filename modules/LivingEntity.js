@@ -23,9 +23,18 @@ function LivingEntity(){
 
   this.updateInterval = false;
   this.updateFunction = null;
+
+  this.treeUserEle = {
+    x : this.position.x,
+    y : this.position.y,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
 };
 LivingEntity.prototype = Object.create(GameObject.prototype);
 LivingEntity.prototype.constructor = LivingEntity;
+
 
 //state changer. change update listener
 LivingEntity.prototype.changeState = function(newState){
@@ -76,22 +85,6 @@ LivingEntity.prototype.setSpeed = function(){
 LivingEntity.prototype.setTargetDirection = function(){
   util.setTargetDirection.call(this);
 };
-// setup when click canvas for move or fire skill
-// LivingEntity.prototype.setTargetDirection = function(newPosition){
-//   var distX = this.targetPosition.x - this.center.x;
-//   var distY = this.targetPosition.y - this.center.y;
-//
-//   var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
-//   if(distX >= 0 && distY >=0){
-//     this.targetDirection = tangentDegree;
-//   }else if(distX < 0 && distY >=0){
-//     this.targetDirection = tangentDegree + 180;
-//   }else if(distX < 0 && distY < 0){
-//     this.targetDirection = tangentDegree - 180;
-//   }else{
-//     this.targetDirection = tangentDegree;
-//   }
-// };
 
 // initialize method
 LivingEntity.prototype.setRotateSpeed = function(x){
@@ -103,8 +96,16 @@ LivingEntity.prototype.setMaxSpeed = function(x){
 LivingEntity.prototype.assignID = function(x){
   this.objectID = x;
 };
-// LivingEntity.prototype.assignID = function(x){
-//   this.objectID = x + util.assignRandomID();
-// };
+
+// initialize and update for treeUserEle
+LivingEntity.prototype.setTreeUserEle = function(){
+  this.treeUserEle = {
+    x : this.position.x,
+    y : this.position.y,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
+};
 
 module.exports = LivingEntity;

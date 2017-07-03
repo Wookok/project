@@ -49,11 +49,11 @@ function canvasSetting(){
       x : e.clientX,
       y : e.clientY
     }
-    socket.emit('reqMove', targetPosition, gameConfig.userOffset, Manager.user);
+    socket.emit('reqMove', targetPosition, gameConfig.userOffset);
   }, false);
   drawScreen();
   // userImage.addEventListener('load', userImageLoaded, false);
-}
+};
 
 //draw
 var drawInterval = false;
@@ -81,13 +81,8 @@ function drawScreen(){
 function setupSocket(){
 
   socket.on('setCorrespondUser', function(user){
-
     gameConfig.userID = user.objectID;
-    var center = {
-      x : user.position.x + user.size.width/2,
-      y : user.position.y + user.size.height/2
-    };
-    gameConfig.userOffset = util.calculateOffset(center, gameConfig.canvasSize);
+    gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
     Manager = new CManager(gameConfig);
   });
 
@@ -112,6 +107,9 @@ function setupSocket(){
   });
 
   socket.on('resMove', function(userData){
+    if(userData.objectID === this.gameConfig.userID){
+      gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
+    }
     console.log(userData);
     console.log('move start');
     Manager.moveUser(userData);
@@ -493,10 +491,10 @@ exports.worldToLocalPosition = function(position, offset){
   };
   return newPosition;
 };
-exports.calculateOffset = function(center, canvasSize){
+exports.calculateOffset = function(user, canvasSize){
   var newOffset = {
-    x : center.x - canvasSize.width/2,
-    y : center.y - canvasSize.height/2
+    x : user.position.x + user.size.width/2 - canvasSize.width/2,
+    y : user.position.y + user.size.height/2 - canvasSize.height/2
   };
   return newOffset;
 };

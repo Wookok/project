@@ -48,11 +48,11 @@ function canvasSetting(){
       x : e.clientX,
       y : e.clientY
     }
-    socket.emit('reqMove', targetPosition, gameConfig.userOffset, Manager.user);
+    socket.emit('reqMove', targetPosition, gameConfig.userOffset);
   }, false);
   drawScreen();
   // userImage.addEventListener('load', userImageLoaded, false);
-}
+};
 
 //draw
 var drawInterval = false;

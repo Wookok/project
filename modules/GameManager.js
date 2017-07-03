@@ -1,20 +1,29 @@
 var config = require('../config.json');
 var gameConfig = require('../public/js/utils/gameConfig.json');
 var util = require('../public/js/utils/util.js');
+var QuadTree = require('quadtree-lib');
 
 var INTERVAL_TIMER = 1000/gameConfig.fps;
 
 function GameManager(){
   this.users = [];
   this.updateInteval = null;
+
+  this.treeUser = new QuadTree({
+    width : config.canvasMaxSize.width,
+    height : config.canvasMaxSize.height,
+    maxElements : 5
+  });
+  this.treeUserEles = [];
+  this.colliderEles = [];
 };
 
+GameManager.prototype.start = function(){
+  this.updateGame();
+};
 GameManager.prototype.updateGame = function(){
   if(this.updateInteval === null){
-    this.updateInteval = setInterval(function(){
-      this.tree.clear();
-      this.tree.pushAll(this.usersInTree);
-    }, INTERVAL_TIMER);
+    this.updateInteval = setInterval( updateIntervalHandler.bind(this), INTERVAL_TIMER);
   }
 };
 
@@ -65,7 +74,7 @@ GameManager.prototype.initializeUser = function(user){
 
   user.setSize(64,64);
   user.setPosition(10, 10);
-  
+
   user.setRotateSpeed(10);
   user.setMaxSpeed(10);
 };
@@ -122,11 +131,50 @@ GameManager.prototype.updateDataSetting = function(user){
   return updateUser;
 };
 
+function updateIntervalHandler(){
+  for(var index in this.colliderEles){
+    this.treeUser.onCollision(this.colliderEles[index], function(item){
+
+      console.log(item);
+      console.log(this.colliderEles);
+
+      var colCenterX = this.colliderEles[index].x + this.colliderEles[index].width/2;
+      var colCenterY = this.colliderEles[index].y + this.colliderEles[index].height/2;
+
+      var itemCenterX = item.x + item.width/2;
+      var itemCenterY = item.y + item.height/2;
+
+      var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
+      if(dist < Math.pow(this.colliderEles[index].width/2 + item.width/2)){
+        console.log('collision is occured');
+      }
+    });
+  }
+  //clear tree and treeArray
+  for(var index in this.treeUserEles){
+    this.treeUser.remove(this.treeUserEles[index]);
+  }
+  this.treeUserEles = [];
+  this.colliderEles = [];
+  //updateUserArray
+  for(var id in this.users){
+    this.users[id].setTreeUserEle();
+    this.treeUserEles.push(this.users[id].treeUserEle);
+  }
+  //test
+  for(var id in this.users){
+    this.colliderEles.push(this.users[id].treeUserEle);
+  }
+  //put users data to tree
+  this.treeUser.pushAll(this.treeUserEles);
+};
+
 function generateRandomID(prefix){
   var output = prefix;
   for(var i=0; i<6; i++){
     output += Math.floor(Math.random()*16).toString(16);
   }
   return output;
-}
+};
+
 module.exports = GameManager;
