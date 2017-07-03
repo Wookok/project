@@ -106,7 +106,7 @@ function setupSocket(){
   });
 
   socket.on('resMove', function(userData){
-    if(userData.objectID === this.gameConfig.userID){
+    if(userData.objectID === gameConfig.userID){
       gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
     }
     console.log(userData);

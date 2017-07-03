@@ -107,7 +107,7 @@ function setupSocket(){
   });
 
   socket.on('resMove', function(userData){
-    if(userData.objectID === this.gameConfig.userID){
+    if(userData.objectID === gameConfig.userID){
       gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
     }
     console.log(userData);
@@ -422,8 +422,6 @@ exports.move = function(){
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
-  console.log(this.center);
-  console.log('in move : ' + distX + ' : ' + distY);
 
   if(distX == 0 && distY == 0){
     this.stop();

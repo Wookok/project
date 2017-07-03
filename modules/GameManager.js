@@ -133,19 +133,16 @@ GameManager.prototype.updateDataSetting = function(user){
 
 function updateIntervalHandler(){
   for(var index in this.colliderEles){
-    this.treeUser.onCollision(this.colliderEles[index], function(item){
-
-      console.log(item);
-      console.log(this.colliderEles);
-
-      var colCenterX = this.colliderEles[index].x + this.colliderEles[index].width/2;
-      var colCenterY = this.colliderEles[index].y + this.colliderEles[index].height/2;
+    var tempCollider = this.colliderEles[index];
+    this.treeUser.onCollision(tempCollider, function(item){
+      var colCenterX = tempCollider.x + tempCollider.width/2;
+      var colCenterY = tempCollider.y + tempCollider.height/2;
 
       var itemCenterX = item.x + item.width/2;
       var itemCenterY = item.y + item.height/2;
 
       var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
-      if(dist < Math.pow(this.colliderEles[index].width/2 + item.width/2)){
+      if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
         console.log('collision is occured');
       }
     });
