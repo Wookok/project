@@ -52,7 +52,6 @@ io.on('connection', function(socket){
   });
   socket.on('reqStartGame', function(){
     //setting globalConfig
-    socket.emit('setGlobalSetting', config.canvasMaxSize);
     // initialize and join GameManager
     // user.initialize();
     GM.start();
@@ -65,6 +64,7 @@ io.on('connection', function(socket){
     }
     var data = GM.updateDataSetting(user);
     socket.emit('setCorrespondUser', data);
+    socket.emit('setGlobalSetting', config.canvasMaxSize);
     socket.broadcast.emit('userJoined', data);
 
     var datas = GM.updateDataSettings();

@@ -91,12 +91,12 @@ function drawGrid(){
 
   //draw grid
   for(var i=0; i<gameConfig.canvasMaxSize.width; i += resource.GRID_SIZE){
-    var x = util.worldXCoordToLocalX(i, gameConfig.canvasSize.width);
-    if(util.isDrawX(x, gameConfig)){
+    if(util.isDrawX(i, gameConfig)){
+      var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
       for(var j=0; j<gameConfig.canvasMaxSize.height; j += resource.GRID_SIZE){
-        var y = util.worldYCoordToLocalY(j, gameConfig.canvasSize.height);
-        if(util.isDrawY(y, gameConfig)){
-          ctx.drawImage(grid, x, y, resource.GRID_SIZE * gameConfig.scaleFactor, resource.GRID_SIZE * gameConfig.scaleFactor);
+        if(util.isDrawY(j, gameConfig)){
+          var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
+          ctx.drawImage(grid, x, y);
         }
       }
     }
@@ -146,11 +146,11 @@ function setupSocket(){
   });
 
   socket.on('resSetCanvasSize', function(canvasSize, scaleFactor){
-    var beforeOffset = gameConfig.userOffset;
+    // var beforeOffset = gameConfig.userOffset;
     gameConfig.scaleFactor = scaleFactor;
     gameConfig.canvasSize = canvasSize;
-    gameConfig.userOffset = util.calculateOffset(Manager.findUserAsWorldPosition(gameConfig.userID, beforeOffset), gameConfig.canvasSize);
-    Manager.reCalcLocalPosition(beforeOffset, gameConfig.userOffset);
+    // gameConfig.userOffset = util.calculateOffset(, gameConfig.canvasSize);
+    // Manager.reCalcLocalPosition(beforeOffset, gameConfig.userOffset);
     //may need cancel drawInterval for a while
 
     //css height, width change

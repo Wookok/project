@@ -133,11 +133,11 @@ exports.worldToLocalPosition = function(position, offset){
   };
   return newPosition;
 };
-exports.worldXCoordToLocalX = function(x, offsetWidth){
-  return x - offsetWidth/2;
+exports.worldXCoordToLocalX = function(x, offsetX){
+  return x - offsetX;
 };
-exports.worldYCoordToLocalY = function(y, offsetHeight){
-  return y - offsetHeight/2;
+exports.worldYCoordToLocalY = function(y, offsetY){
+  return y - offsetY;
 };
 exports.isDrawX = function(x, gameConfig){
   if(x <= gameConfig.userOffset.x - gameConfig.PLUS_SIZE_WIDTH){

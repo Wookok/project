@@ -146,15 +146,19 @@ function updateIntervalHandler(){
   for(var i=0; i<this.colliderEles.length; i++){
     var tempCollider = this.colliderEles[i];
     this.userTree.onCollision(tempCollider, function(item){
-      var colCenterX = tempCollider.x + tempCollider.width/2;
-      var colCenterY = tempCollider.y + tempCollider.height/2;
+      if(tempCollider.id !== item.id){
+        var colCenterX = tempCollider.x + tempCollider.width/2;
+        var colCenterY = tempCollider.y + tempCollider.height/2;
 
-      var itemCenterX = item.x + item.width/2;
-      var itemCenterY = item.y + item.height/2;
+        var itemCenterX = item.x + item.width/2;
+        var itemCenterY = item.y + item.height/2;
 
-      var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
-      if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
-        console.log('collision is occured');
+        var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
+        if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
+          console.log(tempCollider);
+          console.log(item);
+          console.log('collision is occured');
+        }
       }
     });
   }
@@ -168,14 +172,13 @@ function updateIntervalHandler(){
   //updateUserArray
   for(var id in this.users){
     this.users[id].setUserEle();
-    this.userEles.push(this.users[id].treeUserEle);
+    this.userEles.push(this.users[id].userTreeEle);
   }
   //test
   for(var id in this.users){
-    this.colliderEles.push(this.users[id].treeUserEle);
+    this.colliderEles.push(this.users[id].userTreeEle);
   }
   //put users data to tree
-  console.log(this.userEles);
   this.userTree.pushAll(this.userEles);
 };
 

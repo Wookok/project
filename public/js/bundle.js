@@ -98,10 +98,14 @@ CManager.prototype = {
 			console.log('if print me. Something is wrong');
 		}
 	},
-	findUser : function(userID){
+	findUserAsWorldPosition : function(userID, offset){
 		for(var index in this.users){
 			if(this.users[index].objectID === userID){
-				return this.users[index];
+				var returnVal = {
+					position : util.localToWorldPosition(this.users[index].position, offset),
+					size : this.users[index].size
+				};
+				return returnVal;
 			}
 		}
 	},
@@ -387,11 +391,11 @@ exports.worldToLocalPosition = function(position, offset){
   };
   return newPosition;
 };
-exports.worldXCoordToLocalX = function(x, offsetWidth){
-  return x - offsetWidth/2;
+exports.worldXCoordToLocalX = function(x, offsetX){
+  return x - offsetX;
 };
-exports.worldYCoordToLocalY = function(y, offsetHeight){
-  return y - offsetHeight/2;
+exports.worldYCoordToLocalY = function(y, offsetY){
+  return y - offsetY;
 };
 exports.isDrawX = function(x, gameConfig){
   if(x <= gameConfig.userOffset.x - gameConfig.PLUS_SIZE_WIDTH){
@@ -501,8 +505,8 @@ function drawUser(){
     ctx.setTransform(1,0,0,1,0,0);
     ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
     ctx.rotate(radian);
-    ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);
-    ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128, 128);
+    ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
+    ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
     ctx.restore();
   }
@@ -513,11 +517,11 @@ function drawGrid(){
 
   //draw grid
   for(var i=0; i<gameConfig.canvasMaxSize.width; i += resource.GRID_SIZE){
-    var x = util.worldXCoordToLocalX(i, gameConfig.canvasSize.width);
-    if(util.isDrawX(x, gameConfig)){
+    if(util.isDrawX(i, gameConfig)){
+      var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
       for(var j=0; j<gameConfig.canvasMaxSize.height; j += resource.GRID_SIZE){
-        var y = util.worldYCoordToLocalY(j, gameConfig.canvasSize.height);
-        if(util.isDrawY(y, gameConfig)){
+        if(util.isDrawY(j, gameConfig)){
+          var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
           ctx.drawImage(grid, x, y);
         }
       }
@@ -568,11 +572,12 @@ function setupSocket(){
   });
 
   socket.on('resSetCanvasSize', function(canvasSize, scaleFactor){
-    var beforeOffset = gameConfig.userOffset;
+    // var beforeOffset = gameConfig.userOffset;
+    gameConfig.scaleFactor = scaleFactor;
     gameConfig.canvasSize = canvasSize;
-    gameConfig.userOffset = util.calculateOffset(Manager.findUser(gameConfig.userID), gameConfig.canvasSize);
-    Manager.reCalcLocalPosition(beforeOffset, gameConfig.userOffset);
-    //drawInterval may cancel for a while
+    // gameConfig.userOffset = util.calculateOffset(, gameConfig.canvasSize);
+    // Manager.reCalcLocalPosition(beforeOffset, gameConfig.userOffset);
+    //may need cancel drawInterval for a while
 
     //css height, width change
 
@@ -584,8 +589,8 @@ function setupSocket(){
 function setCanvasSize(scaleFactor){
   // canvas.style.width = (canvas.width * scaleFactor) + 'px';
   // canvas.style.height = (canvas.height * scaleFactor) + 'px';
-  canvas.width = gameConfig.canvasSize.width;
-  canvas.height = gameConfig.canvasSize.height;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 };
 
 },{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":2,"../../modules/client/resource.json":3,"../../modules/public/gameConfig.json":4,"../../modules/public/util.js":5}]},{},[6]);
