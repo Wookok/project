@@ -1,9 +1,9 @@
 var GameObject = require('./GameObject.js');
-var util = require('../public/js/utils/util.js');
+var util = require('../public/util.js');
 
-var gameConfig = require('../public/js/utils/gameConfig.json');
+var gameConfig = require('../public/gameConfig.json');
 
-var INTERVAL_TIMER = 1000/gameConfig.fps;
+var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 function LivingEntity(){
   GameObject.call(this);
@@ -24,7 +24,7 @@ function LivingEntity(){
   this.updateInterval = false;
   this.updateFunction = null;
 
-  this.treeUserEle = {
+  this.userTreeEle = {
     x : this.position.x,
     y : this.position.y,
     width : this.size.width,
@@ -34,7 +34,6 @@ function LivingEntity(){
 };
 LivingEntity.prototype = Object.create(GameObject.prototype);
 LivingEntity.prototype.constructor = LivingEntity;
-
 
 //state changer. change update listener
 LivingEntity.prototype.changeState = function(newState){
@@ -97,9 +96,9 @@ LivingEntity.prototype.assignID = function(x){
   this.objectID = x;
 };
 
-// initialize and update for treeUserEle
-LivingEntity.prototype.setTreeUserEle = function(){
-  this.treeUserEle = {
+// initialize and update for userTreeEle
+LivingEntity.prototype.setUserEle = function(){
+  this.userTreeEle = {
     x : this.position.x,
     y : this.position.y,
     width : this.size.width,

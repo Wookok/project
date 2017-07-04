@@ -133,6 +133,30 @@ exports.worldToLocalPosition = function(position, offset){
   };
   return newPosition;
 };
+exports.worldXCoordToLocalX = function(x, offsetWidth){
+  return x - offsetWidth/2;
+};
+exports.worldYCoordToLocalY = function(y, offsetHeight){
+  return y - offsetHeight/2;
+};
+exports.isDrawX = function(x, gameConfig){
+  if(x <= gameConfig.userOffset.x - gameConfig.PLUS_SIZE_WIDTH){
+    return false;
+  }else if(x >= gameConfig.userOffset.x + gameConfig.canvasSize.width + gameConfig.PLUS_SIZE_WIDTH){
+    return false;
+  }else{
+    return true;
+  }
+};
+exports.isDrawY = function(y, gameConfig){
+  if(y <= gameConfig.userOffset.y - gameConfig.PLUS_SIZE_HEIGHT){
+    return false;
+  }else if(y >= gameConfig.userOffset.y + gameConfig.canvasSize.height + gameConfig.PLUS_SIZE_HEIGHT){
+    return false;
+  }else{
+    return true;
+  }
+};
 exports.calculateOffset = function(user, canvasSize){
   var newOffset = {
     x : user.position.x + user.size.width/2 - canvasSize.width/2,

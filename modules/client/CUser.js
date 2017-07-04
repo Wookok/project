@@ -1,4 +1,4 @@
-var util = require('./util.js');
+var util = require('../public/util.js');
 
 var User = function(userData, gameConfig){
   this.gameConfig = gameConfig;
@@ -49,7 +49,7 @@ User.prototype = {
     this.update();
   },
   update : function(){
-    var INTERVAL_TIMER = 1000/this.gameConfig.fps;
+    var INTERVAL_TIMER = 1000/this.gameConfig.INTERVAL;
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
   setCenter : function(){

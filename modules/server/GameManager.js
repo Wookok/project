@@ -1,32 +1,43 @@
-var config = require('../config.json');
-var gameConfig = require('../public/js/utils/gameConfig.json');
-var util = require('../public/js/utils/util.js');
+var config = require('../../config.json');
+var gameConfig = require('../public/gameConfig.json');
+var util = require('../public/util.js');
 var QuadTree = require('quadtree-lib');
 
-var INTERVAL_TIMER = 1000/gameConfig.fps;
+var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 function GameManager(){
   this.users = [];
+  this.obstacles = [];
   this.updateInteval = null;
 
-  this.treeUser = new QuadTree({
+  this.userTree = new QuadTree({
     width : config.canvasMaxSize.width,
     height : config.canvasMaxSize.height,
     maxElements : 5
   });
-  this.treeUserEles = [];
+  this.userEles = [];
   this.colliderEles = [];
+
+  this.staticTree = new QuadTree({
+    width : config.canvasMaxSize.width,
+    height : config.canvasMaxSize.height,
+    maxElements : 5
+  });
+  this.staticEles = [];
 };
 
 GameManager.prototype.start = function(){
+  this.mapSetting();
   this.updateGame();
+};
+GameManager.prototype.mapSetting = function(){
+
 };
 GameManager.prototype.updateGame = function(){
   if(this.updateInteval === null){
     this.updateInteval = setInterval( updateIntervalHandler.bind(this), INTERVAL_TIMER);
   }
 };
-
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
   user.setTargetPosition(targetPosition);
@@ -132,9 +143,9 @@ GameManager.prototype.updateDataSetting = function(user){
 };
 
 function updateIntervalHandler(){
-  for(var index in this.colliderEles){
-    var tempCollider = this.colliderEles[index];
-    this.treeUser.onCollision(tempCollider, function(item){
+  for(var i=0; i<this.colliderEles.length; i++){
+    var tempCollider = this.colliderEles[i];
+    this.userTree.onCollision(tempCollider, function(item){
       var colCenterX = tempCollider.x + tempCollider.width/2;
       var colCenterY = tempCollider.y + tempCollider.height/2;
 
@@ -148,22 +159,24 @@ function updateIntervalHandler(){
     });
   }
   //clear tree and treeArray
-  for(var index in this.treeUserEles){
-    this.treeUser.remove(this.treeUserEles[index]);
+  for(var i=0; i<this.userEles; i++){
+    this.userTree.remove(this.userEles[index]);
   }
-  this.treeUserEles = [];
+  this.userEles = [];
   this.colliderEles = [];
+
   //updateUserArray
   for(var id in this.users){
-    this.users[id].setTreeUserEle();
-    this.treeUserEles.push(this.users[id].treeUserEle);
+    this.users[id].setUserEle();
+    this.userEles.push(this.users[id].treeUserEle);
   }
   //test
   for(var id in this.users){
     this.colliderEles.push(this.users[id].treeUserEle);
   }
   //put users data to tree
-  this.treeUser.pushAll(this.treeUserEles);
+  console.log(this.userEles);
+  this.userTree.pushAll(this.userEles);
 };
 
 function generateRandomID(prefix){

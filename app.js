@@ -7,8 +7,8 @@ var path = require('path');
 
 var app = express();
 var config = require('./config.json');
-var gameConfig = require('./public/js/utils/gameConfig.json');
-var util = require('./public/js/utils/util.js');
+var gameConfig = require('./modules/public/gameConfig.json');
+var util = require('./modules/public/util.js');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -19,20 +19,22 @@ server.listen(port, function(){
   console.log('Server is Running');
 });
 
-var GameManager = require('./modules/GameManager.js');
+var GameManager = require('./modules/server/GameManager.js');
 var GM = new GameManager();
 
-var User = require('./modules/User.js');
+var User = require('./modules/server/User.js');
 
-var INTERVAL_TIMER = 1000/gameConfig.fps;
+var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var io = socketio.listen(server);
 
 io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
+
   var user = new User(socket.id);
   var updateUserInterval = false;
   var localConfig = {};
+
   socket.on('reqSetCanvasSize', function(windowSize){
     var scaleFactor = 1;
 
@@ -49,6 +51,8 @@ io.on('connection', function(socket){
     socket.emit('resSetCanvasSize', localConfig.canvasSize, scaleFactor);
   });
   socket.on('reqStartGame', function(){
+    //setting globalConfig
+    socket.emit('setGlobalSetting', config.canvasMaxSize);
     // initialize and join GameManager
     // user.initialize();
     GM.start();
