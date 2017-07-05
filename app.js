@@ -21,6 +21,7 @@ server.listen(port, function(){
 
 var GameManager = require('./modules/server/GameManager.js');
 var GM = new GameManager();
+GM.start();
 
 var User = require('./modules/server/User.js');
 
@@ -33,49 +34,32 @@ io.on('connection', function(socket){
 
   var user = new User(socket.id);
   var updateUserInterval = false;
-  var localConfig = {};
 
-  socket.on('reqSetCanvasSize', function(windowSize){
-    var scaleFactor = 1;
-
-    if(windowSize.width >= config.canvasMaxLocalSize.width || windowSize.height >= config.canvasMaxLocalSize.height){
-      scaleFactor = (windowSize.width / config.canvasMaxLocalSize.width) > (windowSize.height / config.canvasMaxLocalSize.height) ?
-                    (windowSize.width / config.canvasMaxLocalSize.width) : (windowSize.height / config.canvasMaxLocalSize.height);
-      // localConfig.canvasSize = {
-      //   width : config.canvasMaxLocalSize.width,
-      //   height : config.canvasMaxLocalSize.height
-      // };
-    }
-    localConfig.canvasSize = windowSize;
-
-    socket.emit('resSetCanvasSize', localConfig.canvasSize, scaleFactor);
-  });
   socket.on('reqStartGame', function(){
-    //setting globalConfig
-    // initialize and join GameManager
-    // user.initialize();
-    GM.start();
 
+    // user init and join game
     GM.initializeUser(user);
     GM.joinUser(user);
+
     //update user data
     if(!updateUserInterval){
       updateUserInterval = setInterval(function(){ GM.updateUser(user); }, INTERVAL_TIMER);
     }
-    var data = GM.updateDataSetting(user);
-    socket.emit('setCorrespondUser', data);
-    socket.emit('setGlobalSetting', config.canvasMaxSize);
-    socket.broadcast.emit('userJoined', data);
 
-    var datas = GM.updateDataSettings();
-    console.log(datas);
+    var userData = GM.updateDataSetting(user);
+    //send users user joined game
+    socket.broadcast.emit('userJoined', userData);
 
-    socket.emit('resStartGame', datas);
+    var userDatas = GM.updateDataSettings();
+    console.log(userDatas);
+
+    socket.emit('resStartGame', userDatas);
+    socket.emit('setSyncUser', userData);
   });
 
   socket.on('reqMove', function(targetPosition, localOffset){
-    var newTargetPosition = util.localToWorldPosition(targetPosition, localOffset);
-    GM.setUserTargetAndMove(user, newTargetPosition);
+    // var newTargetPosition = util.localToWorldPosition(targetPosition, localOffset);
+    GM.setUserTargetAndMove(user, targetPosition);
 
     var data = GM.updateDataSetting(user);
     io.sockets.emit('resMove', data);
@@ -94,3 +78,16 @@ io.on('connection', function(socket){
     console.log('user disconnect :' + socket.id);
   });
 });
+//
+// //server util functions
+// function setCanvasScale(windowSize, canvasMaxSize){
+//   if(windowSize.width >= canvasMaxLocalSize.width || windowSize.height >= canvasMaxLocalSize.height){
+//     var scaleFactor = (windowSize.width / canvasMaxLocalSize.width) > (windowSize.height / canvasMaxLocalSize.height) ?
+//                   (windowSize.width / canvasMaxLocalSize.width) : (windowSize.height / canvasMaxLocalSize.height);
+//     // localConfig.canvasSize = {
+//     //   width : config.canvasMaxLocalSize.width,
+//     //   height : config.canvasMaxLocalSize.height
+//     // };
+//   }
+//   return 1;
+// }

@@ -11,16 +11,16 @@ function GameManager(){
   this.updateInteval = null;
 
   this.userTree = new QuadTree({
-    width : config.canvasMaxSize.width,
-    height : config.canvasMaxSize.height,
+    width : gameConfig.CANVAS_MAX_SIZE.width,
+    height : gameConfig.CANVAS_MAX_SIZE.height,
     maxElements : 5
   });
   this.userEles = [];
   this.colliderEles = [];
 
   this.staticTree = new QuadTree({
-    width : config.canvasMaxSize.width,
-    height : config.canvasMaxSize.height,
+    width : gameConfig.CANVAS_MAX_SIZE.width,
+    height : gameConfig.CANVAS_MAX_SIZE.height,
     maxElements : 5
   });
   this.staticEles = [];
@@ -146,37 +146,35 @@ function updateIntervalHandler(){
   for(var i=0; i<this.colliderEles.length; i++){
     var tempCollider = this.colliderEles[i];
     this.userTree.onCollision(tempCollider, function(item){
-      if(tempCollider.id !== item.id){
-        var colCenterX = tempCollider.x + tempCollider.width/2;
-        var colCenterY = tempCollider.y + tempCollider.height/2;
+      var colCenterX = tempCollider.x + tempCollider.width/2;
+      var colCenterY = tempCollider.y + tempCollider.height/2;
 
-        var itemCenterX = item.x + item.width/2;
-        var itemCenterY = item.y + item.height/2;
+      var itemCenterX = item.x + item.width/2;
+      var itemCenterY = item.y + item.height/2;
 
-        var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
-        if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
-          console.log(tempCollider);
-          console.log(item);
-          console.log('collision is occured');
-        }
+      var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
+      if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
+        console.log(tempCollider);
+        console.log(item);
+        console.log('collision is occured');
       }
     });
   }
   //clear tree and treeArray
   for(var i=0; i<this.userEles; i++){
-    this.userTree.remove(this.userEles[index]);
+    this.userTree.remove(this.userEles[i]);
   }
   this.userEles = [];
   this.colliderEles = [];
 
   //updateUserArray
-  for(var id in this.users){
-    this.users[id].setUserEle();
-    this.userEles.push(this.users[id].userTreeEle);
+  for(var index in this.users){
+    this.users[index].setUserEle();
+    this.userEles.push(this.users[index].userTreeEle);
   }
   //test
-  for(var id in this.users){
-    this.colliderEles.push(this.users[id].userTreeEle);
+  for(var index in this.users){
+    this.colliderEles.push(this.users[index].userTreeEle);
   }
   //put users data to tree
   this.userTree.pushAll(this.userEles);
