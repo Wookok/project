@@ -146,23 +146,23 @@ function updateIntervalHandler(){
   for(var i=0; i<this.colliderEles.length; i++){
     var tempCollider = this.colliderEles[i];
     this.userTree.onCollision(tempCollider, function(item){
-      var colCenterX = tempCollider.x + tempCollider.width/2;
-      var colCenterY = tempCollider.y + tempCollider.height/2;
+      if(tempCollider.id !== item.id){
+        var colCenterX = tempCollider.x + tempCollider.width/2;
+        var colCenterY = tempCollider.y + tempCollider.height/2;
 
-      var itemCenterX = item.x + item.width/2;
-      var itemCenterY = item.y + item.height/2;
+        var itemCenterX = item.x + item.width/2;
+        var itemCenterY = item.y + item.height/2;
 
-      var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
-      if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
-        console.log(tempCollider);
-        console.log(item);
-        console.log('collision is occured');
+        var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
+        if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
+          console.log('collision is occured');
+        }
       }
     });
   }
   //clear tree and treeArray
-  for(var i=0; i<this.userEles; i++){
-    this.userTree.remove(this.userEles[i]);
+  for(var index in this.userEles){
+    this.userTree.remove(this.userEles[index]);
   }
   this.userEles = [];
   this.colliderEles = [];

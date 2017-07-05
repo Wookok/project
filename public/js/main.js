@@ -26,49 +26,65 @@ var userImage, userHand;
 var grid;
 
 // game state var
-var gameState = gameConfig.GAME_STATE_START_SCENE;
-var gameUpdateFunc = start;
+var gameState = gameConfig.GAME_STATE_LOAD;
+var gameSetupFunc = load;
+var gameUpdateFunc = null;
 
 var drawInterval = null;
 
 //state changer
 function changeState(newState){
+  clearInterval(drawInterval);
+  drawInterval = null;
   switch (newState) {
     case gameConfig.GAME_STATE_LOAD:
-      gameState = gameConfig.GAME_STATE_LOAD;
-      gameUpdateFunc = load;
+      gameState = newState;
+      gameSetupFunc = load;
+      gameUpdateFunc = null;
       break;
     case gameConfig.GAME_STATE_START_SCENE:
-      gameState = gameConfig.GAME_STATE_START_SCENE;
+      gameState = newState;
+      gameSetupFunc = null
       gameUpdateFunc = standby;
       break;
     case gameConfig.GAME_STATE_GAME_START:
-      gameState = gameConfig.GAME_STATE_GAME_START;
-      gameUpdateFunc = start;
+      gameState = newState;
+      gameSetupFunc = start;
+      gameUpdateFunc = null;
       break;
     case gameConfig.GAME_STATE_GAME_ON:
-      gameState = gameConfig.GAME_STATE_GAME_ON;
+      gameState = newState;
+      gameSetupFunc = null
       gameUpdateFunc = game;
       break;
     case gameConfig.GAME_STATE_END:
-      gameSate = gameConfig.GAME_STATE_END;
+      gameSate = newState;
+      gameSetupFunc = null;
       gameUpdateFunc = end;
       break;
   }
+  update();
 };
+function update(){
+  if(gameSetupFunc === null && gameUpdateFunc !== null){
+    drawInterval = setInterval(gameUpdateFunc,fps);
+  }else if(gameSetupFunc !==null && gameUpdateFunc === null){
+    gameSetupFunc();
+  }
+}
 
 //load resource, base setting
 function load(){
-    setBaseSetting();
+  setBaseSetting();
+  setCanvasSize();
+  //event handle config
+  startButton.onclick = function(){
+    changeState(gameConfig.GAME_STATE_GAME_START);
+  };
+  window.onresize = function(){
     setCanvasSize();
-    //event handle config
-    startButton.onclick = function(){
-      changeState(gameConfig.GAME_STATE_GAME_START);
-    };
-    window.onresize = function(){
-      setCanvasSize();
-    };
-    changeState(gameConfig.GAME_STATE_START_SCENE);
+  };
+  changeState(gameConfig.GAME_STATE_START_SCENE);
 };
 //when all resource loaded. just draw start scene
 function standby(){
@@ -76,7 +92,9 @@ function standby(){
 };
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
+var count = 0;
 function start(){
+  console.log(++count);
   setupSocket();
   socket.emit('reqStartGame');
 };
@@ -91,13 +109,14 @@ function end(){
 
 //functions
 function setBaseSetting(){
-  socket = io();
 
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
+
   infoScene = document.getElementById('infoScene');
   gameScene = document.getElementById('gameScene');
   standingScene = document.getElementById('standingScene');
+  startButton = document.getElementById('startButton');
 
   // inner Modules
   util = require('../../modules/public/util.js');
@@ -144,15 +163,18 @@ function drawGame(){
   standingScene.classList.remove('enable');
 
   drawScreen();
-  drawUser();
   drawGrid();
+  drawUser();
 };
 // socket connect and server response configs
 function setupSocket(){
+  socket = io();
 
   //change state game on
   socket.on('resStartGame', function(datas){
     Manager.setUsers(datas);
+    Manager.synchronizeUser(gameConfig.userID);
+
     console.log(Manager.users);
 
     canvasAddEvent();
@@ -162,7 +184,6 @@ function setupSocket(){
   socket.on('setSyncUser', function(user){
     gameConfig.userID = user.objectID;
     gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
-    Manager.synchronizeUser(gameConfig.userID);
     // Manager = new CManager(gameConfig);
   });
 
@@ -245,9 +266,7 @@ function canvasAddEvent(){
   }, false);
 }
 
-if(drawInterval === null){
-  drawInterval = setInterval(gameUpdateFunc,fps);
-}
+update();
 // local utils
 // function setCanvasSize(scaleFactor){
 //   // canvas.style.width = (canvas.width * scaleFactor) + 'px';

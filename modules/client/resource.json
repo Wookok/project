@@ -3,6 +3,6 @@
   "USER_BODY_SIZE" : 64,
   "USER_HAND_SRC" : "../images/CharHand.svg",
   "USER_HAND_SIZE" : 64,
-  "GRID_SRC" : "../images/grid.png",
+  "GRID_SRC" : "../images/map-grass.png",
   "GRID_SIZE" : 60
 }

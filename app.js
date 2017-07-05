@@ -53,8 +53,8 @@ io.on('connection', function(socket){
     var userDatas = GM.updateDataSettings();
     console.log(userDatas);
 
-    socket.emit('resStartGame', userDatas);
     socket.emit('setSyncUser', userData);
+    socket.emit('resStartGame', userDatas);
   });
 
   socket.on('reqMove', function(targetPosition, localOffset){
