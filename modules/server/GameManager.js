@@ -1,29 +1,62 @@
+var Obstacle = require('./Obstacle.js');
 var config = require('../../config.json');
 var gameConfig = require('../public/gameConfig.json');
 var util = require('../public/util.js');
+
 var QuadTree = require('quadtree-lib');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
+
+//quadTree var
+var entityTree = new QuadTree({
+  width : gameConfig.CANVAS_MAX_SIZE.width,
+  height : gameConfig.CANVAS_MAX_SIZE.height,
+  maxElements : 5
+});
+var userEles = [];
+var colliderEles = [];
+
+var staticTree = new QuadTree({
+  width : gameConfig.CANVAS_MAX_SIZE.width,
+  height : gameConfig.CANVAS_MAX_SIZE.height,
+  maxElements : 5
+});
+var staticEles = [];
+var affectedEles = [];
 
 function GameManager(){
   this.users = [];
   this.obstacles = [];
   this.updateInteval = null;
+  this.staticInterval = null;
+  this.affectInterval = null;
 
-  this.userTree = new QuadTree({
-    width : gameConfig.CANVAS_MAX_SIZE.width,
-    height : gameConfig.CANVAS_MAX_SIZE.height,
-    maxElements : 5
-  });
-  this.userEles = [];
-  this.colliderEles = [];
+  // this.entityTree = new QuadTree({
+  //   width : gameConfig.CANVAS_MAX_SIZE.width,
+  //   height : gameConfig.CANVAS_MAX_SIZE.height,
+  //   maxElements : 5
+  // });
+  //
+  // this.userEles = [];
+  // this.colliderEles = [];
+  //
+  // staticTree = new QuadTree({
+  //   width : gameConfig.CANVAS_MAX_SIZE.width,
+  //   height : gameConfig.CANVAS_MAX_SIZE.height,
+  //   maxElements : 5
+  // });
+  // staticEles = [];
+  // affectedEles = [];
+};
 
-  this.staticTree = new QuadTree({
-    width : gameConfig.CANVAS_MAX_SIZE.width,
-    height : gameConfig.CANVAS_MAX_SIZE.height,
-    maxElements : 5
-  });
-  this.staticEles = [];
+GameManager.prototype.createObstacle = function(){
+  var obstacle1 = new Obstacle(50, 50, 100, 100, generateRandomID("OR"));
+  var obstacle2 = new Obstacle(200, 200, 100, 100, generateRandomID("OR"));
+
+  staticEles.push(obstacle1.staticEle);
+  staticEles.push(obstacle2.staticEle);
+
+  staticTree.pushAll(staticEles);
 };
 
 GameManager.prototype.start = function(){
@@ -31,11 +64,17 @@ GameManager.prototype.start = function(){
   this.updateGame();
 };
 GameManager.prototype.mapSetting = function(){
-
+  this.createObstacle();
 };
 GameManager.prototype.updateGame = function(){
   if(this.updateInteval === null){
     this.updateInteval = setInterval( updateIntervalHandler.bind(this), INTERVAL_TIMER);
+  }
+  if(this.staticInterval === null){
+    this.staticInterval = setInterval(staticIntervalHandler.bind(this), INTERVAL_TIMER);
+  }
+  if(this.affectInterval === null){
+    this.affectInterval = setInterval(affectIntervalHandler.bind(this), INTERVAL_TIMER);
   }
 };
 //setting User for moving and move user;
@@ -56,14 +95,16 @@ GameManager.prototype.joinUser = function(user){
 GameManager.prototype.kickUser = function(user){
   if(!(user.objectID in this.users)){
     console.log("can`t find user`s ID. something is wrong");
+  }else{
+    delete this.users[user.objectID];
   }
-  delete this.users[user.objectID];
 };
 GameManager.prototype.updateUser = function(user){
   if(!(user.objectID in this.users)){
     console.log("can`t find user`s ID. something is wrong");
+  }else{
+    this.users[user.objectID] = user;
   }
-  this.users[user.objectID] = user;
 };
 
 //user initialize
@@ -79,14 +120,13 @@ GameManager.prototype.initializeUser = function(user){
       }
     }
   }
-  console.log(randomID);
   //initialize variables;
   user.assignID(randomID);
 
   user.setSize(64,64);
   user.setPosition(10, 10);
 
-  user.setRotateSpeed(10);
+  user.setRotateSpeed(30);
   user.setMaxSpeed(10);
 };
 
@@ -143,9 +183,9 @@ GameManager.prototype.updateDataSetting = function(user){
 };
 
 function updateIntervalHandler(){
-  for(var i=0; i<this.colliderEles.length; i++){
-    var tempCollider = this.colliderEles[i];
-    this.userTree.onCollision(tempCollider, function(item){
+  for(var i=0; i<colliderEles.length; i++){
+    var tempCollider = colliderEles[i];
+    entityTree.onCollision(tempCollider, function(item){
       if(tempCollider.id !== item.id){
         var colCenterX = tempCollider.x + tempCollider.width/2;
         var colCenterY = tempCollider.y + tempCollider.height/2;
@@ -153,33 +193,76 @@ function updateIntervalHandler(){
         var itemCenterX = item.x + item.width/2;
         var itemCenterY = item.y + item.height/2;
 
-        var dist = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
-        if(dist < Math.pow(tempCollider.width/2 + item.width/2, 2)){
+        var distSquare = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
+        if(distSquare < Math.pow(tempCollider.width/2 + item.width/2, 2)){
           console.log('collision is occured');
         }
       }
     });
   }
   //clear tree and treeArray
-  for(var index in this.userEles){
-    this.userTree.remove(this.userEles[index]);
+  for(var index in userEles){
+    entityTree.remove(userEles[index]);
   }
-  this.userEles = [];
-  this.colliderEles = [];
+  userEles = [];
+  colliderEles = [];
 
   //updateUserArray
   for(var index in this.users){
     this.users[index].setUserEle();
-    this.userEles.push(this.users[index].userTreeEle);
+    userEles.push(this.users[index].entityTreeEle);
   }
   //test
   for(var index in this.users){
-    this.colliderEles.push(this.users[index].userTreeEle);
+    colliderEles.push(this.users[index].entityTreeEle);
   }
   //put users data to tree
-  this.userTree.pushAll(this.userEles);
+  entityTree.pushAll(userEles);
 };
+function staticIntervalHandler(){
+  for(var index in this.users){
+    var tempUserEle = this.users[index].entityTreeEle;
+    staticTree.onCollision(tempUserEle, function(item){
+      if(tempUserEle.id !== item.id){
+        var userCenterX = tempUserEle.x + tempUserEle.width/2;
+        var userCenterY = tempUserEle.y + tempUserEle.height/2;
 
+        var itemCenterX = item.x + item.width/2;
+        var itemCenterY = item.y + item.height/2;
+
+        var distSquare = Math.pow(itemCenterX - userCenterX,2) + Math.pow(itemCenterY - userCenterY,2) - Math.pow(tempUserEle.width/2 + item.width/2,2);
+        //if collision, distSquare == speedSquare
+        if(distSquare<0){
+          var distanceFactor = Math.sqrt(Math.abs(distSquare));
+
+          //find reverse direction
+          var vecX = itemCenterX - userCenterX;
+          var vecY = itemCenterY - userCenterY;
+          var vecScalar = (Math.pow(vecX, 2) + Math.pow(vecY, 2));
+          var unitVecX = vecX/vecScalar;
+          var unitVecY = vecY/vecScalar;
+
+          var addToPosX = unitVecX * distanceFactor;
+          var addToPosY = unitVecY * distanceFactor;
+
+          console.log(affectedEles);
+          //function name, userID, arg1, arg2
+          affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addToPosX, arg2 : addToPosY});
+          console.log(affectedEles);
+        }
+      }
+    });
+  }
+};
+function affectIntervalHandler(){
+  for(var index in affectedEles){
+    if(affectedEles[index].func === 'moveCompel'){
+      this.users[affectedEles[index].id].position.x += affectedEles[index].arg1;
+      this.users[affectedEles[index].id].position.y += affectedEles[index].arg2;
+      affectedEles.splice(index, 1);
+    }
+  }
+};
 function generateRandomID(prefix){
   var output = prefix;
   for(var i=0; i<6; i++){

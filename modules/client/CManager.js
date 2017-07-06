@@ -27,6 +27,13 @@ CManager.prototype = {
 			this.users[userDatas[index].objectID].changeState(userDatas[index].currentState);
 		}
 	},
+	kickUser : function(objID){
+		if(!(objID in this.users)){
+			console.log("user already out");
+		}else{
+			delete this.users[objID];
+		}
+	},
 	updateUsers : function(){
 
 	},

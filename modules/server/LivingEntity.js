@@ -24,7 +24,7 @@ function LivingEntity(){
   this.updateInterval = false;
   this.updateFunction = null;
 
-  this.userTreeEle = {
+  this.entityTreeEle = {
     x : this.position.x,
     y : this.position.y,
     width : this.size.width,
@@ -96,9 +96,9 @@ LivingEntity.prototype.assignID = function(x){
   this.objectID = x;
 };
 
-// initialize and update for userTreeEle
+// initialize and update for entityTreeEle
 LivingEntity.prototype.setUserEle = function(){
-  this.userTreeEle = {
+  this.entityTreeEle = {
     x : this.position.x,
     y : this.position.y,
     width : this.size.width,

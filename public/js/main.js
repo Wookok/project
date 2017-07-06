@@ -92,9 +92,7 @@ function standby(){
 };
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
-var count = 0;
 function start(){
-  console.log(++count);
   setupSocket();
   socket.emit('reqStartGame');
 };
@@ -109,7 +107,6 @@ function end(){
 
 //functions
 function setBaseSetting(){
-
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
 
@@ -201,19 +198,10 @@ function setupSocket(){
     console.log('move start');
     Manager.moveUser(userData);
   });
-  //
-  // socket.on('resSetCanvasSize', function(canvasSize, scaleFactor){
-  //   // var beforeOffset = gameConfig.userOffset;
-  //   gameConfig.scaleFactor = scaleFactor;
-  //   gameConfig.canvasSize = canvasSize;
-  //   // gameConfig.userOffset = util.calculateOffset(, gameConfig.canvasSize);
-  //   // Manager.reCalcLocalPosition(beforeOffset, gameConfig.userOffset);
-  //   //may need cancel drawInterval for a while
-  //
-  //   //css height, width change
-  //
-  //   setCanvasSize(scaleFactor);
-  // });
+
+  socket.on('userLeave', function(objID){
+    Manager.kickUser(objID);
+  });
 };
 
 //draw
