@@ -75,8 +75,21 @@ LivingEntity.prototype.stop = function(){
 
 // setup when click canvas for move
 LivingEntity.prototype.setTargetPosition = function(newPosition){
-  this.targetPosition.x = newPosition.x;
-  this.targetPosition.y = newPosition.y;
+  if(newPosition.x <= 0){
+    this.targetPosition.x = 0;
+  }else if(newPosition.x >= gameConfig.CANVAS_MAX_SIZE.width - this.size.width){
+    this.targetPosition.x = gameConfig.CANVAS_MAX_SIZE.width - this.size.width;
+  }else{
+    this.targetPosition.x = newPosition.x;
+  }
+
+  if(newPosition.y <=0){
+    this.targetPosition.y = 0;
+  }else if(newPosition.y >= gameConfig.CANVAS_MAX_SIZE.height - this.size.height){
+    this.targetPosition.y = gameConfig.CANVAS_MAX_SIZE.height - this.size.height;
+  }else{
+    this.targetPosition.y = newPosition.y;
+  }
 };
 LivingEntity.prototype.setSpeed = function(){
   util.setSpeed.call(this);

@@ -66,11 +66,11 @@ io.on('connection', function(socket){
   })
 
   socket.on('disconnect', function(){
-    if(user.constructor === User){
+    if(user){
+      io.sockets.emit('userLeave', user.objectID);
       GM.stopUser(user);
       GM.kickUser(user);
       user = null;
-      io.sockets.emit('userLeave', userData.objectID);
     }
     if(updateUserInterval){
       clearInterval(updateUserInterval);

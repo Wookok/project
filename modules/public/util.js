@@ -80,8 +80,7 @@ exports.move = function(){
   this.position.x += this.speed.x;
   this.position.y += this.speed.y;
 
-  this.center.x += this.speed.x;
-  this.center.y += this.speed.y;
+  this.setCenter();
 };
 
 //must use with bind or call method

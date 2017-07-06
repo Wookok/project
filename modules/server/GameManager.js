@@ -50,8 +50,8 @@ function GameManager(){
 };
 
 GameManager.prototype.createObstacle = function(){
-  var obstacle1 = new Obstacle(50, 50, 100, 100, generateRandomID("OR"));
-  var obstacle2 = new Obstacle(200, 200, 100, 100, generateRandomID("OR"));
+  var obstacle1 = new Obstacle(200, 200, 100, 100, generateRandomID("OR"));
+  var obstacle2 = new Obstacle(500, 500, 100, 100, generateRandomID("OR"));
 
   staticEles.push(obstacle1.staticEle);
   staticEles.push(obstacle2.staticEle);
@@ -233,19 +233,25 @@ function staticIntervalHandler(){
         var distSquare = Math.pow(itemCenterX - userCenterX,2) + Math.pow(itemCenterY - userCenterY,2) - Math.pow(tempUserEle.width/2 + item.width/2,2);
         //if collision, distSquare == speedSquare
         if(distSquare<0){
-          var distanceFactor = Math.sqrt(Math.abs(distSquare));
-
           //find reverse direction
-          var vecX = itemCenterX - userCenterX;
-          var vecY = itemCenterY - userCenterY;
+          var dist = tempUserEle.width/2 + item.width/2 - Math.sqrt(Math.pow(itemCenterX - userCenterX,2) + Math.pow(itemCenterY - userCenterY,2));
+          var distSquare = Math.pow(dist,2);
+
+          var vecX = userCenterX - itemCenterX;
+          var vecY = userCenterY - itemCenterY;
+
+          var ratioXY = vecY/vecX;
+          var ratioXYSquare = Math.pow(ratioXY,2);
+
           var vecScalar = (Math.pow(vecX, 2) + Math.pow(vecY, 2));
-          var unitVecX = vecX/vecScalar;
-          var unitVecY = vecY/vecScalar;
+          // var unitVecX = vecX/vecScalar;
+          // var unitVecY = vecY/vecScalar;
 
-          var addToPosX = unitVecX * distanceFactor;
-          var addToPosY = unitVecY * distanceFactor;
+          var distFactorX = Math.sqrt(distSquare/(1+ratioXYSquare));
+          var distFactorY = Math.sqrt((ratioXYSquare * distSquare) / (ratioXYSquare + 1));
 
-          console.log(affectedEles);
+          var addToPosX = (vecX > 0 ? 1 : -1) * distFactorX * 1.5;
+          var addToPosY = (vecY > 0 ? 1 : -1) * distFactorY * 1.5;
           //function name, userID, arg1, arg2
           affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addToPosX, arg2 : addToPosY});
           console.log(affectedEles);
@@ -258,8 +264,16 @@ function affectIntervalHandler(){
   var i = affectedEles.length;
   while(i--){
     if(affectedEles[i].func === 'moveCompel'){
-      this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
-      this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
+      if(affectedEles[i].id in this.users){
+        this.users[affectedEles[i].id].stop();
+        console.log(this.users[affectedEles[i].id].position);
+        console.log(affectedEles[i].arg1);
+        console.log(affectedEles[i].arg1 + this.users[affectedEles[i].id].position.x);
+        this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
+        this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
+        this.users[affectedEles[i].id].setCenter();
+        console.log(this.users[affectedEles[i].id].position);
+      }
     }
     affectedEles.splice(i, 1);
   }

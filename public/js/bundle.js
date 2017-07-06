@@ -354,8 +354,7 @@ exports.move = function(){
   this.position.x += this.speed.x;
   this.position.y += this.speed.y;
 
-  this.center.x += this.speed.x;
-  this.center.y += this.speed.y;
+  this.setCenter();
 };
 
 //must use with bind or call method
@@ -603,6 +602,7 @@ function drawGame(){
 
   drawScreen();
   drawGrid();
+  drawObstacle();
   drawUser();
 };
 // socket connect and server response configs
@@ -652,7 +652,13 @@ function drawScreen(){
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
+function drawObstacle(){
+  ctx.fillStyle ="#000000";
 
+
+  ctx.fillRect(util.worldXCoordToLocalX(500, gameConfig.userOffset.x), util.worldYCoordToLocalY(500, gameConfig.userOffset.y), 100, 100);
+  ctx.fillRect(util.worldXCoordToLocalX(200, gameConfig.userOffset.x), util.worldYCoordToLocalY(200, gameConfig.userOffset.y), 100, 100);
+}
 function drawUser(){
   for(var index in Manager.users){
     var radian = Manager.users[index].direction * radianFactor;
