@@ -255,13 +255,21 @@ function staticIntervalHandler(){
   }
 };
 function affectIntervalHandler(){
-  for(var index in affectedEles){
-    if(affectedEles[index].func === 'moveCompel'){
-      this.users[affectedEles[index].id].position.x += affectedEles[index].arg1;
-      this.users[affectedEles[index].id].position.y += affectedEles[index].arg2;
-      affectedEles.splice(index, 1);
+  var i = affectedEles.length;
+  while(i--){
+    if(affectedEles[i].func === 'moveCompel'){
+      this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
+      this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
     }
+    affectedEles.splice(i, 1);
   }
+  // for(var index in affectedEles){
+  //   if(affectedEles[index].func === 'moveCompel'){
+  //     this.users[affectedEles[index].id].position.x += affectedEles[index].arg1;
+  //     this.users[affectedEles[index].id].position.y += affectedEles[index].arg2;
+  //     affectedEles.splice(index, 1);
+  //   }
+  // }
 };
 function generateRandomID(prefix){
   var output = prefix;
