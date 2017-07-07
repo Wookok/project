@@ -4,6 +4,7 @@ var gameConfig = require('../public/gameConfig.json');
 var util = require('../public/util.js');
 
 var QuadTree = require('quadtree-lib');
+var PF = require('pathfinding');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
@@ -24,29 +25,17 @@ var staticTree = new QuadTree({
 var staticEles = [];
 var affectedEles = [];
 
+var grid = new PF.grid(1120, 1120);
+var finder = new PF.AStarFinder({
+  allowDiagonal : true
+});
+
 function GameManager(){
   this.users = [];
   this.obstacles = [];
   this.updateInteval = null;
   this.staticInterval = null;
   this.affectInterval = null;
-
-  // this.entityTree = new QuadTree({
-  //   width : gameConfig.CANVAS_MAX_SIZE.width,
-  //   height : gameConfig.CANVAS_MAX_SIZE.height,
-  //   maxElements : 5
-  // });
-  //
-  // this.userEles = [];
-  // this.colliderEles = [];
-  //
-  // staticTree = new QuadTree({
-  //   width : gameConfig.CANVAS_MAX_SIZE.width,
-  //   height : gameConfig.CANVAS_MAX_SIZE.height,
-  //   maxElements : 5
-  // });
-  // staticEles = [];
-  // affectedEles = [];
 };
 
 GameManager.prototype.createObstacle = function(){
@@ -57,6 +46,19 @@ GameManager.prototype.createObstacle = function(){
   staticEles.push(obstacle2.staticEle);
 
   staticTree.pushAll(staticEles);
+
+  //path finding setting
+  var gridSize = 10;
+  for(var i=0; i<10; i++){
+    for(var j=0; j<10; j++){
+      grid.setWalkableAt(20 + i * gridSize , 20 + j * gridSize, false);
+    }
+  }
+  for(var i=0; i<10; i++){
+    for(var j=0; j<10; j++){
+      grid.setWalkableAt(50 + i * gridSize , 50 + j * gridSize, false);
+    }
+  }
 };
 
 GameManager.prototype.start = function(){
@@ -79,13 +81,76 @@ GameManager.prototype.updateGame = function(){
 };
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
+  var t1 = Date.now().
+  console.log(targetPosition);
+  var collisionObjs = checkCircleCollision(staticTree, targetPosition.x, targetPosition.y, user.size.width, user.objectID);
+  if(collisionObjs.length > 0){
+    var addPos = calcCompelPos({x : targetPosition.x , y : targetPosition.y, width: user.size.width , height: user.size.height ,id: user.objectID }, collisionObjs);
+    console.log(addPos);
+    targetPosition.x += addPos.x;
+    targetPosition.y += addPos.y;
+  }
+  console.log(targetPosition);
+  var gridBackUp = grid.clone();
+  var path = PF.Util.compressPath(finder.findPath(user.position.x/10, user.position.y/10, user.targetPosition.x/10, user.targetPosition.y/10, gridBackUp));
+  console.log(path);
+
   user.setTargetPosition(targetPosition);
   user.setTargetDirection();
   user.setSpeed();
 
+  var t2 = Date.now().
+  console.log(t2 - t1);
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
+function checkCircleCollision(tree, posX, posY, radius, id){
+  var returnVal = [];
+  var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
+  tree.onCollision(obj, function(item){
+    if(obj.id !== item.id){
+      var objCenterX = obj.x + obj.width/2;
+      var objCenterY = obj.y + obj.height/2;
 
+      var itemCenterX = item.x + item.width/2;
+      var itemCenterY = item.y + item.height/2;
+
+      // check sum of radius with item`s distance
+      var distSquareDiff = Math.pow(obj.width/2 + item.width/2,2) - Math.pow(itemCenterX - objCenterX,2) - Math.pow(itemCenterY - objCenterY,2);
+
+      if(distSquareDiff > 0 ){
+        //collision occured
+        returnVal.push(item);
+      }
+    }
+  });
+  return returnVal;
+};
+// use if user collide with static obj or calc targetPosition
+// obj and collisionObjs need {x, y, width, height, id}
+function calcCompelPos(obj, collisionObjs){
+  var addPos = { x : 0 , y : 0 };
+  for(var i in collisionObjs){
+    var objCenterX = obj.x + obj.width/2;
+    var objCenterY = obj.y + obj.height/2;
+
+    var itemCenterX = collisionObjs[i].x + collisionObjs[i].width/2;
+    var itemCenterY = collisionObjs[i].y + collisionObjs[i].height/2;
+
+    var vecX = objCenterX - itemCenterX;
+    var vecY = objCenterY - itemCenterY;
+
+    var dist = obj.width/2 + collisionObjs[i].width/2 - Math.sqrt(Math.pow(vecX,2) + Math.pow(vecY,2));
+    var ratioXYSquare = Math.pow(vecY/vecX,2);
+
+    var distFactorX = dist * Math.sqrt(1/(1+ratioXYSquare));
+    var distFactorY = dist * Math.sqrt((ratioXYSquare) / (1 + ratioXYSquare));
+
+    // 1.3 is make more gap between obj and collisionObjs
+    addPos.x += (vecX > 0 ? 1 : -1) * distFactorX * 1.3;
+    addPos.y += (vecY > 0 ? 1 : -1) * distFactorY * 1.3;
+  }
+  return addPos;
+};
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
@@ -222,42 +287,11 @@ function updateIntervalHandler(){
 function staticIntervalHandler(){
   for(var index in this.users){
     var tempUserEle = this.users[index].entityTreeEle;
-    staticTree.onCollision(tempUserEle, function(item){
-      if(tempUserEle.id !== item.id){
-        var userCenterX = tempUserEle.x + tempUserEle.width/2;
-        var userCenterY = tempUserEle.y + tempUserEle.height/2;
-
-        var itemCenterX = item.x + item.width/2;
-        var itemCenterY = item.y + item.height/2;
-
-        var distSquare = Math.pow(itemCenterX - userCenterX,2) + Math.pow(itemCenterY - userCenterY,2) - Math.pow(tempUserEle.width/2 + item.width/2,2);
-        //if collision, distSquare == speedSquare
-        if(distSquare<0){
-          //find reverse direction
-          var dist = tempUserEle.width/2 + item.width/2 - Math.sqrt(Math.pow(itemCenterX - userCenterX,2) + Math.pow(itemCenterY - userCenterY,2));
-          var distSquare = Math.pow(dist,2);
-
-          var vecX = userCenterX - itemCenterX;
-          var vecY = userCenterY - itemCenterY;
-
-          var ratioXY = vecY/vecX;
-          var ratioXYSquare = Math.pow(ratioXY,2);
-
-          var vecScalar = (Math.pow(vecX, 2) + Math.pow(vecY, 2));
-          // var unitVecX = vecX/vecScalar;
-          // var unitVecY = vecY/vecScalar;
-
-          var distFactorX = Math.sqrt(distSquare/(1+ratioXYSquare));
-          var distFactorY = Math.sqrt((ratioXYSquare * distSquare) / (ratioXYSquare + 1));
-
-          var addToPosX = (vecX > 0 ? 1 : -1) * distFactorX * 1.5;
-          var addToPosY = (vecY > 0 ? 1 : -1) * distFactorY * 1.5;
-          //function name, userID, arg1, arg2
-          affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addToPosX, arg2 : addToPosY});
-          console.log(affectedEles);
-        }
-      }
-    });
+    var collisionObjs = checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
+    if(collisionObjs.length > 0 ){
+      var addPos = calcCompelPos(tempUserEle, collisionObjs);
+      affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
+    }
   }
 };
 function affectIntervalHandler(){
@@ -266,24 +300,13 @@ function affectIntervalHandler(){
     if(affectedEles[i].func === 'moveCompel'){
       if(affectedEles[i].id in this.users){
         this.users[affectedEles[i].id].stop();
-        console.log(this.users[affectedEles[i].id].position);
-        console.log(affectedEles[i].arg1);
-        console.log(affectedEles[i].arg1 + this.users[affectedEles[i].id].position.x);
         this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
         this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
         this.users[affectedEles[i].id].setCenter();
-        console.log(this.users[affectedEles[i].id].position);
       }
     }
     affectedEles.splice(i, 1);
   }
-  // for(var index in affectedEles){
-  //   if(affectedEles[index].func === 'moveCompel'){
-  //     this.users[affectedEles[index].id].position.x += affectedEles[index].arg1;
-  //     this.users[affectedEles[index].id].position.y += affectedEles[index].arg2;
-  //     affectedEles.splice(index, 1);
-  //   }
-  // }
 };
 function generateRandomID(prefix){
   var output = prefix;
