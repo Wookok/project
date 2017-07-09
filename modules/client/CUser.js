@@ -27,6 +27,14 @@ var User = function(userData, gameConfig){
   this.updateFunction = null;
 
   this.onMoveOffset = null;
+
+  this.entityTreeEle = {
+    x : this.position.x,
+    y : this.position.y,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
 };
 
 User.prototype = {
@@ -71,8 +79,6 @@ User.prototype = {
   moveOffset : function(){
     var distX = this.targetPosition.x - this.center.x;
     var distY = this.targetPosition.y - this.center.y;
-    console.log(util.localToWorldPosition(this.center, this.gameConfig.userOffset));
-    console.log('in moveOffset : ' + distX + ' : ' + distY);
 
     if(distX == 0 && distY == 0){
       this.stop();
@@ -98,6 +104,15 @@ User.prototype = {
       clearInterval(this.updateInterval);
       this.updateInterval = false;
     }
+  },
+  setUserEle : function(){
+    this.entityTreeEle = {
+      x : this.position.x,
+      y : this.position.y,
+      width : this.size.width,
+      height : this.size.height,
+      id : this.objectID
+    };
   }
 };
 

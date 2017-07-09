@@ -116,7 +116,53 @@ exports.setTargetDirection = function(){
     this.targetDirection = tangentDegree;
   }
 };
+//check obstacle collision
+exports.checkCircleCollision = function(tree, posX, posY, radius, id){
+  var returnVal = [];
+  var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
+  tree.onCollision(obj, function(item){
+    if(obj.id !== item.id){
+      var objCenterX = obj.x + obj.width/2;
+      var objCenterY = obj.y + obj.height/2;
 
+      var itemCenterX = item.x + item.width/2;
+      var itemCenterY = item.y + item.height/2;
+
+      // check sum of radius with item`s distance
+      var distSquareDiff = Math.pow(obj.width/2 + item.width/2,2) - Math.pow(itemCenterX - objCenterX,2) - Math.pow(itemCenterY - objCenterY,2);
+
+      if(distSquareDiff > 0 ){
+        //collision occured
+        returnVal.push(item);
+      }
+    }
+  });
+  return returnVal;
+};
+exports.calcCompelPos = function(obj, collisionObjs){
+  var addPos = { x : 0 , y : 0 };
+  for(var i in collisionObjs){
+    var objCenterX = obj.x + obj.width/2;
+    var objCenterY = obj.y + obj.height/2;
+
+    var itemCenterX = collisionObjs[i].x + collisionObjs[i].width/2;
+    var itemCenterY = collisionObjs[i].y + collisionObjs[i].height/2;
+
+    var vecX = objCenterX - itemCenterX;
+    var vecY = objCenterY - itemCenterY;
+
+    var dist = obj.width/2 + collisionObjs[i].width/2 - Math.sqrt(Math.pow(vecX,2) + Math.pow(vecY,2));
+    var ratioXYSquare = Math.pow(vecY/vecX,2);
+
+    var distFactorX = dist * Math.sqrt(1/(1+ratioXYSquare));
+    var distFactorY = dist * Math.sqrt((ratioXYSquare) / (1 + ratioXYSquare));
+
+    // 1.3 is make more gap between obj and collisionObjs
+    addPos.x += (vecX > 0 ? 1 : -1) * distFactorX * 1.1;
+    addPos.y += (vecY > 0 ? 1 : -1) * distFactorY * 1.1;
+  }
+  return addPos;
+};
 //coordinate transform
 exports.localToWorldPosition = function(position, offset){
   var newPosition = {

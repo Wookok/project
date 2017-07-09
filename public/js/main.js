@@ -172,7 +172,7 @@ function setupSocket(){
   socket.on('resStartGame', function(datas){
     Manager.setUsers(datas);
     Manager.synchronizeUser(gameConfig.userID);
-
+    Manager.start();
     console.log(Manager.users);
 
     canvasAddEvent();
@@ -193,7 +193,13 @@ function setupSocket(){
 
   socket.on('resMove', function(userData){
     if(userData.objectID === gameConfig.userID){
+      var oldOffsetX = gameConfig.userOffset.x;
+      var oldOffsetY = gameConfig.userOffset.y;
+
       gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
+      var revisionX = oldOffsetX - gameConfig.userOffset.x;
+      var revisionY = oldOffsetY - gameConfig.userOffset.y;
+      Manager.revisionUserPos(revisionX, revisionY);
     }
     console.log(userData);
     console.log('move start');
