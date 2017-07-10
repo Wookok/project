@@ -202,10 +202,10 @@ exports.isDrawY = function(y, gameConfig){
     return true;
   }
 };
-exports.calculateOffset = function(user, canvasSize){
+exports.calculateOffset = function(obj, canvasSize){
   var newOffset = {
-    x : user.position.x + user.size.width/2 - canvasSize.width/2,
-    y : user.position.y + user.size.height/2 - canvasSize.height/2
+    x : obj.position.x + obj.size.width/2 - canvasSize.width/2,
+    y : obj.position.y + obj.size.height/2 - canvasSize.height/2
   };
   return newOffset;
 };

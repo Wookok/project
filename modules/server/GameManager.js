@@ -3,24 +3,19 @@ var config = require('../../config.json');
 var gameConfig = require('../public/gameConfig.json');
 var util = require('../public/util.js');
 
+var resources = require('../public/resource.json');
+var map = require('../public/map.json');
+
 var QuadTree = require('quadtree-lib');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 //quadTree var
-var entityTree = new QuadTree({
-  width : gameConfig.CANVAS_MAX_SIZE.width,
-  height : gameConfig.CANVAS_MAX_SIZE.height,
-  maxElements : 5
-});
+var entityTree;
 var userEles = [];
 var colliderEles = [];
 
-var staticTree = new QuadTree({
-  width : gameConfig.CANVAS_MAX_SIZE.width,
-  height : gameConfig.CANVAS_MAX_SIZE.height,
-  maxElements : 5
-});
+var staticTree;
 var staticEles = [];
 var affectedEles = [];
 
@@ -32,22 +27,24 @@ function GameManager(){
   this.affectInterval = null;
 };
 
-GameManager.prototype.createObstacle = function(){
-  var obstacle1 = new Obstacle(200, 200, 100, 100, generateRandomID("OR"));
-  var obstacle2 = new Obstacle(500, 500, 100, 100, generateRandomID("OR"));
-
-  staticEles.push(obstacle1.staticEle);
-  staticEles.push(obstacle2.staticEle);
-
-  staticTree.pushAll(staticEles);
-};
-
 GameManager.prototype.start = function(){
+
+  entityTree = new QuadTree({
+    width : gameConfig.CANVAS_MAX_SIZE.width,
+    height : gameConfig.CANVAS_MAX_SIZE.height,
+    maxElements : 5
+  });
+  staticTree = new QuadTree({
+    width : gameConfig.CANVAS_MAX_SIZE.width,
+    height : gameConfig.CANVAS_MAX_SIZE.height,
+    maxElements : 5
+  });
+
   this.mapSetting();
   this.updateGame();
 };
 GameManager.prototype.mapSetting = function(){
-  this.createObstacle();
+  this.createObstacles();
 };
 GameManager.prototype.updateGame = function(){
   if(this.updateInteval === null){
@@ -59,6 +56,26 @@ GameManager.prototype.updateGame = function(){
   if(this.affectInterval === null){
     this.affectInterval = setInterval(affectIntervalHandler.bind(this), INTERVAL_TIMER);
   }
+};
+
+//create obstacles and static tree setup
+GameManager.prototype.createObstacles = function(){
+  for(var index in map.Trees){
+    var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
+    // var tempObstacle = new Obstacle(util.worldXCoordToLocalX(map.Trees[index].posX, this.gameConfig.userOffset.x),
+    // 																util.worldYCoordToLocalY(map.Trees[index].posY, this.gameConfig.userOffset.y),
+    // 																resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
+    this.obstacles.push(tempObstacle);
+    staticEles.push(tempObstacle.staticEle);
+  }
+  staticTree.pushAll(staticEles);
+  // var obstacle1 = new Obstacle(200, 200, 100, 100, generateRandomID("OR"));
+  // var obstacle2 = new Obstacle(500, 500, 100, 100, generateRandomID("OR"));
+  //
+  // staticEles.push(obstacle1.staticEle);
+  // staticEles.push(obstacle2.staticEle);
+  //
+  // staticTree.pushAll(staticEles);
 };
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
@@ -74,54 +91,7 @@ GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
 
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
-// function checkCircleCollision(tree, posX, posY, radius, id){
-//   var returnVal = [];
-//   var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
-//   tree.onCollision(obj, function(item){
-//     if(obj.id !== item.id){
-//       var objCenterX = obj.x + obj.width/2;
-//       var objCenterY = obj.y + obj.height/2;
-//
-//       var itemCenterX = item.x + item.width/2;
-//       var itemCenterY = item.y + item.height/2;
-//
-//       // check sum of radius with item`s distance
-//       var distSquareDiff = Math.pow(obj.width/2 + item.width/2,2) - Math.pow(itemCenterX - objCenterX,2) - Math.pow(itemCenterY - objCenterY,2);
-//
-//       if(distSquareDiff > 0 ){
-//         //collision occured
-//         returnVal.push(item);
-//       }
-//     }
-//   });
-//   return returnVal;
-// };
-// // use if user collide with static obj or calc targetPosition
-// // obj and collisionObjs need {x, y, width, height, id}
-// function calcCompelPos(obj, collisionObjs){
-//   var addPos = { x : 0 , y : 0 };
-//   for(var i in collisionObjs){
-//     var objCenterX = obj.x + obj.width/2;
-//     var objCenterY = obj.y + obj.height/2;
-//
-//     var itemCenterX = collisionObjs[i].x + collisionObjs[i].width/2;
-//     var itemCenterY = collisionObjs[i].y + collisionObjs[i].height/2;
-//
-//     var vecX = objCenterX - itemCenterX;
-//     var vecY = objCenterY - itemCenterY;
-//
-//     var dist = obj.width/2 + collisionObjs[i].width/2 - Math.sqrt(Math.pow(vecX,2) + Math.pow(vecY,2));
-//     var ratioXYSquare = Math.pow(vecY/vecX,2);
-//
-//     var distFactorX = dist * Math.sqrt(1/(1+ratioXYSquare));
-//     var distFactorY = dist * Math.sqrt((ratioXYSquare) / (1 + ratioXYSquare));
-//
-//     // 1.3 is make more gap between obj and collisionObjs
-//     addPos.x += (vecX > 0 ? 1 : -1) * distFactorX * 1.3;
-//     addPos.y += (vecY > 0 ? 1 : -1) * distFactorY * 1.3;
-//   }
-//   return addPos;
-// };
+
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;

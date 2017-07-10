@@ -3,6 +3,7 @@ var util = require('../../modules/public/util.js');
 var User = require('../../modules/client/CUser.js');
 var CManager = require('../../modules/client/CManager.js');
 var gameConfig = require('../../modules/public/gameConfig.json');
+var resource = require('../../modules/public/resource.json');
 
 var socket;
 
@@ -135,11 +136,22 @@ function setBaseSetting(){
 };
 
 function setCanvasSize(){
+
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
+  var oldOffsetX = gameConfig.userOffset.x;
+  var oldOffsetY = gameConfig.userOffset.y;
+
   gameConfig.scaleFactor = 1;
   gameConfig.canvasSize = {width : window.innerWidth, height : window.innerHeight};
+
+  gameConfig.userOffset = util.calculateOffset(Manager.user, gameConfig.canvasSize);
+
+  var revisionX = oldOffsetX - gameConfig.userOffset.x;
+  var revisionY = oldOffsetY - gameConfig.userOffset.y;
+
+  Manager.revisionAllObj(revisionX, revisionY);
 };
 
 function drawStartScene(){
@@ -161,8 +173,8 @@ function drawGame(){
 
   drawScreen();
   drawGrid();
-  drawObstacle();
-  drawUser();
+  drawObstacles();
+  drawUsers();
 };
 // socket connect and server response configs
 function setupSocket(){
@@ -217,14 +229,21 @@ function drawScreen(){
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
-function drawObstacle(){
+function drawObstacles(){
   ctx.fillStyle ="#000000";
 
-
-  ctx.fillRect(util.worldXCoordToLocalX(500, gameConfig.userOffset.x), util.worldYCoordToLocalY(500, gameConfig.userOffset.y), 100, 100);
-  ctx.fillRect(util.worldXCoordToLocalX(200, gameConfig.userOffset.x), util.worldYCoordToLocalY(200, gameConfig.userOffset.y), 100, 100);
+  for(var index in Manager.obstacles){
+    ctx.beginPath();
+    ctx.arc(Manager.obstacles[index].staticEle.x + resources.OBJ_TREE_SIZE/2, Manager.obstacles[index].staticEle.y + resources.OBJ_TREE_SIZE/2,
+            resources.OBJ_TREE_SIZE/2, 0, 2*Math.PI);
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#003300';
+    ctx.stroke();
+    // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
+  }
 }
-function drawUser(){
+function drawUsers(){
   for(var index in Manager.users){
     var radian = Manager.users[index].direction * radianFactor;
 

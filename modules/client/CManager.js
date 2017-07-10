@@ -1,9 +1,12 @@
 var User = require('./CUser.js');
 var util = require('../public/util.js');
 
+var resources = require('../public/resource.json');
+var map = require('../public/map.json');
+
 var QuadTree = require('../public/quadtree.min.js');
 
-var Obstacle = require('../server/Obstacle.js');
+var Obstacle = require('./CObstacle.js');
 var staticTree;
 var staticEles = [];
 var affectedEles = [];
@@ -21,25 +24,21 @@ var CManager = function(gameConfig){
 	this.staticInterval = null;
 	this.affectInterval = null;
 };
-function generateRandomID(prefix){
-  var output = prefix;
-  for(var i=0; i<6; i++){
-    output += Math.floor(Math.random()*16).toString(16);
-  }
-  return output;
-};
+
 CManager.prototype = {
 	start : function(){
+
 		staticTree = new QuadTree({
 		  width : this.gameConfig.CANVAS_MAX_SIZE.width,
 		  height : this.gameConfig.CANVAS_MAX_SIZE.height,
 		  maxElements : 5
 		});
+
 		this.mapSetting();
 		this.updateGame();
 	},
 	mapSetting : function(){
-		this.createObstacle();
+		this.createObstacles();
 	},
 	updateGame : function(){
 		var INTERVAL_TIMER = 1000/this.gameConfig.INTERVAL;
@@ -51,12 +50,27 @@ CManager.prototype = {
 	    this.affectInterval = setInterval(affectIntervalHandler.bind(this), INTERVAL_TIMER);
 	  }
 	},
-	createObstacle : function(){
-		var obstacle1 = new Obstacle(util.worldXCoordToLocalX(200, this.gameConfig.userOffset.x), util.worldYCoordToLocalY(200, this.gameConfig.userOffset.y), 100, 100, generateRandomID("OR"));
-	  var obstacle2 = new Obstacle(util.worldXCoordToLocalX(500, this.gameConfig.userOffset.x), util.worldYCoordToLocalY(500, this.gameConfig.userOffset.y), 100, 100, generateRandomID("OR"));
+	createObstacles : function(){
+		for(var index in map.Trees){
+			var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
+			// var tempObstacle = new Obstacle(util.worldXCoordToLocalX(map.Trees[index].posX, this.gameConfig.userOffset.x),
+			// 																util.worldYCoordToLocalY(map.Trees[index].posY, this.gameConfig.userOffset.y),
+			// 																resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
+			this.obstacles.push(tempObstacle);
+		}
+	},
+	updateObstacles : function(){
+		staticEles = [];
 
-	  staticEles.push(obstacle1.staticEle);
-	  staticEles.push(obstacle2.staticEle);
+		for(var index in this.obstacles){
+			var localPos = util.calculateOffset(this.obstacles[index], this.gameConfig.canvasSize);
+			this.obstacles[index].staticEle.x = localPos.x
+			this.obstacles[index].staticEle.y = localPos.y
+
+			//will add filtering method
+
+			staticEles.push(this.obstacles[index].staticEle);
+		}
 
 	  staticTree.pushAll(staticEles);
 	},
@@ -170,6 +184,30 @@ CManager.prototype = {
 			}
 		}
 	},
+	revisionAllObj : function(revisionX, revisionY){
+		for(var index in this.users){
+			if(this.checkUserAtUsers(this.users[index])){
+				this.users[index].position.x += revisionX;
+				this.users[index].position.y += revisionY;
+
+				this.users[index].center.x += revisionX;
+				this.users[index].center.y += revisionY;
+
+				this.users[index].targetPosition.x += revisionX;
+				this.users[index].targetPosition.y += revisionY;
+			}
+		}
+		for(var index in this.obstacles){
+			this.obstacles[index].position.x += revisionX;
+			this.obstacles[index].position.y += revisionY;
+
+			this.obstacles[index].center.x += revisionX;
+			this.obstacles[index].center.y += revisionY;
+
+			this.obstacles[index].targetPosition.x += revisionX;
+			this.obstacles[index].targetPosition.y += revisionY;
+		}
+	},
 	// set this client user
 	synchronizeUser : function(userID){
 		for(var index in this.users){
@@ -208,19 +246,15 @@ CManager.prototype = {
 };
 
 function staticIntervalHandler(){
+	//user elements update for collision check
 	for(var index in this.users){
 		this.users[index].setUserEle();
 	}
+	//obstacle elements remove at tree and update position
 	for(var index in staticEles){
 		staticTree.remove(staticEles[index]);
 	}
-	var obstacle1 = new Obstacle(util.worldXCoordToLocalX(200, this.gameConfig.userOffset.x), util.worldYCoordToLocalY(200, this.gameConfig.userOffset.y), 100, 100, generateRandomID("OR"));
-	var obstacle2 = new Obstacle(util.worldXCoordToLocalX(500, this.gameConfig.userOffset.x), util.worldYCoordToLocalY(500, this.gameConfig.userOffset.y), 100, 100, generateRandomID("OR"));
-	staticEles = [];
-	staticEles.push(obstacle1.staticEle);
-	staticEles.push(obstacle2.staticEle);
-
-	staticTree.pushAll(staticEles);
+	this.updateObstacles();
 
   for(var index in this.users){
     var tempUserEle = this.users[index].entityTreeEle;
