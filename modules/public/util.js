@@ -158,8 +158,8 @@ exports.calcCompelPos = function(obj, collisionObjs){
     var distFactorY = dist * Math.sqrt((ratioXYSquare) / (1 + ratioXYSquare));
 
     // 1.3 is make more gap between obj and collisionObjs
-    addPos.x += (vecX > 0 ? 1 : -1) * distFactorX * 1.1;
-    addPos.y += (vecY > 0 ? 1 : -1) * distFactorY * 1.1;
+    addPos.x += (vecX > 0 ? 1 : -1) * distFactorX * 1;
+    addPos.y += (vecY > 0 ? 1 : -1) * distFactorY * 1;
   }
   return addPos;
 };

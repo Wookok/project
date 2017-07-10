@@ -7,6 +7,7 @@ var map = require('../public/map.json');
 var QuadTree = require('../public/quadtree.min.js');
 
 var Obstacle = require('./CObstacle.js');
+
 var staticTree;
 var staticEles = [];
 var affectedEles = [];
@@ -63,7 +64,7 @@ CManager.prototype = {
 		staticEles = [];
 
 		for(var index in this.obstacles){
-			var localPos = util.calculateOffset(this.obstacles[index], this.gameConfig.canvasSize);
+			var localPos = util.worldToLocalPosition(this.obstacles[index].position, this.gameConfig.userOffset);
 			this.obstacles[index].staticEle.x = localPos.x
 			this.obstacles[index].staticEle.y = localPos.y
 
@@ -203,9 +204,6 @@ CManager.prototype = {
 
 			this.obstacles[index].center.x += revisionX;
 			this.obstacles[index].center.y += revisionY;
-
-			this.obstacles[index].targetPosition.x += revisionX;
-			this.obstacles[index].targetPosition.y += revisionY;
 		}
 	},
 	// set this client user

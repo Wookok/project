@@ -79,11 +79,29 @@ GameManager.prototype.createObstacles = function(){
 };
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
-  var collisionObjs = util.checkCircleCollision(staticTree, targetPosition.x, targetPosition.y, user.size.width, user.objectID);
+  var collisionObjs = util.checkCircleCollision(staticTree, targetPosition.x - user.size.width/2, targetPosition.y - user.size.width/2, user.size.width, user.objectID);
   if(collisionObjs.length > 0){
-    var addPos = util.calcCompelPos({x : targetPosition.x , y : targetPosition.y, width: user.size.width , height: user.size.height ,id: user.objectID }, collisionObjs);
-    targetPosition.x += addPos.x;
-    targetPosition.y += addPos.y;
+    var curPosX = user.position.x + user.size.width/2;
+    var curPosY = user.position.y + user.size.width/2;
+
+    var addPosX = collisionObjs[0].x + collisionObjs[0].width/2 - curPosX;
+    var addPosY = collisionObjs[0].y + collisionObjs[0].width/2 - curPosY;
+
+    var vecSize = Math.sqrt(Math.pow(addPosX,2) + Math.pow(addPosY,2));
+
+    var unitVecX = addPosX/vecSize;
+    var unitVecY = addPosY/vecSize;
+
+    var radiusDist = collisionObjs[0].width/2 + user.size.width/2
+
+    var newAddPosX = unitVecX * (vecSize - radiusDist);
+    var newAddPosY = unitVecY * (vecSize - radiusDist);
+
+    var newTargetPosX = curPosX + newAddPosX;
+    var newTargetPosY = curPosY + newAddPosY;
+
+    targetPosition.x = newTargetPosX;
+    targetPosition.y = newTargetPosY;
   }
   user.setTargetPosition(targetPosition);
   user.setTargetDirection();
@@ -132,8 +150,8 @@ GameManager.prototype.initializeUser = function(user){
   user.setSize(64,64);
   user.setPosition(10, 10);
 
-  user.setRotateSpeed(30);
-  user.setMaxSpeed(10);
+  user.setRotateSpeed(20);
+  user.setMaxSpeed(5);
 };
 
 GameManager.prototype.stopUser = function(user){

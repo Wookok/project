@@ -3,7 +3,7 @@ var util = require('../../modules/public/util.js');
 var User = require('../../modules/client/CUser.js');
 var CManager = require('../../modules/client/CManager.js');
 var gameConfig = require('../../modules/public/gameConfig.json');
-var resource = require('../../modules/public/resource.json');
+// var resource = require('../../modules/public/resource.json');
 
 var socket;
 
@@ -21,7 +21,7 @@ var fps = 1000/60;
 var Manager;
 
 // resource var
-var resource;
+var resources;
 
 var userImage, userHand;
 var grid;
@@ -125,14 +125,14 @@ function setBaseSetting(){
   Manager = new CManager(gameConfig);
 
   // resource 관련
-  resource = require('../../modules/client/resource.json');
+  resources = require('../../modules/public/resource.json');
 
   userImage = new Image();
   userHand = new Image();
   grid = new Image();
-  userImage.src = resource.USER_BODY_SRC;
-  userHand.src = resource.USER_HAND_SRC;
-  grid.src = resource.GRID_SRC;
+  userImage.src = resources.USER_BODY_SRC;
+  userHand.src = resources.USER_HAND_SRC;
+  grid.src = resources.GRID_SRC;
 };
 
 function setCanvasSize(){
@@ -140,18 +140,26 @@ function setCanvasSize(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  var oldOffsetX = gameConfig.userOffset.x;
-  var oldOffsetY = gameConfig.userOffset.y;
+  if(gameConfig.userOffset){
+    var oldOffsetX = gameConfig.userOffset.x;
+    var oldOffsetY = gameConfig.userOffset.y;
+  }
 
   gameConfig.scaleFactor = 1;
   gameConfig.canvasSize = {width : window.innerWidth, height : window.innerHeight};
 
-  gameConfig.userOffset = util.calculateOffset(Manager.user, gameConfig.canvasSize);
+  if(gameConfig.userOffset){
+    var worldPosUser = {
+      position : util.localToWorldPosition(Manager.user.position,gameConfig.userOffset),
+      size : Manager.user.size
+    };
+    gameConfig.userOffset = util.calculateOffset(worldPosUser, gameConfig.canvasSize);
 
-  var revisionX = oldOffsetX - gameConfig.userOffset.x;
-  var revisionY = oldOffsetY - gameConfig.userOffset.y;
+    var revisionX = oldOffsetX - gameConfig.userOffset.x;
+    var revisionY = oldOffsetY - gameConfig.userOffset.y;
 
-  Manager.revisionAllObj(revisionX, revisionY);
+    Manager.revisionAllObj(revisionX, revisionY);
+  }
 };
 
 function drawStartScene(){
@@ -262,10 +270,10 @@ function drawGrid(){
   //draw boundary
 
   //draw grid
-  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resource.GRID_SIZE){
+  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
     if(util.isDrawX(i, gameConfig)){
       var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
-      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resource.GRID_SIZE){
+      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
         if(util.isDrawY(j, gameConfig)){
           var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
           ctx.drawImage(grid, x, y);
