@@ -31,6 +31,7 @@ function LivingEntity(){
     height : this.size.height,
     id : this.objectID
   };
+  this.onMove = new Function();
 };
 LivingEntity.prototype = Object.create(GameObject.prototype);
 LivingEntity.prototype.constructor = LivingEntity;
@@ -46,6 +47,9 @@ LivingEntity.prototype.changeState = function(newState){
       break;
     case gameConfig.OBJECT_STATE_MOVE :
       this.updateFunction = this.rotate.bind(this);
+      break;
+    case gameConfig.OBJECT_STATE_ATTACK :
+      this.updateFunction = this.attack;
       break;
     }
   this.update();
@@ -64,6 +68,9 @@ LivingEntity.prototype.move = function(){
 };
 LivingEntity.prototype.idle = function(){
   //do nothing or send packet;
+};
+LivingEntity.prototype.attack = function(){
+  //changeState to idle after attack
 };
 //interval clear
 LivingEntity.prototype.stop = function(){

@@ -6,6 +6,8 @@ var util = require('../public/util.js');
 var resources = require('../public/resource.json');
 var map = require('../public/map.json');
 
+var skills = require('../public/skill.json');
+
 var QuadTree = require('quadtree-lib');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
@@ -80,6 +82,7 @@ GameManager.prototype.createObstacles = function(){
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
   var collisionObjs = util.checkCircleCollision(staticTree, targetPosition.x - user.size.width/2, targetPosition.y - user.size.width/2, user.size.width, user.objectID);
+  //if click in obstacle calculate new target position
   if(collisionObjs.length > 0){
     var curPosX = user.position.x + user.size.width/2;
     var curPosY = user.position.y + user.size.width/2;
@@ -109,10 +112,40 @@ GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
 
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
+//setting user for attack;
+GameManager.prototype.setTargetandAttack = function(user){
+  //setTarget
+  var range = skills.baseAttack.range;
+  var width = skills.baseAttack.width;
+  var height = skills.baseAttack.height;
 
+  var direction = user.direction;
+  // if(direction >= 0 && direction < 90){
+    var addPosX = range * Math.cos(direction);
+    var addPosY = range * Math.sin(direction);
+  // // }else if(direction >= 90){
+  //   posX = range * Math.cos(direction);
+  //   posY = range * Math.sin(direction);
+  // }else if(direction <0 &&  direction >= -90){
+  //   posX = range * Math.cos(direction);
+  //   posY = range * Math.sin(direction);
+  // }else if(direction < -90){
+  //   posX = range * Math.cos(direction);
+  //   posY = range * Math.sin(direction);
+  // }
+  var posX = user.position.x + addPosX;
+  var posY = user.position.y + addPosY;
+
+
+
+  var attackTime = skills.baseAttack.attackTime;
+  var attackDelay = skills.baseAttack.attackDelay;
+  user.changeState(gameConfig.OBJECT_STATE_ATTACK);
+};
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
+  this.users[user.objectID].onMove = onMoveCalcCompelPos.bind(this);
   console.log(this.users);
   console.log(user.objectID + ' join in GameManager');
 };
@@ -197,7 +230,7 @@ GameManager.prototype.updateDataSetting = function(user){
     maxSpeed : user.maxSpeed,
     direction : user.direction,
 
-    rotateSpeed :  user.rotateSpeed,
+    rotateSpeed : user.rotateSpeed,
     // targetDirection : user.targetDirection,
 
     size : user.size
@@ -244,33 +277,43 @@ function updateIntervalHandler(){
   entityTree.pushAll(userEles);
 };
 function staticIntervalHandler(){
-  for(var index in this.users){
-    var tempUserEle = this.users[index].entityTreeEle;
-    var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
-    if(collisionObjs.length > 0 ){
-      var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
-      affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
-    }
-  }
+  // for(var index in this.users){
+  //   var tempUserEle = this.users[index].entityTreeEle;
+  //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
+  //   if(collisionObjs.length > 0 ){
+  //     var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
+  //     // affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
+  //   }
+  // }
 };
-function affectIntervalHandler(){
-  var i = affectedEles.length;
-  while(i--){
-    if(affectedEles[i].func === 'moveCompel'){
-      if(affectedEles[i].id in this.users){
-        // this.users[affectedEles[i].id].stop();
-        this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
-        this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
-        this.users[affectedEles[i].id].setCenter();
 
-        this.users[affectedEles[i].id].setTargetDirection();
-        this.users[affectedEles[i].id].setSpeed();
-        // this.users[affectedEles[i].id].changeState(gameConfig.OBJECT_STATE_MOVE);
-      }
-    }
-    affectedEles.splice(i, 1);
-  }
+function affectIntervalHandler(){
+  // var i = affectedEles.length;
+  // while(i--){
+  //   if(affectedEles[i].func === 'moveCompel'){
+  //     if(affectedEles[i].id in this.users){
+  //       // this.users[affectedEles[i].id].stop();
+  //       this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
+  //       this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
+  //       this.users[affectedEles[i].id].setCenter();
+  //
+  //       this.users[affectedEles[i].id].setTargetDirection();
+  //       this.users[affectedEles[i].id].setSpeed();
+  //       // this.users[affectedEles[i].id].changeState(gameConfig.OBJECT_STATE_MOVE);
+  //     }
+  //   }
+  //   affectedEles.splice(i, 1);
+  // }
 };
+
+var onMoveCalcCompelPos = function(user){
+  var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width, user.entityTreeEle.id);
+  if(collisionObjs.length > 0 ){
+    var addPos = util.calcCompelPos(user.entityTreeEle, collisionObjs);
+  }
+  return addPos;
+};
+
 function generateRandomID(prefix){
   var output = prefix;
   for(var i=0; i<6; i++){

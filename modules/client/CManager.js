@@ -54,9 +54,6 @@ CManager.prototype = {
 	createObstacles : function(){
 		for(var index in map.Trees){
 			var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
-			// var tempObstacle = new Obstacle(util.worldXCoordToLocalX(map.Trees[index].posX, this.gameConfig.userOffset.x),
-			// 																util.worldYCoordToLocalY(map.Trees[index].posY, this.gameConfig.userOffset.y),
-			// 																resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
 			this.obstacles.push(tempObstacle);
 		}
 	},
@@ -79,6 +76,7 @@ CManager.prototype = {
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData, this.gameConfig);
 			this.users[userData.objectID] = tempUser;
+			this.users[userData.objectID].onMove = onMoveCalcCompelPos.bind(this);
 			this.users[userData.objectID].changeState(userData.currentState);
 		}else{
 			console.log('user.objectID duplicated. something is wrong.');
@@ -88,6 +86,7 @@ CManager.prototype = {
 		for(var index in userDatas){
 			var tempUser = new User(userDatas[index], this.gameConfig);
 			this.users[userDatas[index].objectID] = tempUser;
+			this.users[userDatas[index].objectID].onMove = onMoveCalcCompelPos.bind(this);
 			this.users[userDatas[index].objectID].changeState(userDatas[index].currentState);
 		}
 	},
@@ -135,18 +134,14 @@ CManager.prototype = {
 		}
 	},
 	//execute every frame this client user move
-	moveUsersOffset : function(){
+	moveUsersOffset : function(addPos){
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
 				if(this.users[index] !== this.user){
-					this.users[index].position.x -= this.user.speed.x;
-					this.users[index].position.y -= this.user.speed.y;
-
-					this.users[index].center.x -= this.user.speed.x;
-					this.users[index].center.y -= this.user.speed.y;
-
-					this.users[index].targetPosition.x -= this.user.speed.x;
-					this.users[index].targetPosition.y -= this.user.speed.y;
+					this.users[index].addPosAndTargetPos(-this.user.speed.x, -this.user.speed.y);
+					if(addPos){
+						this.users[index].addPosAndTargetPos(-addPos.x, -addPos.y);
+					}
 				}
 			}else{
 				console.log('can`t find user data');
@@ -157,14 +152,7 @@ CManager.prototype = {
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
 				if(this.users[index] !== this.user){
-					this.users[index].position.x -= compelToX;
-					this.users[index].position.y -= compelToY;
-
-					this.users[index].center.x -= compelToX;
-					this.users[index].center.y -= compelToY;
-
-					this.users[index].targetPosition.x -= compelToX;
-					this.users[index].targetPosition.y -= compelToY;
+					this.users[index].addPosAndTargetPos(-compelToX, -compelToY);
 				}
 			}
 		}
@@ -173,37 +161,24 @@ CManager.prototype = {
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
 				if(this.users[index] !== this.user){
-					this.users[index].position.x += revisionX;
-					this.users[index].position.y += revisionY;
-
-					this.users[index].center.x += revisionX;
-					this.users[index].center.y += revisionY;
-
-					this.users[index].targetPosition.x += revisionX;
-					this.users[index].targetPosition.y += revisionY;
+					this.users[index].addPosAndTargetPos(revisionX, revisionY);
 				}
 			}
+		}
+		for(var index in this.obstacles){
+			this.obstacles[index].staticEle.x += revisionX;
+			this.obstacles[index].staticEle.y += revisionY;
 		}
 	},
 	revisionAllObj : function(revisionX, revisionY){
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
-				this.users[index].position.x += revisionX;
-				this.users[index].position.y += revisionY;
-
-				this.users[index].center.x += revisionX;
-				this.users[index].center.y += revisionY;
-
-				this.users[index].targetPosition.x += revisionX;
-				this.users[index].targetPosition.y += revisionY;
+				this.users[index].addPosAndTargetPos(revisionX, revisionY);
 			}
 		}
 		for(var index in this.obstacles){
-			this.obstacles[index].position.x += revisionX;
-			this.obstacles[index].position.y += revisionY;
-
-			this.obstacles[index].center.x += revisionX;
-			this.obstacles[index].center.y += revisionY;
+			this.obstacles[index].staticEle.x += revisionX;
+			this.obstacles[index].staticEle.y += revisionY;
 		}
 	},
 	// set this client user
@@ -254,43 +229,49 @@ function staticIntervalHandler(){
 	}
 	this.updateObstacles();
 
-  for(var index in this.users){
-    var tempUserEle = this.users[index].entityTreeEle;
-    var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
-    if(collisionObjs.length > 0 ){
-      var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
-      affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
-    }
-  }
+  // for(var index in this.users){
+  //   var tempUserEle = this.users[index].entityTreeEle;
+  //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
+  //   if(collisionObjs.length > 0 ){
+  //     var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
+  //     // affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
+  //   }
+  // }
 };
 function affectIntervalHandler(){
-  var i = affectedEles.length;
-  while(i--){
-    if(affectedEles[i].func === 'moveCompel'){
-      if(affectedEles[i].id in this.users){
-				if(affectedEles[i].id === this.user.objectID){
-					this.users[affectedEles[i].id].targetPosition.x -= affectedEles[i].arg1;
-	        this.users[affectedEles[i].id].targetPosition.y -= affectedEles[i].arg2;
-
-					this.gameConfig.userOffset.x += affectedEles[i].arg1;
-					this.gameConfig.userOffset.y += affectedEles[i].arg2;
-
-	        this.users[affectedEles[i].id].setTargetDirection();
-	        this.users[affectedEles[i].id].setSpeed();
-
-					this.compelUsersOffset(affectedEles[i].arg1 , affectedEles[i].arg2);
-				}else{
-	        this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
-	        this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
-	        this.users[affectedEles[i].id].setCenter();
-
-	        this.users[affectedEles[i].id].setTargetDirection();
-	        this.users[affectedEles[i].id].setSpeed();
-				}
-      }
-    }
-    affectedEles.splice(i, 1);
-  }
+  // var i = affectedEles.length;
+  // while(i--){
+  //   if(affectedEles[i].func === 'moveCompel'){
+  //     if(affectedEles[i].id in this.users){
+	// 			if(affectedEles[i].id === this.user.objectID){
+	// 				this.users[affectedEles[i].id].targetPosition.x -= affectedEles[i].arg1;
+	//         this.users[affectedEles[i].id].targetPosition.y -= affectedEles[i].arg2;
+	//
+	// 				this.gameConfig.userOffset.x += affectedEles[i].arg1;
+	// 				this.gameConfig.userOffset.y += affectedEles[i].arg2;
+	//
+	//         this.users[affectedEles[i].id].setTargetDirection();
+	//         this.users[affectedEles[i].id].setSpeed();
+	//
+	// 				this.compelUsersOffset(affectedEles[i].arg1 , affectedEles[i].arg2);
+	// 			}else{
+	//         this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
+	//         this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
+	//         this.users[affectedEles[i].id].setCenter();
+	//
+	//         this.users[affectedEles[i].id].setTargetDirection();
+	//         this.users[affectedEles[i].id].setSpeed();
+	// 			}
+  //     }
+  //   }
+  //   affectedEles.splice(i, 1);
+  // }
 };
-
+var onMoveCalcCompelPos = function(user){
+	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width, user.entityTreeEle.id);
+  if(collisionObjs.length > 0 ){
+    var addPos = util.calcCompelPos(user.entityTreeEle, collisionObjs);
+  }
+  return addPos;
+};
 module.exports = CManager;

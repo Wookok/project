@@ -196,6 +196,7 @@ function setupSocket(){
     console.log(Manager.users);
 
     canvasAddEvent();
+    documentAddEvent();
 
     changeState(gameConfig.GAME_STATE_GAME_ON);
   });
@@ -219,13 +220,17 @@ function setupSocket(){
       gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
       var revisionX = oldOffsetX - gameConfig.userOffset.x;
       var revisionY = oldOffsetY - gameConfig.userOffset.y;
+      // Manager.revisionAllObj(revisionX, revisionY);
       Manager.revisionUserPos(revisionX, revisionY);
     }
     console.log(userData);
     console.log('move start');
     Manager.moveUser(userData);
   });
-
+  socket.on('resAttack', function(user){
+    // user state change
+    // animation start
+  });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });
@@ -293,7 +298,14 @@ function canvasAddEvent(){
     socket.emit('reqMove', worldTargetPosition);
   }, false);
 }
-
+function documentAddEvent(){
+  document.addEventListener("keydown", function(e){
+    var keyCode = e.keyCode;
+    if(keyCode === 69 || keyCode === 32){
+      socket.emit("reqAttack");
+    }
+  }, false);
+}
 update();
 // local utils
 // function setCanvasSize(scaleFactor){

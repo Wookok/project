@@ -63,8 +63,15 @@ io.on('connection', function(socket){
 
     var data = GM.updateDataSetting(user);
     io.sockets.emit('resMove', data);
-  })
+  });
 
+  socket.on('reqAttack', function(){
+    //set targetPosition and user state change
+    GM.setUserTargetandAttack(user)
+    //request GM to damage apply, after delay of attackTime
+
+    io.sockets.emit('resAttack', user);
+  });
   socket.on('disconnect', function(){
     if(user){
       io.sockets.emit('userLeave', user.objectID);

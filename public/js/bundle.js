@@ -55,9 +55,6 @@ CManager.prototype = {
 	createObstacles : function(){
 		for(var index in map.Trees){
 			var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
-			// var tempObstacle = new Obstacle(util.worldXCoordToLocalX(map.Trees[index].posX, this.gameConfig.userOffset.x),
-			// 																util.worldYCoordToLocalY(map.Trees[index].posY, this.gameConfig.userOffset.y),
-			// 																resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
 			this.obstacles.push(tempObstacle);
 		}
 	},
@@ -80,6 +77,7 @@ CManager.prototype = {
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData, this.gameConfig);
 			this.users[userData.objectID] = tempUser;
+			this.users[userData.objectID].onMove = onMoveCalcCompelPos.bind(this);
 			this.users[userData.objectID].changeState(userData.currentState);
 		}else{
 			console.log('user.objectID duplicated. something is wrong.');
@@ -89,6 +87,7 @@ CManager.prototype = {
 		for(var index in userDatas){
 			var tempUser = new User(userDatas[index], this.gameConfig);
 			this.users[userDatas[index].objectID] = tempUser;
+			this.users[userDatas[index].objectID].onMove = onMoveCalcCompelPos.bind(this);
 			this.users[userDatas[index].objectID].changeState(userDatas[index].currentState);
 		}
 	},
@@ -136,18 +135,14 @@ CManager.prototype = {
 		}
 	},
 	//execute every frame this client user move
-	moveUsersOffset : function(){
+	moveUsersOffset : function(addPos){
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
 				if(this.users[index] !== this.user){
-					this.users[index].position.x -= this.user.speed.x;
-					this.users[index].position.y -= this.user.speed.y;
-
-					this.users[index].center.x -= this.user.speed.x;
-					this.users[index].center.y -= this.user.speed.y;
-
-					this.users[index].targetPosition.x -= this.user.speed.x;
-					this.users[index].targetPosition.y -= this.user.speed.y;
+					this.users[index].addPosAndTargetPos(-this.user.speed.x, -this.user.speed.y);
+					if(addPos){
+						this.users[index].addPosAndTargetPos(-addPos.x, -addPos.y);
+					}
 				}
 			}else{
 				console.log('can`t find user data');
@@ -158,14 +153,7 @@ CManager.prototype = {
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
 				if(this.users[index] !== this.user){
-					this.users[index].position.x -= compelToX;
-					this.users[index].position.y -= compelToY;
-
-					this.users[index].center.x -= compelToX;
-					this.users[index].center.y -= compelToY;
-
-					this.users[index].targetPosition.x -= compelToX;
-					this.users[index].targetPosition.y -= compelToY;
+					this.users[index].addPosAndTargetPos(-compelToX, -compelToY);
 				}
 			}
 		}
@@ -174,37 +162,24 @@ CManager.prototype = {
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
 				if(this.users[index] !== this.user){
-					this.users[index].position.x += revisionX;
-					this.users[index].position.y += revisionY;
-
-					this.users[index].center.x += revisionX;
-					this.users[index].center.y += revisionY;
-
-					this.users[index].targetPosition.x += revisionX;
-					this.users[index].targetPosition.y += revisionY;
+					this.users[index].addPosAndTargetPos(revisionX, revisionY);
 				}
 			}
+		}
+		for(var index in this.obstacles){
+			this.obstacles[index].staticEle.x += revisionX;
+			this.obstacles[index].staticEle.y += revisionY;
 		}
 	},
 	revisionAllObj : function(revisionX, revisionY){
 		for(var index in this.users){
 			if(this.checkUserAtUsers(this.users[index])){
-				this.users[index].position.x += revisionX;
-				this.users[index].position.y += revisionY;
-
-				this.users[index].center.x += revisionX;
-				this.users[index].center.y += revisionY;
-
-				this.users[index].targetPosition.x += revisionX;
-				this.users[index].targetPosition.y += revisionY;
+				this.users[index].addPosAndTargetPos(revisionX, revisionY);
 			}
 		}
 		for(var index in this.obstacles){
-			this.obstacles[index].position.x += revisionX;
-			this.obstacles[index].position.y += revisionY;
-
-			this.obstacles[index].center.x += revisionX;
-			this.obstacles[index].center.y += revisionY;
+			this.obstacles[index].staticEle.x += revisionX;
+			this.obstacles[index].staticEle.y += revisionY;
 		}
 	},
 	// set this client user
@@ -255,45 +230,51 @@ function staticIntervalHandler(){
 	}
 	this.updateObstacles();
 
-  for(var index in this.users){
-    var tempUserEle = this.users[index].entityTreeEle;
-    var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
-    if(collisionObjs.length > 0 ){
-      var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
-      affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
-    }
-  }
+  // for(var index in this.users){
+  //   var tempUserEle = this.users[index].entityTreeEle;
+  //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
+  //   if(collisionObjs.length > 0 ){
+  //     var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
+  //     // affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
+  //   }
+  // }
 };
 function affectIntervalHandler(){
-  var i = affectedEles.length;
-  while(i--){
-    if(affectedEles[i].func === 'moveCompel'){
-      if(affectedEles[i].id in this.users){
-				if(affectedEles[i].id === this.user.objectID){
-					this.users[affectedEles[i].id].targetPosition.x -= affectedEles[i].arg1;
-	        this.users[affectedEles[i].id].targetPosition.y -= affectedEles[i].arg2;
-
-					this.gameConfig.userOffset.x += affectedEles[i].arg1;
-					this.gameConfig.userOffset.y += affectedEles[i].arg2;
-
-	        this.users[affectedEles[i].id].setTargetDirection();
-	        this.users[affectedEles[i].id].setSpeed();
-
-					this.compelUsersOffset(affectedEles[i].arg1 , affectedEles[i].arg2);
-				}else{
-	        this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
-	        this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
-	        this.users[affectedEles[i].id].setCenter();
-
-	        this.users[affectedEles[i].id].setTargetDirection();
-	        this.users[affectedEles[i].id].setSpeed();
-				}
-      }
-    }
-    affectedEles.splice(i, 1);
-  }
+  // var i = affectedEles.length;
+  // while(i--){
+  //   if(affectedEles[i].func === 'moveCompel'){
+  //     if(affectedEles[i].id in this.users){
+	// 			if(affectedEles[i].id === this.user.objectID){
+	// 				this.users[affectedEles[i].id].targetPosition.x -= affectedEles[i].arg1;
+	//         this.users[affectedEles[i].id].targetPosition.y -= affectedEles[i].arg2;
+	//
+	// 				this.gameConfig.userOffset.x += affectedEles[i].arg1;
+	// 				this.gameConfig.userOffset.y += affectedEles[i].arg2;
+	//
+	//         this.users[affectedEles[i].id].setTargetDirection();
+	//         this.users[affectedEles[i].id].setSpeed();
+	//
+	// 				this.compelUsersOffset(affectedEles[i].arg1 , affectedEles[i].arg2);
+	// 			}else{
+	//         this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
+	//         this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
+	//         this.users[affectedEles[i].id].setCenter();
+	//
+	//         this.users[affectedEles[i].id].setTargetDirection();
+	//         this.users[affectedEles[i].id].setSpeed();
+	// 			}
+  //     }
+  //   }
+  //   affectedEles.splice(i, 1);
+  // }
 };
-
+var onMoveCalcCompelPos = function(user){
+	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width, user.entityTreeEle.id);
+  if(collisionObjs.length > 0 ){
+    var addPos = util.calcCompelPos(user.entityTreeEle, collisionObjs);
+  }
+  return addPos;
+};
 module.exports = CManager;
 
 },{"../public/map.json":5,"../public/quadtree.min.js":6,"../public/resource.json":7,"../public/util.js":8,"./CObstacle.js":2,"./CUser.js":3}],2:[function(require,module,exports){
@@ -371,7 +352,7 @@ var User = function(userData, gameConfig){
   this.updateInterval = false;
   this.updateFunction = null;
 
-  this.onMoveOffset = null;
+  this.onMoveOffset = new Function();
 
   this.entityTreeEle = {
     x : this.position.x,
@@ -380,6 +361,8 @@ var User = function(userData, gameConfig){
     height : this.size.height,
     id : this.objectID
   };
+
+  this.onMove = new Function();
 };
 
 User.prototype = {
@@ -422,26 +405,44 @@ User.prototype = {
     util.setSpeed.call(this);
   },
   moveOffset : function(){
-    var distX = this.targetPosition.x - this.center.x;
-    var distY = this.targetPosition.y - this.center.y;
+    util.moveOffset.call(this);
+    // var distX = this.targetPosition.x - this.center.x;
+    // var distY = this.targetPosition.y - this.center.y;
+    //
+    // if(distX == 0 && distY == 0){
+    //   this.stop();
+    //   this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
+    // }
+    // if(Math.abs(distX) < Math.abs(this.speed.x)){
+    //   this.speed.x = distX;
+    // }
+    // if(Math.abs(distY) < Math.abs(this.speed.y)){
+    //   this.speed.y = distY;
+    // }
+    // var addPos = this.onMove(this);
+    // if(addPos !== undefined){
+    //   this.targetPosition.x -= addPos.x;
+    //   this.targetPosition.y -= addPos.y;
+    //
+    //   this.gameConfig.userOffset.x += addPos.x;
+    //   this.gameConfig.userOffset.y += addPos.y;
+    // }
+    // this.targetPosition.x -= this.speed.x;
+    // this.targetPosition.y -= this.speed.y;
+    //
+    // this.gameConfig.userOffset.x += this.speed.x;
+    // this.gameConfig.userOffset.y += this.speed.y;
+    //
+    // this.onMoveOffset(addPos);
+  },
+  addPosAndTargetPos : function(addPosX , addPosY){
+    this.position.x += addPosX;
+    this.position.y += addPosY;
 
-    if(distX == 0 && distY == 0){
-      this.stop();
-      this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
-    }
-    if(Math.abs(distX) < Math.abs(this.speed.x)){
-      this.speed.x = distX;
-    }
-    if(Math.abs(distY) < Math.abs(this.speed.y)){
-      this.speed.y = distY;
-    }
-    this.targetPosition.x -= this.speed.x;
-    this.targetPosition.y -= this.speed.y;
+    this.targetPosition.x += addPosX;
+    this.targetPosition.y += addPosY;
 
-    this.gameConfig.userOffset.x += this.speed.x;
-    this.gameConfig.userOffset.y += this.speed.y;
-
-    this.onMoveOffset();
+    this.setCenter();
   },
   stop : function(){
     console.log('stop');
@@ -472,6 +473,7 @@ module.exports={
 
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,
+  "OBJECT_STATE_ATTACK" : 2,
 
   "FPS" : 60,
   "PLUS_SIZE_WIDTH" : 500,
@@ -516,7 +518,7 @@ var gameConfig = require('./gameConfig.json');
 
 //must use with bind or call method
 exports.rotate = function(){
-  // console.log(this);
+  console.log(this.direction);
   if(this.targetDirection === this.direction){
     if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
       this.move();
@@ -591,11 +593,50 @@ exports.move = function(){
   if(Math.abs(distY) < Math.abs(this.speed.y)){
     this.speed.y = distY;
   }
+
+  // check collision with obstacle
+  // calculate compel add pos
+  // add compel pos to postion
+  var addPos = this.onMove(this);
+  if(addPos !== undefined){
+    this.position.x += addPos.x;
+    this.position.y += addPos.y;
+  }
   this.position.x += this.speed.x;
   this.position.y += this.speed.y;
 
   this.setCenter();
 };
+exports.moveOffset = function(){
+  var distX = this.targetPosition.x - this.center.x;
+  var distY = this.targetPosition.y - this.center.y;
+
+  if(distX == 0 && distY == 0){
+    this.stop();
+    this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
+  }
+  if(Math.abs(distX) < Math.abs(this.speed.x)){
+    this.speed.x = distX;
+  }
+  if(Math.abs(distY) < Math.abs(this.speed.y)){
+    this.speed.y = distY;
+  }
+  var addPos = this.onMove(this);
+  if(addPos !== undefined){
+    this.targetPosition.x -= addPos.x;
+    this.targetPosition.y -= addPos.y;
+
+    this.gameConfig.userOffset.x += addPos.x;
+    this.gameConfig.userOffset.y += addPos.y;
+  }
+  this.targetPosition.x -= this.speed.x;
+  this.targetPosition.y -= this.speed.y;
+
+  this.gameConfig.userOffset.x += this.speed.x;
+  this.gameConfig.userOffset.y += this.speed.y;
+
+  this.onMoveOffset(addPos);
+}
 
 //must use with bind or call method
 //setup when click canvas for move
@@ -677,6 +718,51 @@ exports.calcCompelPos = function(obj, collisionObjs){
   }
   return addPos;
 };
+
+exports.checkAndCalcCompelPos = function(tree, posX, posY, radius, id, obj){
+  var collisionObjs = [];
+  var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
+  tree.onCollision(obj, function(item){
+    if(obj.id !== item.id){
+      var objCenterX = obj.x + obj.width/2;
+      var objCenterY = obj.y + obj.height/2;
+
+      var itemCenterX = item.x + item.width/2;
+      var itemCenterY = item.y + item.height/2;
+
+      // check sum of radius with item`s distance
+      var distSquareDiff = Math.pow(obj.width/2 + item.width/2,2) - Math.pow(itemCenterX - objCenterX,2) - Math.pow(itemCenterY - objCenterY,2);
+
+      if(distSquareDiff > 0 ){
+        //collision occured
+        collisionObjs.push(item);
+      }
+    }
+  });
+  var addPos = { x : 0 , y : 0 };
+  for(var i in collisionObjs){
+    var objCenterX = obj.x + obj.width/2;
+    var objCenterY = obj.y + obj.height/2;
+
+    var itemCenterX = collisionObjs[i].x + collisionObjs[i].width/2;
+    var itemCenterY = collisionObjs[i].y + collisionObjs[i].height/2;
+
+    var vecX = objCenterX - itemCenterX;
+    var vecY = objCenterY - itemCenterY;
+
+    var dist = obj.width/2 + collisionObjs[i].width/2 - Math.sqrt(Math.pow(vecX,2) + Math.pow(vecY,2));
+    var ratioXYSquare = Math.pow(vecY/vecX,2);
+
+    var distFactorX = dist * Math.sqrt(1/(1+ratioXYSquare));
+    var distFactorY = dist * Math.sqrt((ratioXYSquare) / (1 + ratioXYSquare));
+
+    // 1.3 is make more gap between obj and collisionObjs
+    addPos.x += (vecX > 0 ? 1 : -1) * distFactorX * 1;
+    addPos.y += (vecY > 0 ? 1 : -1) * distFactorY * 1;
+  }
+  return addPos;
+};
+
 //coordinate transform
 exports.localToWorldPosition = function(position, offset){
   var newPosition = {
@@ -923,6 +1009,7 @@ function setupSocket(){
     console.log(Manager.users);
 
     canvasAddEvent();
+    documentAddEvent();
 
     changeState(gameConfig.GAME_STATE_GAME_ON);
   });
@@ -946,13 +1033,17 @@ function setupSocket(){
       gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
       var revisionX = oldOffsetX - gameConfig.userOffset.x;
       var revisionY = oldOffsetY - gameConfig.userOffset.y;
+      // Manager.revisionAllObj(revisionX, revisionY);
       Manager.revisionUserPos(revisionX, revisionY);
     }
     console.log(userData);
     console.log('move start');
     Manager.moveUser(userData);
   });
-
+  socket.on('resAttack', function(user){
+    // user state change
+    // animation start
+  });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });
@@ -1020,7 +1111,14 @@ function canvasAddEvent(){
     socket.emit('reqMove', worldTargetPosition);
   }, false);
 }
-
+function documentAddEvent(){
+  document.addEventListener("keydown", function(e){
+    var keyCode = e.keyCode;
+    if(keyCode === 69 || keyCode === 32){
+      socket.emit("reqAttack");
+    }
+  }, false);
+}
 update();
 // local utils
 // function setCanvasSize(scaleFactor){
