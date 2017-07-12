@@ -66,11 +66,14 @@ io.on('connection', function(socket){
   });
 
   socket.on('reqAttack', function(){
-    //set targetPosition and user state change
-    GM.setUserTargetandAttack(user)
-    //request GM to damage apply, after delay of attackTime
-
-    io.sockets.emit('resAttack', user);
+    //check user state is OBJECT_STATE_ATTACK. if then do nothing
+    if(!GM.checkStateIsAttack){
+      //set targetPosition and user state change
+      GM.doBaseAttack(user);
+      //request GM to damage apply, after delay of attackTime
+      var userData = GM.updateDataSetting(user);
+      io.sockets.emit('resAttack', userData);
+    }
   });
   socket.on('disconnect', function(){
     if(user){

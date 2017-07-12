@@ -107,8 +107,21 @@ CManager.prototype = {
 	//will be merge to updateUser function
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
-			console.log(userData);
-			console.log(this.users[userData.objectID]);
+			if(this.user.objectID == userData.objectID){
+				//offset targetPosition change >> targetPosition == position
+				this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
+			}else{
+				this.users[userData.objectID].changeState(userData.currentState);
+			}
+		}else{
+  		console.log('can`t find user data');
+		}
+	},
+	attackUser : function(userData){
+		this.users[userData.objectID].changeState(this.gameConfig.currentState);
+	},
+	updateUserData : function(userData){
+		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
@@ -122,13 +135,6 @@ CManager.prototype = {
 			this.users[userData.objectID].setCenter();
 			this.users[userData.objectID].setTargetDirection();
 			this.users[userData.objectID].setSpeed();
-
-			if(this.user.objectID == userData.objectID){
-				//offset targetPosition change >> targetPosition == position
-				this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
-			}else{
-				this.users[userData.objectID].changeState(userData.currentState);
-			}
 		}else{
   		console.log('can`t find user data');
 		}

@@ -112,35 +112,13 @@ GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
 
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
-//setting user for attack;
-GameManager.prototype.setTargetandAttack = function(user){
-  //setTarget
-  var range = skills.baseAttack.range;
-  var width = skills.baseAttack.width;
-  var height = skills.baseAttack.height;
-
-  var direction = user.direction;
-  // if(direction >= 0 && direction < 90){
-    var addPosX = range * Math.cos(direction);
-    var addPosY = range * Math.sin(direction);
-  // // }else if(direction >= 90){
-  //   posX = range * Math.cos(direction);
-  //   posY = range * Math.sin(direction);
-  // }else if(direction <0 &&  direction >= -90){
-  //   posX = range * Math.cos(direction);
-  //   posY = range * Math.sin(direction);
-  // }else if(direction < -90){
-  //   posX = range * Math.cos(direction);
-  //   posY = range * Math.sin(direction);
-  // }
-  var posX = user.position.x + addPosX;
-  var posY = user.position.y + addPosY;
-
-
-
-  var attackTime = skills.baseAttack.attackTime;
-  var attackDelay = skills.baseAttack.attackDelay;
+GameManager.prototype.doBaseAttack = function(user){
+  var baseAttack = user.makeSkillInstance();
+  baseAttack.onFire = function(){
+    colliderEles.push(baseAttack.colliderEle);
+  }
   user.changeState(gameConfig.OBJECT_STATE_ATTACK);
+  user.doBaseAttack(baseAttack);
 };
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
@@ -235,27 +213,50 @@ GameManager.prototype.updateDataSetting = function(user){
 
     size : user.size
   };
-
   return updateUser;
+};
+
+GameManager.prototype.checkStateIsAttack = function(user){
+  if(user.currentState === gameConfig.OBJECT_STATE_ATTACK){
+    return true;
+  }else{
+    return false;
+  }
 };
 
 function updateIntervalHandler(){
   for(var i=0; i<colliderEles.length; i++){
     var tempCollider = colliderEles[i];
-    entityTree.onCollision(tempCollider, function(item){
-      if(tempCollider.id !== item.id){
-        var colCenterX = tempCollider.x + tempCollider.width/2;
-        var colCenterY = tempCollider.y + tempCollider.height/2;
-
-        var itemCenterX = item.x + item.width/2;
-        var itemCenterY = item.y + item.height/2;
-
-        var distSquare = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
-        if(distSquare < Math.pow(tempCollider.width/2 + item.width/2, 2)){
-          console.log('collision is occured');
-        }
+    if(util.checkCircleCollision(entityTree, tempCollider.x, tempCollider.y, tempCollider.width, tempCollider.id)){
+      switch (tempCollider.type) {
+        case 'baseAttack':
+          affectedEles.push({func : 'damageToUser', attackUser : tempCollider.id, hitUser : item.id, damage : tempCollider.damage });
+          break;
+        default:
+          break;
       }
-    });
+    }
+    // entityTree.onCollision(tempCollider, function(item){
+    //   if(tempCollider.id !== item.id){
+    //     var colCenterX = tempCollider.x + tempCollider.width/2;
+    //     var colCenterY = tempCollider.y + tempCollider.height/2;
+    //
+    //     var itemCenterX = item.x + item.width/2;
+    //     var itemCenterY = item.y + item.height/2;
+    //
+    //     var distSquare = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
+    //     if(distSquare < Math.pow(tempCollider.width/2 + item.width/2, 2)){
+    //       console.log('collision is occured');
+    //       switch (tempCollider.type) {
+    //         case 'baseAttack':
+    //           affectedEles.push({func : 'damageToUser', attackUser : tempCollider.id, hitUser : item.id, damage : tempCollider.damage });
+    //           break;
+    //         default:
+    //           break;
+    //       }
+    //     }
+    //   }
+    // });
   }
   //clear tree and treeArray
   for(var index in userEles){
@@ -270,9 +271,9 @@ function updateIntervalHandler(){
     userEles.push(this.users[index].entityTreeEle);
   }
   //test
-  for(var index in this.users){
-    colliderEles.push(this.users[index].entityTreeEle);
-  }
+  // for(var index in this.users){
+  //   colliderEles.push(this.users[index].entityTreeEle);
+  // }
   //put users data to tree
   entityTree.pushAll(userEles);
 };
@@ -288,23 +289,15 @@ function staticIntervalHandler(){
 };
 
 function affectIntervalHandler(){
-  // var i = affectedEles.length;
-  // while(i--){
-  //   if(affectedEles[i].func === 'moveCompel'){
-  //     if(affectedEles[i].id in this.users){
-  //       // this.users[affectedEles[i].id].stop();
-  //       this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
-  //       this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
-  //       this.users[affectedEles[i].id].setCenter();
-  //
-  //       this.users[affectedEles[i].id].setTargetDirection();
-  //       this.users[affectedEles[i].id].setSpeed();
-  //       // this.users[affectedEles[i].id].changeState(gameConfig.OBJECT_STATE_MOVE);
-  //     }
-  //   }
-  //   affectedEles.splice(i, 1);
-  // }
+  var i = affectedEles.length;
+  while(i--){
+    if(affectedEles[i].func === 'damageToUser'){
+      console.log(affectedEles[i])
+    }
+    affectedEles.splice(i, 1);
+  }
 };
+// ({func : 'damageToUser', attackUser : tempCollider.id, hitUser : item.id, damage : tempCollider.damage })
 
 var onMoveCalcCompelPos = function(user){
   var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width, user.entityTreeEle.id);

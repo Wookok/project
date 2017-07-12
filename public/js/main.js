@@ -214,20 +214,19 @@ function setupSocket(){
 
   socket.on('resMove', function(userData){
     if(userData.objectID === gameConfig.userID){
-      var oldOffsetX = gameConfig.userOffset.x;
-      var oldOffsetY = gameConfig.userOffset.y;
-
-      gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
-      var revisionX = oldOffsetX - gameConfig.userOffset.x;
-      var revisionY = oldOffsetY - gameConfig.userOffset.y;
-      // Manager.revisionAllObj(revisionX, revisionY);
-      Manager.revisionUserPos(revisionX, revisionY);
+      revisionUserPos(userData);
     }
-    console.log(userData);
+    console.log(userData.objectID);
     console.log('move start');
+    Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resAttack', function(user){
+  socket.on('resAttack', function(userData){
+    if(userData.objectID === gameConfig.userID){
+      revisionUserPos(userData);
+    }
+    Manager.updateUserData(userData);
+    Manager.attakUser(userData);
     // user state change
     // animation start
   });
@@ -235,7 +234,16 @@ function setupSocket(){
     Manager.kickUser(objID);
   });
 };
+function revisionUserPos(userData){
+  var oldOffsetX = gameConfig.userOffset.x;
+  var oldOffsetY = gameConfig.userOffset.y;
 
+  gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
+  var revisionX = oldOffsetX - gameConfig.userOffset.x;
+  var revisionY = oldOffsetY - gameConfig.userOffset.y;
+  // Manager.revisionAllObj(revisionX, revisionY);
+  Manager.revisionUserPos(revisionX, revisionY);
+}
 //draw
 function drawScreen(){
   //draw background

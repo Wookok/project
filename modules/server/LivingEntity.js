@@ -1,6 +1,9 @@
 var GameObject = require('./GameObject.js');
 var util = require('../public/util.js');
 
+var skillData = require('../public/skill.json');
+var Skill = require('./Skill.js');
+
 var gameConfig = require('../public/gameConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
@@ -49,13 +52,30 @@ LivingEntity.prototype.changeState = function(newState){
       this.updateFunction = this.rotate.bind(this);
       break;
     case gameConfig.OBJECT_STATE_ATTACK :
-      this.updateFunction = this.attack;
+      this.updateFunction = this.idle;
       break;
     }
   this.update();
 };
 LivingEntity.prototype.update = function(){
   this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
+};
+
+//Instantiate base attack
+LivingEntity.prototype.makeSkillInstance = function(){
+  var baseAttack = new Skill.BaseAttack(this.objectID, skillData.baseAttack.totalTime, skillData.baseAttack.fireTime,
+                            skillData.baseAttack.range, skillData.baseAttack.radius);
+  baseAttack.setTargetPosition(this.position, this.direction);
+  baseAttack.onTimeOver = onTimeOverHandler.bind(this, baseAttack);
+  return baseAttack;
+};
+function onTimeOverHandler(baseAttack){
+  baseAttack.destroy();
+  this.changeState(gameConfig.OBJECT_STATE_IDLE);
+}
+//excute base attack
+LivingEntity.prototype.doBaseAttack = function(baseAttack){
+  baseAttack.executeSkill();
 };
 
 //rotate before move or fire skill etc..

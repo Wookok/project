@@ -108,8 +108,21 @@ CManager.prototype = {
 	//will be merge to updateUser function
 	moveUser : function(userData){
 		if(this.checkUserAtUsers(userData)){
-			console.log(userData);
-			console.log(this.users[userData.objectID]);
+			if(this.user.objectID == userData.objectID){
+				//offset targetPosition change >> targetPosition == position
+				this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
+			}else{
+				this.users[userData.objectID].changeState(userData.currentState);
+			}
+		}else{
+  		console.log('can`t find user data');
+		}
+	},
+	attackUser : function(userData){
+		this.users[userData.objectID].changeState(this.gameConfig.currentState);
+	},
+	updateUserData : function(userData){
+		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
@@ -123,13 +136,6 @@ CManager.prototype = {
 			this.users[userData.objectID].setCenter();
 			this.users[userData.objectID].setTargetDirection();
 			this.users[userData.objectID].setSpeed();
-
-			if(this.user.objectID == userData.objectID){
-				//offset targetPosition change >> targetPosition == position
-				this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
-			}else{
-				this.users[userData.objectID].changeState(userData.currentState);
-			}
 		}else{
   		console.log('can`t find user data');
 		}
@@ -518,7 +524,6 @@ var gameConfig = require('./gameConfig.json');
 
 //must use with bind or call method
 exports.rotate = function(){
-  console.log(this.direction);
   if(this.targetDirection === this.direction){
     if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
       this.move();
@@ -1027,20 +1032,19 @@ function setupSocket(){
 
   socket.on('resMove', function(userData){
     if(userData.objectID === gameConfig.userID){
-      var oldOffsetX = gameConfig.userOffset.x;
-      var oldOffsetY = gameConfig.userOffset.y;
-
-      gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
-      var revisionX = oldOffsetX - gameConfig.userOffset.x;
-      var revisionY = oldOffsetY - gameConfig.userOffset.y;
-      // Manager.revisionAllObj(revisionX, revisionY);
-      Manager.revisionUserPos(revisionX, revisionY);
+      revisionUserPos(userData);
     }
-    console.log(userData);
+    console.log(userData.objectID);
     console.log('move start');
+    Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resAttack', function(user){
+  socket.on('resAttack', function(userData){
+    if(userData.objectID === gameConfig.userID){
+      revisionUserPos(userData);
+    }
+    Manager.updateUserData(userData);
+    Manager.attakUser(userData);
     // user state change
     // animation start
   });
@@ -1048,7 +1052,16 @@ function setupSocket(){
     Manager.kickUser(objID);
   });
 };
+function revisionUserPos(userData){
+  var oldOffsetX = gameConfig.userOffset.x;
+  var oldOffsetY = gameConfig.userOffset.y;
 
+  gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
+  var revisionX = oldOffsetX - gameConfig.userOffset.x;
+  var revisionY = oldOffsetY - gameConfig.userOffset.y;
+  // Manager.revisionAllObj(revisionX, revisionY);
+  Manager.revisionUserPos(revisionX, revisionY);
+}
 //draw
 function drawScreen(){
   //draw background
