@@ -13,6 +13,7 @@ function LivingEntity(){
   this.objectID = null;
 
   this.currentState = gameConfig.OBJECT_STATE_IDLE;
+  this.currentSkill = undefined;
 
   this.speed = {x: 0, y:0};
   this.direction = 0;
@@ -25,7 +26,7 @@ function LivingEntity(){
   this.targetDirection = 0;
 
   this.updateInterval = false;
-  this.updateFunction = null;
+  this.updateFunction = new Function();
 
   this.entityTreeEle = {
     x : this.position.x,
@@ -71,10 +72,12 @@ LivingEntity.prototype.makeSkillInstance = function(){
 };
 function onTimeOverHandler(baseAttack){
   baseAttack.destroy();
+  this.currentSkill = undefined;
   this.changeState(gameConfig.OBJECT_STATE_IDLE);
 }
 //excute base attack
 LivingEntity.prototype.doBaseAttack = function(baseAttack){
+  this.currentSkill = baseAttack;
   baseAttack.executeSkill();
 };
 
@@ -97,6 +100,10 @@ LivingEntity.prototype.stop = function(){
   if(this.updateInterval){
     clearInterval(this.updateInterval);
     this.updateInterval = false;
+  }
+  if(this.currentSkill){
+    this.currentSkill.destroy();
+    this.currentSkill = undefined;
   }
 };
 

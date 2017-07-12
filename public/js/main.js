@@ -226,10 +226,14 @@ function setupSocket(){
       revisionUserPos(userData);
     }
     Manager.updateUserData(userData);
-    Manager.attakUser(userData);
+    Manager.attackUser(userData);
     // user state change
     // animation start
   });
+  socket.on('updateUser', function(userData){
+    console.log('in updateUser')
+    console.log(userData);
+  })
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });

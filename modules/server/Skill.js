@@ -3,6 +3,7 @@ var SkillBase = function(id, totalTime, fireTime){
   this.totalTime = totalTime;
   this.fireTime = fireTime;
   // this.ManaCost = cost;
+
   this.fireTimeout = false;
   this.totalTimeout = false;
 
@@ -19,15 +20,16 @@ SkillBase.prototype = {
   },
   destroy : function(){
     if(this.fireTimeout){
+      console.log('clearTimeout');
       clearTimeout(this.fireTimeout);
     }
     if(this.totalTimeout){
-      clearTimeout(this.fireTimeout);
+      clearTimeout(this.totalTimeout);
     }
   },
-  onDestroy : function(){
-    this.destroy();
-  }
+  // onDestroy : function(){
+  //   this.destroy();
+  // }
 };
 
 function fireTimeoutHandler(){
@@ -35,7 +37,6 @@ function fireTimeoutHandler(){
 };
 function totalTimeoutHandler(){
   this.onTimeOver();
-  this.onDestroy();
 }
 
 var BaseAttack = function(id, totalTime, fireTime, range, radius){

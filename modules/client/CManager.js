@@ -118,7 +118,9 @@ CManager.prototype = {
 		}
 	},
 	attackUser : function(userData){
-		this.users[userData.objectID].changeState(this.gameConfig.currentState);
+		if(this.checkUserAtUsers(userData)){
+			this.users[userData.objectID].changeState(this.gameConfig.currentState);
+		}
 	},
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
@@ -152,6 +154,12 @@ CManager.prototype = {
 			}else{
 				console.log('can`t find user data');
 			}
+		}
+		if(addPos !== undefined){
+			for(var index in this.obstacles){
+				this.obstacles[index].staticEle.x -= addPos.x;
+				this.obstacles[index].staticEle.y -= addPos.y;
+			}	
 		}
 	},
 	compelUsersOffset : function(compelToX, compelToY){

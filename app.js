@@ -21,6 +21,7 @@ server.listen(port, function(){
 
 var GameManager = require('./modules/server/GameManager.js');
 var GM = new GameManager();
+
 GM.start();
 
 var User = require('./modules/server/User.js');
@@ -34,6 +35,15 @@ io.on('connection', function(socket){
 
   var user = new User(socket.id);
   var updateUserInterval = false;
+
+  GM.onNeedInform = function(userID){
+    var userData = GM.updateDataSetting(GM.users[userID]);
+    socket.emit('updateUser', userData);
+  };
+  GM.onNeedInformToAll = function(userID){
+    var userData = GM.updateDataSetting(GM.users[userID]);
+    io.sockets.emit('updateUser', userData);
+  }
 
   socket.on('reqStartGame', function(){
 
@@ -67,7 +77,8 @@ io.on('connection', function(socket){
 
   socket.on('reqAttack', function(){
     //check user state is OBJECT_STATE_ATTACK. if then do nothing
-    if(!GM.checkStateIsAttack){
+    if(!GM.checkStateIsAttack(user)){
+      console.log('attack!!!');
       //set targetPosition and user state change
       GM.doBaseAttack(user);
       //request GM to damage apply, after delay of attackTime

@@ -119,7 +119,9 @@ CManager.prototype = {
 		}
 	},
 	attackUser : function(userData){
-		this.users[userData.objectID].changeState(this.gameConfig.currentState);
+		if(this.checkUserAtUsers(userData)){
+			this.users[userData.objectID].changeState(this.gameConfig.currentState);
+		}
 	},
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
@@ -153,6 +155,12 @@ CManager.prototype = {
 			}else{
 				console.log('can`t find user data');
 			}
+		}
+		if(addPos !== undefined){
+			for(var index in this.obstacles){
+				this.obstacles[index].staticEle.x -= addPos.x;
+				this.obstacles[index].staticEle.y -= addPos.y;
+			}	
 		}
 	},
 	compelUsersOffset : function(compelToX, compelToY){
@@ -1044,10 +1052,14 @@ function setupSocket(){
       revisionUserPos(userData);
     }
     Manager.updateUserData(userData);
-    Manager.attakUser(userData);
+    Manager.attackUser(userData);
     // user state change
     // animation start
   });
+  socket.on('updateUser', function(userData){
+    console.log('in updateUser')
+    console.log(userData);
+  })
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });

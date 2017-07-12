@@ -24,9 +24,12 @@ var affectedEles = [];
 function GameManager(){
   this.users = [];
   this.obstacles = [];
-  this.updateInteval = null;
-  this.staticInterval = null;
-  this.affectInterval = null;
+  this.updateInteval = false;
+  this.staticInterval = false;
+  this.affectInterval = false;
+
+  this.onNeedInform = new Function();
+  this.onNeedInformToAll = new Function();
 };
 
 GameManager.prototype.start = function(){
@@ -49,13 +52,13 @@ GameManager.prototype.mapSetting = function(){
   this.createObstacles();
 };
 GameManager.prototype.updateGame = function(){
-  if(this.updateInteval === null){
+  if(this.updateInteval === false){
     this.updateInteval = setInterval(updateIntervalHandler.bind(this), INTERVAL_TIMER);
   }
-  if(this.staticInterval === null){
+  if(this.staticInterval === false){
     this.staticInterval = setInterval(staticIntervalHandler.bind(this), INTERVAL_TIMER);
   }
-  if(this.affectInterval === null){
+  if(this.affectInterval === false){
     this.affectInterval = setInterval(affectIntervalHandler.bind(this), INTERVAL_TIMER);
   }
 };
@@ -227,10 +230,13 @@ GameManager.prototype.checkStateIsAttack = function(user){
 function updateIntervalHandler(){
   for(var i=0; i<colliderEles.length; i++){
     var tempCollider = colliderEles[i];
-    if(util.checkCircleCollision(entityTree, tempCollider.x, tempCollider.y, tempCollider.width, tempCollider.id)){
+    var collisionObjs = util.checkCircleCollision(entityTree, tempCollider.x, tempCollider.y, tempCollider.width, tempCollider.id);
+    if(collisionObjs.length > 0){
       switch (tempCollider.type) {
         case 'baseAttack':
-          affectedEles.push({func : 'damageToUser', attackUser : tempCollider.id, hitUser : item.id, damage : tempCollider.damage });
+          for(var index in collisionObjs){
+            affectedEles.push({func : 'damageToUser', attackUser : tempCollider.id, hitUser : collisionObjs[index].id, damage : tempCollider.damage });
+          }
           break;
         default:
           break;
@@ -292,6 +298,7 @@ function affectIntervalHandler(){
   var i = affectedEles.length;
   while(i--){
     if(affectedEles[i].func === 'damageToUser'){
+      this.onNeedInformToAll(affectedEles[i].hitUser);
       console.log(affectedEles[i])
     }
     affectedEles.splice(i, 1);
