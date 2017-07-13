@@ -183,10 +183,17 @@ function drawGame(){
   drawGrid();
   drawObstacles();
   drawUsers();
+  drawEffect();
 };
 // socket connect and server response configs
 function setupSocket(){
   socket = io();
+
+  socket.on('setSyncUser', function(user){
+    gameConfig.userID = user.objectID;
+    gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
+    // Manager = new CManager(gameConfig);
+  });
 
   //change state game on
   socket.on('resStartGame', function(datas){
@@ -200,16 +207,10 @@ function setupSocket(){
 
     changeState(gameConfig.GAME_STATE_GAME_ON);
   });
-  socket.on('setSyncUser', function(user){
-    gameConfig.userID = user.objectID;
-    gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
-    // Manager = new CManager(gameConfig);
-  });
 
   socket.on('userJoined', function(data){
     Manager.setUser(data);
-
-    console.log(Manager.users);
+    console.log('user joined ' + data.objectID);
   });
 
   socket.on('resMove', function(userData){
@@ -221,12 +222,18 @@ function setupSocket(){
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resAttack', function(userData){
+  socket.on('resAttack', function(userData, skillData){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
     Manager.updateUserData(userData);
     Manager.attackUser(userData);
+
+    //create user castingEffect
+    Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
+
+    // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
+    // setInterval(animator.startAnimation, fps * 2);
     // user state change
     // animation start
   });
@@ -238,6 +245,7 @@ function setupSocket(){
     Manager.kickUser(objID);
   });
 };
+
 function revisionUserPos(userData){
   var oldOffsetX = gameConfig.userOffset.x;
   var oldOffsetY = gameConfig.userOffset.y;
@@ -259,7 +267,7 @@ function drawObstacles(){
 
   for(var index in Manager.obstacles){
     ctx.beginPath();
-    ctx.arc(Manager.obstacles[index].staticEle.x + resources.OBJ_TREE_SIZE/2, Manager.obstacles[index].staticEle.y + resources.OBJ_TREE_SIZE/2,
+    ctx.arc(Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2, Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2,
             resources.OBJ_TREE_SIZE/2, 0, 2*Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
@@ -282,7 +290,22 @@ function drawUsers(){
     ctx.restore();
   }
 };
+function drawEffect(){
+  for(var index in Manager.effects){
+    var radian = Manager.effects[index].direction * radianFactor;
 
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[index].position.x + Manager.effects[index].radius/2, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[index].position.y + Manager.effects[index].radius/2, gameConfig.userOffset.y);
+    ctx.translate(centerX, centerY);
+    // ctx.rotate(radian);
+    ctx.fillRect(-Manager.effects[index].radius/2, -Manager.effects[index].radius/2, Manager.effects[index].radius, Manager.effects[index].radius);
+    // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
+    // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
+    ctx.restore();
+  }
+}
 function drawGrid(){
   //draw boundary
 

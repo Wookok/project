@@ -1,4 +1,5 @@
 var User = require('./CUser.js');
+
 var util = require('../public/util.js');
 
 var resources = require('../public/resource.json');
@@ -7,6 +8,7 @@ var map = require('../public/map.json');
 var QuadTree = require('../public/quadtree.min.js');
 
 var Obstacle = require('./CObstacle.js');
+var Effect = require('./CEffect.js');
 
 var staticTree;
 var staticEles = [];
@@ -19,8 +21,8 @@ var CManager = function(gameConfig){
 	this.user = null;
 	//all users
 	this.users = [];
-
 	this.obstacles = [];
+	this.effects = [];
 
 	this.staticInterval = null;
 	this.affectInterval = null;
@@ -28,7 +30,6 @@ var CManager = function(gameConfig){
 
 CManager.prototype = {
 	start : function(){
-
 		staticTree = new QuadTree({
 		  width : this.gameConfig.CANVAS_MAX_SIZE.width,
 		  height : this.gameConfig.CANVAS_MAX_SIZE.height,
@@ -40,6 +41,7 @@ CManager.prototype = {
 	},
 	mapSetting : function(){
 		this.createObstacles();
+		this.setObstaclesLocalPos();
 	},
 	updateGame : function(){
 		var INTERVAL_TIMER = 1000/this.gameConfig.INTERVAL;
@@ -57,7 +59,7 @@ CManager.prototype = {
 			this.obstacles.push(tempObstacle);
 		}
 	},
-	updateObstacles : function(){
+	updateObstacleEles : function(){
 		staticEles = [];
 
 		for(var index in this.obstacles){
@@ -71,6 +73,13 @@ CManager.prototype = {
 		}
 
 	  staticTree.pushAll(staticEles);
+	},
+	setObstaclesLocalPos : function(){
+		for(var index in this.obstacles){
+			var localPos = util.worldToLocalPosition(this.obstacles[index].position, this.gameConfig.userOffset);
+			this.obstacles[index].localPosition.x = localPos.x
+			this.obstacles[index].localPosition.y = localPos.y
+		}
 	},
 	setUser : function(userData){
 		if(!this.checkUserAtUsers(userData)){
@@ -96,6 +105,14 @@ CManager.prototype = {
 		}else{
 			delete this.users[objID];
 		}
+	},
+	createSkillEffect : function(targetPos, radius, direction, lifeTime){
+		// var effect = new Effect(targetPos, radius, direction, lifeTime);
+		//
+    // //create skill fireEffect
+    // this.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.totalTime - skillData.fireTime);
+
+		// this.effects.push(effect);
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){
@@ -155,11 +172,17 @@ CManager.prototype = {
 				console.log('can`t find user data');
 			}
 		}
+		for(var index in this.obstacles){
+			this.obstacles[index].localPosition.x -= this.user.speed.x;
+			this.obstacles[index].localPosition.y -= this.user.speed.y;
+		}
 		if(addPos !== undefined){
 			for(var index in this.obstacles){
-				this.obstacles[index].staticEle.x -= addPos.x;
-				this.obstacles[index].staticEle.y -= addPos.y;
-			}	
+				this.obstacles[index].localPosition.x -= addPos.x;
+				this.obstacles[index].localPosition.y -= addPos.y;
+				// this.obstacles[index].staticEle.x -= addPos.x;
+				// this.obstacles[index].staticEle.y -= addPos.y;
+			}
 		}
 	},
 	compelUsersOffset : function(compelToX, compelToY){
@@ -180,8 +203,11 @@ CManager.prototype = {
 			}
 		}
 		for(var index in this.obstacles){
-			this.obstacles[index].staticEle.x += revisionX;
-			this.obstacles[index].staticEle.y += revisionY;
+			this.obstacles[index].localPosition.x += revisionX;
+			this.obstacles[index].localPosition.y += revisionY;
+
+			// this.obstacles[index].staticEle.x += revisionX;
+			// this.obstacles[index].staticEle.y += revisionY;
 		}
 	},
 	revisionAllObj : function(revisionX, revisionY){
@@ -191,8 +217,11 @@ CManager.prototype = {
 			}
 		}
 		for(var index in this.obstacles){
-			this.obstacles[index].staticEle.x += revisionX;
-			this.obstacles[index].staticEle.y += revisionY;
+			this.obstacles[index].localPosition.x += revisionX;
+			this.obstacles[index].localPosition.y += revisionY;
+
+			// this.obstacles[index].staticEle.x += revisionX;
+			// this.obstacles[index].staticEle.y += revisionY;
 		}
 	},
 	// set this client user
@@ -241,7 +270,7 @@ function staticIntervalHandler(){
 	for(var index in staticEles){
 		staticTree.remove(staticEles[index]);
 	}
-	this.updateObstacles();
+	this.updateObstacleEles();
 
   // for(var index in this.users){
   //   var tempUserEle = this.users[index].entityTreeEle;

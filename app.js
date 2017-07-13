@@ -78,12 +78,13 @@ io.on('connection', function(socket){
   socket.on('reqAttack', function(){
     //check user state is OBJECT_STATE_ATTACK. if then do nothing
     if(!GM.checkStateIsAttack(user)){
-      console.log('attack!!!');
       //set targetPosition and user state change
-      GM.doBaseAttack(user);
-      //request GM to damage apply, after delay of attackTime
+      var skill = GM.doBaseAttack(user);
+
       var userData = GM.updateDataSetting(user);
-      io.sockets.emit('resAttack', userData);
+      var skillData = GM.updateSkillDataSetting(skill);
+
+      io.sockets.emit('resAttack', userData, skillData);
     }
   });
   socket.on('disconnect', function(){

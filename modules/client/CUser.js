@@ -80,34 +80,6 @@ User.prototype = {
   },
   moveOffset : function(){
     util.moveOffset.call(this);
-    // var distX = this.targetPosition.x - this.center.x;
-    // var distY = this.targetPosition.y - this.center.y;
-    //
-    // if(distX == 0 && distY == 0){
-    //   this.stop();
-    //   this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
-    // }
-    // if(Math.abs(distX) < Math.abs(this.speed.x)){
-    //   this.speed.x = distX;
-    // }
-    // if(Math.abs(distY) < Math.abs(this.speed.y)){
-    //   this.speed.y = distY;
-    // }
-    // var addPos = this.onMove(this);
-    // if(addPos !== undefined){
-    //   this.targetPosition.x -= addPos.x;
-    //   this.targetPosition.y -= addPos.y;
-    //
-    //   this.gameConfig.userOffset.x += addPos.x;
-    //   this.gameConfig.userOffset.y += addPos.y;
-    // }
-    // this.targetPosition.x -= this.speed.x;
-    // this.targetPosition.y -= this.speed.y;
-    //
-    // this.gameConfig.userOffset.x += this.speed.x;
-    // this.gameConfig.userOffset.y += this.speed.y;
-    //
-    // this.onMoveOffset(addPos);
   },
   addPosAndTargetPos : function(addPosX , addPosY){
     this.position.x += addPosX;

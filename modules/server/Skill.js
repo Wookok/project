@@ -43,8 +43,7 @@ var BaseAttack = function(id, totalTime, fireTime, range, radius){
     SkillBase.call(this, id, totalTime, fireTime);
     this.targetPosition;
     this.range = range;
-    this.width = radius;
-    this.height = radius;
+    this.size = {width : radius, height : radius};
 
     this.colliderEle = {
       id : this.objectID,
@@ -52,8 +51,8 @@ var BaseAttack = function(id, totalTime, fireTime, range, radius){
       damage : '1',
       x : 0,
       y : 0,
-      width : this.width,
-      height : this.height
+      width : this.size.width,
+      height : this.size.height
     }
 };
 BaseAttack.prototype = Object.create(SkillBase.prototype);

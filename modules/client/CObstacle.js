@@ -4,6 +4,10 @@ function CObstacle(posX, posY, sizeW, sizeH, id, src){
   this.position = {
     x : posX, y : posY
   };
+  // user when draw obstacle
+  this.localPosition = {
+    x : posX, y : posY
+  };
   this.size = {
     width : sizeW, height : sizeH
   };
@@ -11,6 +15,7 @@ function CObstacle(posX, posY, sizeW, sizeH, id, src){
     x : this.position.x + this.size.width/2,
     y : this.position.y + this.size.height/2
   }
+
   this.setSize(sizeW, sizeH);
   this.setPosition(posX, posY);
 

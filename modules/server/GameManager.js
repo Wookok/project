@@ -24,6 +24,7 @@ var affectedEles = [];
 function GameManager(){
   this.users = [];
   this.obstacles = [];
+
   this.updateInteval = false;
   this.staticInterval = false;
   this.affectInterval = false;
@@ -122,6 +123,7 @@ GameManager.prototype.doBaseAttack = function(user){
   }
   user.changeState(gameConfig.OBJECT_STATE_ATTACK);
   user.doBaseAttack(baseAttack);
+  return baseAttack;
 };
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
@@ -200,7 +202,7 @@ GameManager.prototype.updateDataSettings = function(){
   return userData;
 };
 GameManager.prototype.updateDataSetting = function(user){
-  var updateUser = {
+  var userData = {
     objectID : user.objectID,
 
     currentState : user.currentState,
@@ -216,9 +218,17 @@ GameManager.prototype.updateDataSetting = function(user){
 
     size : user.size
   };
-  return updateUser;
+  return userData;
 };
-
+GameManager.prototype.updateSkillDataSetting = function(skill){
+  var skillData = {
+    totalTime : skill.totalTime,
+    fireTime : skill.fireTime,
+    radius : skill.size.width,
+    targetPosition : skill.targetPosition
+  }
+  return skillData;
+}
 GameManager.prototype.checkStateIsAttack = function(user){
   if(user.currentState === gameConfig.OBJECT_STATE_ATTACK){
     return true;
