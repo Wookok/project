@@ -59,8 +59,8 @@ BaseAttack.prototype = Object.create(SkillBase.prototype);
 BaseAttack.prototype.constructor = BaseAttack;
 
 BaseAttack.prototype.setTargetPosition = function(userPosition, userDirection){
-  var addPosX = this.range * Math.cos(userDirection);
-  var addPosY = this.range * Math.sin(userDirection);
+  var addPosX = this.range * Math.cos(userDirection * Math.PI/180);
+  var addPosY = this.range * Math.sin(userDirection * Math.PI/180);
 
   this.targetPosition = {
     x : userPosition.x + addPosX,
@@ -68,5 +68,7 @@ BaseAttack.prototype.setTargetPosition = function(userPosition, userDirection){
   }
   this.colliderEle.x = this.targetPosition.x;
   this.colliderEle.y = this.targetPosition.y;
+  console.log(userPosition);
+  console.log(this.targetPosition);
 };
 module.exports.BaseAttack = BaseAttack;
