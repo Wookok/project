@@ -55,6 +55,9 @@ LivingEntity.prototype.changeState = function(newState){
     case gameConfig.OBJECT_STATE_ATTACK :
       this.updateFunction = this.idle;
       break;
+    case gameConfig.OBJECT_STATE_CAST :
+      this.updateFunction = this.rotate.bind(this);
+      break;
     }
   this.update();
 };
@@ -63,22 +66,29 @@ LivingEntity.prototype.update = function(){
 };
 
 //Instantiate base attack
-LivingEntity.prototype.makeSkillInstance = function(){
-  var baseAttack = new Skill.BaseAttack(this.objectID, skillData.baseAttack.totalTime, skillData.baseAttack.fireTime,
+LivingEntity.prototype.makeBaseAttackInstance = function(){
+  var baseAttack = new Skill.BaseAttack(this.objectID, skillData.baseAttack.totalCastTime, skillData.baseAttack.fireTime,
                             skillData.baseAttack.range, skillData.baseAttack.radius);
   baseAttack.setTargetPosition(this.position, this.direction);
   baseAttack.onTimeOver = onTimeOverHandler.bind(this, baseAttack);
   return baseAttack;
 };
+LivingEntity.prototype.makeInstantRangeSkill = function(targetPosition){
+  var instantRangeSkill = new Skill.InstantRangeSkill(this.objectID, skillData.instantRangeSkill.totalCastTime, skillData.instantRangeSkill.fireTime,
+                                  skillData.instantRangeSkill.range, skillData.instantRangeSkill.radius);
+  instantRangeSkill.setTargetPosition(this.center, targetPosition);
+  instantRangeSkill.onTimeOver = onTimeOverHandler.bind(this, instantRangeSkill);
+  return instantRangeSkill;
+}
 function onTimeOverHandler(baseAttack){
   baseAttack.destroy();
   this.currentSkill = undefined;
   this.changeState(gameConfig.OBJECT_STATE_IDLE);
 }
 //excute base attack
-LivingEntity.prototype.doBaseAttack = function(baseAttack){
-  this.currentSkill = baseAttack;
-  baseAttack.executeSkill();
+LivingEntity.prototype.executeSkill = function(skill){
+  this.currentSkill = skill;
+  skill.executeSkill();
 };
 
 //rotate before move or fire skill etc..

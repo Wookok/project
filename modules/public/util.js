@@ -292,3 +292,38 @@ exports.calculateOffset = function(obj, canvasSize){
   };
   return newOffset;
 };
+
+//calcurate distance
+exports.distanceSquare = function(position1, position2){
+  var distX = position1.x - position2.x;
+  var distY = position2.y - position2.y;
+
+  var distSquare = Math.pow(distX, 2) + Math.pow(distY, 2);
+  return distSquare;
+};
+exports.distance = function(position1, position2){
+  var distSqure = exports.distanceSpuare(position1, position2);
+  return Math.sqrt(distSqure);
+};
+//calcurate targetDirection;
+exports.calcTargetDirection(targetPosition, centerPosition){
+  var distX = targetPosition.x - centerPosition.x;
+  var distY = targetPosition.y - centerPosition.y;
+
+  var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
+  var returnVal = 0;
+  if(distX < 0 && distY >= 0){
+    returnVal = tangentDegree + 180;
+  }else if(distX < 0 && distY < 0){
+    returnVal = tangentDegree - 180;
+  }else{
+    returnVal = tangentDegree;
+  }
+  return returnVal;
+};
+exports.calcTargetPosition(centerPosition, direction, range){
+  var addPosX = range * Math.cos(direction * Math.PI/180);
+  var addPosY = range * Math.sin(direction * Math.PI/180);
+
+  return {x : addPosX, y : addposY};
+};

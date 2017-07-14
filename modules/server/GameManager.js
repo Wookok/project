@@ -117,13 +117,34 @@ GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
 GameManager.prototype.doBaseAttack = function(user){
-  var baseAttack = user.makeSkillInstance();
+  var baseAttack = user.makeBaseAttackInstance();
   baseAttack.onFire = function(){
     colliderEles.push(baseAttack.colliderEle);
   }
+  //changeState must execute before doBaseAttack
   user.changeState(gameConfig.OBJECT_STATE_ATTACK);
-  user.doBaseAttack(baseAttack);
+  user.executeSkill(baseAttack);
   return baseAttack;
+};
+GameManager.prototype.doInstantRangeSkill = function(user, targetPosition){
+  var instantRangeSkill = user.makeInstantRangeSkill(targetPosition);
+  instantRangeSkill.onFire = function(){
+    colliderEles.push(instantRangeSkill.colliderEle);
+  }
+  user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
+  user.changeState(gameConfig.OBJECT_STATE_CAST);
+  user.executeSkill(instantRangeSkill);
+  return instantRangeSkill;
+};
+GameManager.prototype.doProjectileSkill = function(user, direction){
+  var projectileSkill = user.makeProjectileSkill(direction);
+  projectileSkill.onFire = function(){
+
+  }
+  user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
+  user.changeState(gameConfig.OBJECT_STATE_CAST);
+  user.executeSkill(projectileSkill);
+  return projectileSkill;
 };
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
@@ -222,7 +243,7 @@ GameManager.prototype.updateDataSetting = function(user){
 };
 GameManager.prototype.updateSkillDataSetting = function(skill){
   var skillData = {
-    totalTime : skill.totalTime,
+    totalCastTime : skill.totalCastTime,
     fireTime : skill.fireTime,
     radius : skill.size.width,
     targetPosition : skill.targetPosition

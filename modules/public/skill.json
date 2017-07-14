@@ -1,3 +1,6 @@
 {
-  "baseAttack" : {"totalTime" : 5000, "fireTime" : 2500, "range" : 100, "radius" : 100}
+  "baseAttack" : {"totalCastTime" : 5000, "fireTime" : 2500, "range" : 100, "radius" : 100},
+  "instantRangeSkill" : {"totalCastTime" : 5000, "fireTime" : 2500, "range" : 100, "radius" : 100},
+  "projectileSkill" : {"totalCastTime" : 5000, "fireTime" : 2500, "range" : 100, "radius" : 100},
+  "selfSkil" : {"totalCastTime" : 5000, "fireTime" : 2500, "range" : 100, "radius" : 100}
 }
