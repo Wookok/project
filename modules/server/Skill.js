@@ -128,6 +128,8 @@ var ProjectileSkill = function(id, totalCastTime, fireTime, direction, radius, m
 ProjectileSkill.prototype = Object.create(SkillBase.prototype);
 ProjectileSkill.prototype.constructor = ProjectileSkill;
 
+module.exports.ProjectileSkill = ProjectileSkill;
+
 var ProjectileSkillColliderEle = function(objectID, damage, x, y, radius, speed, lifeTime){
   this.id = objectID
   this.type = "ProjectileSkill";
@@ -138,13 +140,28 @@ var ProjectileSkillColliderEle = function(objectID, damage, x, y, radius, speed,
   this.damage =5;
   this.x = x;
   this.y = y;
+  this.startTime = Date.now();
 };
+ProjectileSkillColliderEle.prototype.move = function(){
+  this.x += this.speed.x;
+  this.y += this.speed.y;
+};
+ProjectileSkillColliderEle.prototype.hit = function(user){
+};
+ProjectileSkillColliderEle.prototype.isExpired = function(){
+  if(this.lifeTime > Date.now() - this.startTime){
+    return false;
+  }else{
+    return true;
+  }
+};
+
+module.exports.ProjectileSkillColliderEle = ProjectileSkillColliderEle;
 
 // ProjectileSkill.prototype.setSpeed = function(){
 //   this.speed.x = this.maxSpeed * Math.cos(this.direction * Math.PI/180);
 //   this.speed.y = this.maxSpeed * Math.sin(this.direction * Math.PI/180);
 // };
-module.exports.ProjectileSkill = ProjectileSkill;
 
 var SelfSkill = function(id, totalCastTime, fireTime, lifeTime){
   SkillBase.call(this, id, totalCastTime, fireTime);

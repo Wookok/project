@@ -6,6 +6,7 @@ var util = require('../public/util.js');
 var resources = require('../public/resource.json');
 var map = require('../public/map.json');
 
+var Skill = require('./Skill.js');
 var skills = require('../public/skill.json');
 
 var QuadTree = require('quadtree-lib');
@@ -24,6 +25,7 @@ var affectedEles = [];
 function GameManager(){
   this.users = [];
   this.obstacles = [];
+  this.projectiles = [];
 
   this.updateInteval = false;
   this.staticInterval = false;
@@ -139,13 +141,25 @@ GameManager.prototype.doInstantRangeSkill = function(user, targetPosition){
 GameManager.prototype.doProjectileSkill = function(user, direction){
   var projectileSkill = user.makeProjectileSkill(direction);
   projectileSkill.onFire = function(){
-
+    var projectileSkillColliderEle = new Skill.ProjectileSkillColliderEle(projectileSkill.objectID, 6,
+                                         user.center.x, user.center.y, projectileSkill.size.width, projectileSkill.speed, projectileSkill.lifeTime);
+    this.projectiles.push(projectileSkillColliderEle);
+    colliderEles.push(projectileSkill);
   }
   user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
   user.changeState(gameConfig.OBJECT_STATE_CAST);
   user.executeSkill(projectileSkill);
   return projectileSkill;
 };
+GameManager.prototype.doSelfSkill = function(user){
+  var selfSkill = user.makeSelfSkill();
+  selfSkill.onFire = function(){
+
+  }
+  user.changeState(gameConfig.OBJECT_STATE_CAST);
+  user.executeSkill(selfSkill);
+  return selfSkill;
+}
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
@@ -306,6 +320,16 @@ function updateIntervalHandler(){
   for(var index in this.users){
     this.users[index].setUserEle();
     userEles.push(this.users[index].entityTreeEle);
+  }
+  //update projectiles array
+  var i = this.projectiles.length;
+  while(i--){
+    if(this.projectiles[i].isExpired()){
+      this.projectiles.splice(i, 1);
+    }else{
+      this.projectiles[i].move();
+      colliderEles.push(this.projectiles[i]);
+    }
   }
   //test
   // for(var index in this.users){

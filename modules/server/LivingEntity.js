@@ -79,12 +79,23 @@ LivingEntity.prototype.makeInstantRangeSkill = function(targetPosition){
   instantRangeSkill.setTargetPosition(this.center, targetPosition);
   instantRangeSkill.onTimeOver = onTimeOverHandler.bind(this, instantRangeSkill);
   return instantRangeSkill;
+};
+LivingEntity.prototype.makeProjectileSkill = function(direction){
+  var projectileSkill = new Skill.ProjectileSkill(this.objectID, skillData.projectileSkill.totalCastTime, skillData.projectileSkill.fireTime, direction,
+                                skillData.projectileSkill.radius, skillData.projectileSkill.maxSpeed, skillData.projectileSkill.lifeTime);
+  projectileSkill.onTimeOver = onTimeOverHandler.bind(this, projectileSkill);
+  return projectileSkill;
+};
+LivingEntity.prototype.makeSelfSkill = function(){
+  var selfSkill = new Skill.selfSkill(this.objectID, skillData.selfSkill.totalCastTime, skillData.selfSkill.fireTime, skillData.selfSkill.lifeTime)
+  selfSkill.onTimeOver = onTimeOverHandler.bind(this, selfSkill);
+  return selfSkill;
 }
-function onTimeOverHandler(baseAttack){
-  baseAttack.destroy();
+function onTimeOverHandler(skill){
+  skill.destroy();
   this.currentSkill = undefined;
   this.changeState(gameConfig.OBJECT_STATE_IDLE);
-}
+};
 //excute base attack
 LivingEntity.prototype.executeSkill = function(skill){
   this.currentSkill = skill;

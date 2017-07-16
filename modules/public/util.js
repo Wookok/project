@@ -306,7 +306,7 @@ exports.distance = function(position1, position2){
   return Math.sqrt(distSqure);
 };
 //calcurate targetDirection;
-exports.calcTargetDirection(targetPosition, centerPosition){
+exports.calcTargetDirection = function(targetPosition, centerPosition){
   var distX = targetPosition.x - centerPosition.x;
   var distY = targetPosition.y - centerPosition.y;
 
@@ -321,7 +321,7 @@ exports.calcTargetDirection(targetPosition, centerPosition){
   }
   return returnVal;
 };
-exports.calcTargetPosition(centerPosition, direction, range){
+exports.calcTargetPosition = function(centerPosition, direction, range){
   var addPosX = range * Math.cos(direction * Math.PI/180);
   var addPosY = range * Math.sin(direction * Math.PI/180);
 
