@@ -127,15 +127,16 @@ GameManager.prototype.useSkill = function(user, skill, clickPosition){
       skillInstance.onFire = function(){
         colliderEles.push(skillInstance.colliderEle);
       };
-      user.targetPosition = util.calcTargetDirection(clickPosition, user.center);
+      user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
       user.changeState(gameConfig.OBJECT_STATE_CAST);
       break;
     case gameConfig.SKILL_TYPE_PROJECTILE:
       skillInstance = user.makeSkillInstance(skill, clickPosition);
-      skill.onFire = function(){
+      var projectiels = this.projectiles;
+      skillInstance.onFire = function(){
         //create projectile object and push to projectiles
-        var projectile = skillInstance.makeProjectile()
-        this.projectiles.push(projectile);
+        var projectile = skillInstance.makeProjectile(user)
+        projectiels.push(projectile);
         colliderEles.push(projectile.colliderEle);
       };
       user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
@@ -143,7 +144,7 @@ GameManager.prototype.useSkill = function(user, skill, clickPosition){
       break;
     case gameConfig.SKILL_TYPE_SELF:
       skillInstance = user.makeSkillInstance(skill);
-      skill.onFire = function(){
+      skillInstance.onFire = function(){
         console.log('self skill is excuted');
       };
       user.changeState(gameConfig.OBJECT_STATE_CAST);
@@ -151,7 +152,8 @@ GameManager.prototype.useSkill = function(user, skill, clickPosition){
     default:
       break;
   }
-  user.executeSkill(skillInstance);
+  // user.executeSkill(skillInstance);
+  user.setSkill(skillInstance);
   return skillInstance;
 };
 //

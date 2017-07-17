@@ -105,6 +105,9 @@ User.prototype = {
       height : this.size.height,
       id : this.objectID
     };
+  },
+  executeSkill : function(){
+
   }
 };
 

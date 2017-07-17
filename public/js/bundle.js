@@ -493,6 +493,9 @@ User.prototype = {
       height : this.size.height,
       id : this.objectID
     };
+  },
+  executeSkill : function(){
+
   }
 };
 
@@ -564,8 +567,11 @@ exports.rotate = function(){
     }else if(this.currentState === gameConfig.OBJECT_STATE_MOVE_OFFSET){
         //only use at client
         this.moveOffset();
+    }else if(this.currentState === gameConfig.OBJECT_STATE_ATTACK){
     }else if(this.currentState === gameConfig.OBJECT_STATE_CAST){
-
+      console.log(this.targetDirection === this.direction);
+      console.log('executeSkill');
+      this.executeSkill(this.currentSkill);
     }
   }
   //check rotate direction

@@ -6,23 +6,23 @@ var radianFactor = Math.PI/180;
 var Skill = function(userID, type, totalTime, fireTime, range, explosionRadius, lifeTime, radius, maxSpeed){
   this.startTime = Date.now();
 
-  this.userID = userID || null;
-  this.type = type || null;
-  this.totalTime = totalTime || null;
-  this.fireTime = fireTime || null;
-  this.range = range || null;
-  this.explosionRadius = explosionRadius || null;
-  this.lifeTime = lifeTime || null;
-  this.radius = radius || null;
-  this.maxSpeed = maxSpeed || null;
+  this.userID = userID;
+  this.type = type;
+  this.totalTime = totalTime;
+  this.fireTime = fireTime;
+  this.range = range;
+  this.explosionRadius = explosionRadius;
+  this.lifeTime = lifeTime;
+  this.radius = radius;
+  this.maxSpeed = maxSpeed;
 
   this.targetPosition = {};
   this.colliderEle = {
-    id : this.userID || 0,
+    id : this.userID,
     x : 0,
     y : 0,
-    width : this.radius || 0,
-    height : this.radius || 0,
+    width : this.radius,
+    height : this.radius,
   };
 
   this.fireTimeout = false;
@@ -48,8 +48,9 @@ Skill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(){
-    var projectile = new ProjectileSkill(this);
+  makeProjectile : function(user){
+    var projectile = new ProjectileSkill(user, this);
+    return projectile;
   },
   setTargetPosition : function(userCenterPosition, userDirection, clickPosition){
     switch (this.type) {
@@ -90,7 +91,7 @@ Skill.prototype = {
         }
         break;
       default:
-        console.log('Do not need set target position or mistake with set skill type');
+        // console.log('Do not need set target position or mistake with set skill type');
         break;
     }
   }
@@ -110,12 +111,12 @@ function totalTimeoutHandler(){
 var ProjectileSkill = function(user, skillInstance){
   this.startTime = Date.now();
 
-  this.userID = skillInstance.userID || null;
+  this.userID = skillInstance.userID;
   this.type = skillInstance.type;
   this.explosionRadius = skillInstance.explosionRadius;
   this.lifeTime = skillInstance.lifeTime;
   this.radius = skillInstance.radius;
-  this.position = {x : user.positon.x, y : user.position.y};
+  this.position = {x : user.position.x, y : user.position.y};
   this.maxSpeed = skillInstance.maxSpeed;
   this.speed = {x : this.maxSpeed * Math.cos(this.direction * Math.PI/180) , y : this.maxSpeed * Math.sin(this.direction * Math.PI/180)};
 

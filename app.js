@@ -79,7 +79,7 @@ io.on('connection', function(socket){
   });
 
   socket.on('reqSkill', function(skill, clickPosition){
-    //check user state is OBJECT_STATE_ATTACK. if then do nothing
+    //check user state and skill.type is OBJECT_STATE_ATTACK. if then do nothing
     if(skill.type !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
       if(skill.type === gameConfig.SKILL_TYPE_BASIC){
         skill = skillData.baseAttack;

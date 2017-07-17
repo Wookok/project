@@ -14,6 +14,7 @@ function LivingEntity(){
 
   this.currentState = gameConfig.OBJECT_STATE_IDLE;
   this.currentSkill = undefined;
+  this.isExecutedSkill = false;
 
   this.speed = {x: 0, y:0};
   this.direction = 0;
@@ -53,7 +54,7 @@ LivingEntity.prototype.changeState = function(newState){
       this.updateFunction = this.rotate.bind(this);
       break;
     case gameConfig.OBJECT_STATE_ATTACK :
-      this.updateFunction = this.idle;
+      this.updateFunction = this.attack.bind(this);
       break;
     case gameConfig.OBJECT_STATE_CAST :
       this.updateFunction = this.rotate.bind(this);
@@ -100,12 +101,18 @@ LivingEntity.prototype.makeSkillInstance = function(skill, clickPosition){
 function onTimeOverHandler(skillInstance){
   skillInstance.destroy();
   this.currentSkill = undefined;
+  this.isExecutedSkill = false;
   this.changeState(gameConfig.OBJECT_STATE_IDLE);
 };
-//excute base attack
-LivingEntity.prototype.executeSkill = function(skillInstance){
+LivingEntity.prototype.setSkill = function(skillInstance){
   this.currentSkill = skillInstance;
-  skillInstance.executeSkill();
+};
+//excute skill
+LivingEntity.prototype.executeSkill = function(){
+  if(!this.isExecutedSkill){
+    this.isExecutedSkill = true;
+    this.currentSkill.executeSkill();
+  }
 };
 
 //rotate before move or fire skill etc..
@@ -120,7 +127,10 @@ LivingEntity.prototype.idle = function(){
   //do nothing or send packet;
 };
 LivingEntity.prototype.attack = function(){
-  //changeState to idle after attack
+  if(!this.isExecutedSkill){
+    this.isExecutedSkill = true;
+    this.currentSkill.executeSkill();
+  }
 };
 //interval clear
 LivingEntity.prototype.stop = function(){
@@ -131,6 +141,7 @@ LivingEntity.prototype.stop = function(){
   if(this.currentSkill){
     this.currentSkill.destroy();
     this.currentSkill = undefined;
+    this.isExecutedSkill = false;
   }
 };
 
