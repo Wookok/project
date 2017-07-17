@@ -6,8 +6,11 @@ var socketio = require('socket.io');
 var path = require('path');
 
 var app = express();
+
 var config = require('./config.json');
 var gameConfig = require('./modules/public/gameConfig.json');
+var skillData = require('./modules/public/skill.json');
+
 var util = require('./modules/public/util.js');
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -75,16 +78,24 @@ io.on('connection', function(socket){
     io.sockets.emit('resMove', data);
   });
 
-  socket.on('reqAttack', function(){
+  socket.on('reqSkill', function(skill, clickPosition){
     //check user state is OBJECT_STATE_ATTACK. if then do nothing
-    if(!GM.checkStateIsAttack(user)){
-      //set targetPosition and user state change
-      var skill = GM.doBaseAttack(user);
+    if(skill.type !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
+      if(skill.type === gameConfig.SKILL_TYPE_BASIC){
+        skill = skillData.baseAttack;
+      }else if(skill.type === gameConfig.SKILL_TYPE_INSTANT){
+        skill = skillData.instantRangeSkill;
+      }else if(skill.type === gameConfig.SKILL_TYPE_PROJECTILE){
+        skill = skillData.projectileSkill;
+      }else if(skill.type === gameConfig.SKILL_TYPE_SELF){
+        skill = skillData.selfSkill;
+      }
+      var skillInstance = GM.useSkill(user, skill, clickPosition);
 
       var userData = GM.updateDataSetting(user);
-      var skillData = GM.updateSkillDataSetting(skill);
+      var skillInstanceData = GM.updateSkillDataSetting(skillInstance);
 
-      io.sockets.emit('resAttack', userData, skillData);
+      io.sockets.emit('resSkill', userData, skillInstanceData);
     }
   });
   socket.on('disconnect', function(){

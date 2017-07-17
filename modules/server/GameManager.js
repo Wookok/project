@@ -70,21 +70,13 @@ GameManager.prototype.updateGame = function(){
 GameManager.prototype.createObstacles = function(){
   for(var index in map.Trees){
     var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
-    // var tempObstacle = new Obstacle(util.worldXCoordToLocalX(map.Trees[index].posX, this.gameConfig.userOffset.x),
-    // 																util.worldYCoordToLocalY(map.Trees[index].posY, this.gameConfig.userOffset.y),
-    // 																resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
+
     this.obstacles.push(tempObstacle);
     staticEles.push(tempObstacle.staticEle);
   }
   staticTree.pushAll(staticEles);
-  // var obstacle1 = new Obstacle(200, 200, 100, 100, generateRandomID("OR"));
-  // var obstacle2 = new Obstacle(500, 500, 100, 100, generateRandomID("OR"));
-  //
-  // staticEles.push(obstacle1.staticEle);
-  // staticEles.push(obstacle2.staticEle);
-  //
-  // staticTree.pushAll(staticEles);
 };
+
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
   var collisionObjs = util.checkCircleCollision(staticTree, targetPosition.x - user.size.width/2, targetPosition.y - user.size.width/2, user.size.width, user.objectID);
@@ -118,48 +110,93 @@ GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
 
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
-GameManager.prototype.doBaseAttack = function(user){
-  var baseAttack = user.makeBaseAttackInstance();
-  baseAttack.onFire = function(){
-    colliderEles.push(baseAttack.colliderEle);
-  }
-  //changeState must execute before doBaseAttack
-  user.changeState(gameConfig.OBJECT_STATE_ATTACK);
-  user.executeSkill(baseAttack);
-  return baseAttack;
-};
-GameManager.prototype.doInstantRangeSkill = function(user, targetPosition){
-  var instantRangeSkill = user.makeInstantRangeSkill(targetPosition);
-  instantRangeSkill.onFire = function(){
-    colliderEles.push(instantRangeSkill.colliderEle);
-  }
-  user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
-  user.changeState(gameConfig.OBJECT_STATE_CAST);
-  user.executeSkill(instantRangeSkill);
-  return instantRangeSkill;
-};
-GameManager.prototype.doProjectileSkill = function(user, direction){
-  var projectileSkill = user.makeProjectileSkill(direction);
-  projectileSkill.onFire = function(){
-    var projectileSkillColliderEle = new Skill.ProjectileSkillColliderEle(projectileSkill.objectID, 6,
-                                         user.center.x, user.center.y, projectileSkill.size.width, projectileSkill.speed, projectileSkill.lifeTime);
-    this.projectiles.push(projectileSkillColliderEle);
-    colliderEles.push(projectileSkill);
-  }
-  user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
-  user.changeState(gameConfig.OBJECT_STATE_CAST);
-  user.executeSkill(projectileSkill);
-  return projectileSkill;
-};
-GameManager.prototype.doSelfSkill = function(user){
-  var selfSkill = user.makeSelfSkill();
-  selfSkill.onFire = function(){
 
+GameManager.prototype.useSkill = function(user, skill, clickPosition){
+  var skillInstance = undefined;
+  switch (skill.type) {
+    case gameConfig.SKILL_TYPE_BASIC:
+      skillInstance = user.makeSkillInstance(skill);
+      skillInstance.onFire = function(){
+        colliderEles.push(skillInstance.colliderEle);
+      };
+      //on attack can cast skill but on attack cant attack;
+      user.changeState(gameConfig.OBJECT_STATE_ATTACK);
+      break;
+    case gameConfig.SKILL_TYPE_INSTANT:
+      skillInstance = user.makeSkillInstance(skill, clickPosition);
+      skillInstance.onFire = function(){
+        colliderEles.push(skillInstance.colliderEle);
+      };
+      user.targetPosition = util.calcTargetDirection(clickPosition, user.center);
+      user.changeState(gameConfig.OBJECT_STATE_CAST);
+      break;
+    case gameConfig.SKILL_TYPE_PROJECTILE:
+      skillInstance = user.makeSkillInstance(skill, clickPosition);
+      skill.onFire = function(){
+        //create projectile object and push to projectiles
+        var projectile = skillInstance.makeProjectile()
+        this.projectiles.push(projectile);
+        colliderEles.push(projectile.colliderEle);
+      };
+      user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
+      user.changeState(gameConfig.OBJECT_STATE_CAST);
+      break;
+    case gameConfig.SKILL_TYPE_SELF:
+      skillInstance = user.makeSkillInstance(skill);
+      skill.onFire = function(){
+        console.log('self skill is excuted');
+      };
+      user.changeState(gameConfig.OBJECT_STATE_CAST);
+      break;
+    default:
+      break;
   }
-  user.changeState(gameConfig.OBJECT_STATE_CAST);
-  user.executeSkill(selfSkill);
-  return selfSkill;
-}
+  user.executeSkill(skillInstance);
+  return skillInstance;
+};
+//
+// GameManager.prototype.doBaseAttack = function(user){
+//   var baseAttack = user.makeBaseAttackInstance();
+//   baseAttack.onFire = function(){
+//     colliderEles.push(baseAttack.colliderEle);
+//   }
+//   //changeState must execute before doBaseAttack
+//   user.changeState(gameConfig.OBJECT_STATE_ATTACK);
+//   user.executeSkill(baseAttack);
+//   return baseAttack;
+// };
+// GameManager.prototype.doInstantRangeSkill = function(user, targetPosition){
+//   var instantRangeSkill = user.makeInstantRangeSkill(targetPosition);
+//   instantRangeSkill.onFire = function(){
+//     colliderEles.push(instantRangeSkill.colliderEle);
+//   }
+//   user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
+//   user.changeState(gameConfig.OBJECT_STATE_CAST);
+//   user.executeSkill(instantRangeSkill);
+//   return instantRangeSkill;
+// };
+// GameManager.prototype.doProjectileSkill = function(user, direction){
+//   var projectileSkill = user.makeProjectileSkill(direction);
+//   projectileSkill.onFire = function(){
+//     var projectileSkillColliderEle = new Skill.ProjectileSkillColliderEle(projectileSkill.objectID, 6,
+//                                          user.center.x, user.center.y, projectileSkill.size.width, projectileSkill.speed, projectileSkill.lifeTime);
+//     this.projectiles.push(projectileSkillColliderEle);
+//     colliderEles.push(projectileSkill);
+//   }
+//   user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
+//   user.changeState(gameConfig.OBJECT_STATE_CAST);
+//   user.executeSkill(projectileSkill);
+//   return projectileSkill;
+// };
+// GameManager.prototype.doSelfSkill = function(user){
+//   var selfSkill = user.makeSelfSkill();
+//   selfSkill.onFire = function(){
+//
+//   }
+//   user.changeState(gameConfig.OBJECT_STATE_CAST);
+//   user.executeSkill(selfSkill);
+//   return selfSkill;
+// }
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
@@ -257,9 +294,10 @@ GameManager.prototype.updateDataSetting = function(user){
 };
 GameManager.prototype.updateSkillDataSetting = function(skill){
   var skillData = {
-    totalCastTime : skill.totalCastTime,
+    timeSpan : Date.now() - skill.startTime,
+    totalTime : skill.totalTime,
     fireTime : skill.fireTime,
-    radius : skill.size.width,
+    radius : skill.radius,
     targetPosition : skill.targetPosition
   }
   return skillData;
@@ -328,7 +366,7 @@ function updateIntervalHandler(){
       this.projectiles.splice(i, 1);
     }else{
       this.projectiles[i].move();
-      colliderEles.push(this.projectiles[i]);
+      colliderEles.push(this.projectiles[i].colliderEle);
     }
   }
   //test

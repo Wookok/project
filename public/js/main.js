@@ -222,7 +222,7 @@ function setupSocket(){
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resAttack', function(userData, skillData){
+  socket.on('resSkill', function(userData, skillData){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
@@ -334,10 +334,17 @@ function canvasAddEvent(){
   }, false);
 }
 function documentAddEvent(){
-  document.addEventListener("keydown", function(e){
+  document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
+    var tempPos = util.localToWorldPosition({x : 1000, y : 1000}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
-      socket.emit("reqAttack");
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_BASIC});
+    }else if(keyCode === 49){
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_INSTANT}, tempPos);
+    }else if(keyCode === 50){
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_PROJECTILE}, tempPos);
+    }else if(keyCode === 51){
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_SELF});
     }
   }, false);
 }

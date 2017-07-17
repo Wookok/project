@@ -8,6 +8,8 @@ exports.rotate = function(){
     }else if(this.currentState === gameConfig.OBJECT_STATE_MOVE_OFFSET){
         //only use at client
         this.moveOffset();
+    }else if(this.currentState === gameConfig.OBJECT_STATE_CAST){
+
     }
   }
   //check rotate direction

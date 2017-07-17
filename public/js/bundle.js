@@ -1,8 +1,13 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-function CEffect(position, radius, direction, totalTime){
+function CEffect(totalTime, fireTime, userData, targetPosition, radius, direction){
+  this.totalTime = totalTime;
+  this.fireTime = fireTime;
+
   this.startTime = Date.now();
   this.timeSpan = 0;
-  this.position = position;
+
+  this.userData = userData;
+  this.targetPosition = targetPosition;
   this.direction = direction;
   this.radius = radius;
 };
@@ -121,9 +126,8 @@ CManager.prototype = {
 			delete this.users[objID];
 		}
 	},
-	createSkillEffect : function(targetPos, radius, direction, totalTime){
-		var effect = new Effect(targetPos, radius, direction, totalTime);
-		this.effects.push(effect);
+	createSkillEffect : function(targetPos, radius, direction, lifeTime){
+
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){
@@ -504,6 +508,7 @@ module.exports={
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,
   "OBJECT_STATE_ATTACK" : 2,
+  "OBJECT_STATE_CAST" : 3,
 
   "FPS" : 60,
   "PLUS_SIZE_WIDTH" : 500,
@@ -515,7 +520,12 @@ module.exports={
   "GAME_STATE_START_SCENE" : 1,
   "GAME_STATE_GAME_START" : 2,
   "GAME_STATE_GAME_ON" : 3,
-  "GAME_STATE_GAME_END" : 4
+  "GAME_STATE_GAME_END" : 4,
+
+  "SKILL_TYPE_BASIC" : 0,
+  "SKILL_TYPE_INSTANT" : 1,
+  "SKILL_TYPE_PROJECTILE" : 2,
+  "SKILL_TYPE_SELF" : 3
 }
 
 },{}],6:[function(require,module,exports){
@@ -554,6 +564,8 @@ exports.rotate = function(){
     }else if(this.currentState === gameConfig.OBJECT_STATE_MOVE_OFFSET){
         //only use at client
         this.moveOffset();
+    }else if(this.currentState === gameConfig.OBJECT_STATE_CAST){
+
     }
   }
   //check rotate direction
@@ -839,6 +851,41 @@ exports.calculateOffset = function(obj, canvasSize){
   return newOffset;
 };
 
+//calcurate distance
+exports.distanceSquare = function(position1, position2){
+  var distX = position1.x - position2.x;
+  var distY = position2.y - position2.y;
+
+  var distSquare = Math.pow(distX, 2) + Math.pow(distY, 2);
+  return distSquare;
+};
+exports.distance = function(position1, position2){
+  var distSqure = exports.distanceSpuare(position1, position2);
+  return Math.sqrt(distSqure);
+};
+//calcurate targetDirection;
+exports.calcTargetDirection = function(targetPosition, centerPosition){
+  var distX = targetPosition.x - centerPosition.x;
+  var distY = targetPosition.y - centerPosition.y;
+
+  var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
+  var returnVal = 0;
+  if(distX < 0 && distY >= 0){
+    returnVal = tangentDegree + 180;
+  }else if(distX < 0 && distY < 0){
+    returnVal = tangentDegree - 180;
+  }else{
+    returnVal = tangentDegree;
+  }
+  return returnVal;
+};
+exports.calcTargetPosition = function(centerPosition, direction, range){
+  var addPosX = range * Math.cos(direction * Math.PI/180);
+  var addPosY = range * Math.sin(direction * Math.PI/180);
+
+  return {x : addPosX, y : addposY};
+};
+
 },{"./gameConfig.json":5}],10:[function(require,module,exports){
 // inner Modules
 var util = require('../../modules/public/util.js');
@@ -1064,16 +1111,15 @@ function setupSocket(){
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resAttack', function(userData, skillData){
+  socket.on('resSkill', function(userData, skillData){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
     Manager.updateUserData(userData);
     Manager.attackUser(userData);
 
-    console.log(skillData);
-
-    Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.totalTime);
+    //create user castingEffect
+    Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
 
     // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
     // setInterval(animator.startAnimation, fps * 2);
@@ -1146,7 +1192,6 @@ function drawEffect(){
     ctx.fillRect(-Manager.effects[index].radius/2, -Manager.effects[index].radius/2, Manager.effects[index].radius, Manager.effects[index].radius);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
-
     ctx.restore();
   }
 }
@@ -1178,10 +1223,17 @@ function canvasAddEvent(){
   }, false);
 }
 function documentAddEvent(){
-  document.addEventListener("keydown", function(e){
+  document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
+    var tempPos = util.localToWorldPosition({x : 1000, y : 1000}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
-      socket.emit("reqAttack");
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_BASIC});
+    }else if(keyCode === 49){
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_INSTANT}, tempPos);
+    }else if(keyCode === 50){
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_PROJECTILE}, tempPos);
+    }else if(keyCode === 51){
+      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_SELF});
     }
   }, false);
 }

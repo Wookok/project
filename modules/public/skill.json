@@ -1,6 +1,42 @@
 {
-  "baseAttack" : {"totalCastTime" : 5000, "fireTime" : 2500, "range" : 100, "radius" : 100},
-  "instantRangeSkill" : {"totalCastTime" : 5000, "fireTime" : 2500, "range" : 100, "radius" : 100},
-  "projectileSkill" : {"totalCastTime" : 5000, "fireTime" : 2500, "radius" : 100, "maxSpeed" : 30, "lifeTime" : 15000},
-  "selfSkil" : {"totalCastTime" : 5000, "fireTime" : 2500, "lifeTime" : 10000}
+  "baseAttack" : {
+    "type" : 0,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 100,
+    "explosionRadius" : 100,
+    "lifeTime" : 0,
+    "radius" : 0,
+    "maxSpeed" : 0
+  },
+  "instantRangeSkill" : {
+    "type" : 1,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 1000,
+    "explosionRadius" : 100,
+    "lifeTime" : 0,
+    "radius" : 0,
+    "maxSpeed" : 0
+  },
+  "projectileSkill" : {
+    "type" : 2,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 0,
+    "explosionRadius" : 100,
+    "lifeTime" : 15000,
+    "radius" : 50,
+    "maxSpeed" : 30
+  },
+  "selfSkill" : {
+    "type" : 3,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 0,
+    "explosionRadius" : 0,
+    "lifeTime" : 0,
+    "radius" : 0,
+    "maxSpeed" : 0
+  }
 }

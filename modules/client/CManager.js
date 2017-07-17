@@ -107,12 +107,7 @@ CManager.prototype = {
 		}
 	},
 	createSkillEffect : function(targetPos, radius, direction, lifeTime){
-		// var effect = new Effect(targetPos, radius, direction, lifeTime);
-		//
-    // //create skill fireEffect
-    // this.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.totalTime - skillData.fireTime);
 
-		// this.effects.push(effect);
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){

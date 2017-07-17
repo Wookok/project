@@ -66,40 +66,46 @@ LivingEntity.prototype.update = function(){
 };
 
 //Instantiate base attack
-LivingEntity.prototype.makeBaseAttackInstance = function(){
-  var baseAttack = new Skill.BaseAttack(this.objectID, skillData.baseAttack.totalCastTime, skillData.baseAttack.fireTime,
-                            skillData.baseAttack.range, skillData.baseAttack.radius);
-  baseAttack.setTargetPosition(this.position, this.direction);
-  baseAttack.onTimeOver = onTimeOverHandler.bind(this, baseAttack);
-  return baseAttack;
+LivingEntity.prototype.makeSkillInstance = function(skill, clickPosition){
+  var skillInstance = new Skill(this.objectID, skill.type, skill.totalTime, skill.fireTime, skill.range, skill.explosionRadius, skill.lifeTime, skill.radius, skill.maxSpeed);
+  skillInstance.setTargetPosition(this.center, this.direction, clickPosition);
+  skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
+  return skillInstance;
 };
-LivingEntity.prototype.makeInstantRangeSkill = function(targetPosition){
-  var instantRangeSkill = new Skill.InstantRangeSkill(this.objectID, skillData.instantRangeSkill.totalCastTime, skillData.instantRangeSkill.fireTime,
-                                  skillData.instantRangeSkill.range, skillData.instantRangeSkill.radius);
-  instantRangeSkill.setTargetPosition(this.center, targetPosition);
-  instantRangeSkill.onTimeOver = onTimeOverHandler.bind(this, instantRangeSkill);
-  return instantRangeSkill;
-};
-LivingEntity.prototype.makeProjectileSkill = function(direction){
-  var projectileSkill = new Skill.ProjectileSkill(this.objectID, skillData.projectileSkill.totalCastTime, skillData.projectileSkill.fireTime, direction,
-                                skillData.projectileSkill.radius, skillData.projectileSkill.maxSpeed, skillData.projectileSkill.lifeTime);
-  projectileSkill.onTimeOver = onTimeOverHandler.bind(this, projectileSkill);
-  return projectileSkill;
-};
-LivingEntity.prototype.makeSelfSkill = function(){
-  var selfSkill = new Skill.selfSkill(this.objectID, skillData.selfSkill.totalCastTime, skillData.selfSkill.fireTime, skillData.selfSkill.lifeTime)
-  selfSkill.onTimeOver = onTimeOverHandler.bind(this, selfSkill);
-  return selfSkill;
-}
-function onTimeOverHandler(skill){
-  skill.destroy();
+// LivingEntity.prototype.makeBaseAttackInstance = function(){
+//   var baseAttack = new Skill.BaseAttack(this.objectID, skillData.baseAttack.totalCastTime, skillData.baseAttack.fireTime,
+//                             skillData.baseAttack.range, skillData.baseAttack.radius);
+//   baseAttack.setTargetPosition(this.position, this.direction);
+//   baseAttack.onTimeOver = onTimeOverHandler.bind(this, baseAttack);
+//   return baseAttack;
+// };
+// LivingEntity.prototype.makeInstantRangeSkill = function(targetPosition){
+//   var instantRangeSkill = new Skill.InstantRangeSkill(this.objectID, skillData.instantRangeSkill.totalCastTime, skillData.instantRangeSkill.fireTime,
+//                                   skillData.instantRangeSkill.range, skillData.instantRangeSkill.radius);
+//   instantRangeSkill.setTargetPosition(this.center, targetPosition);
+//   instantRangeSkill.onTimeOver = onTimeOverHandler.bind(this, instantRangeSkill);
+//   return instantRangeSkill;
+// };
+// LivingEntity.prototype.makeProjectileSkill = function(direction){
+//   var projectileSkill = new Skill.ProjectileSkill(this.objectID, skillData.projectileSkill.totalCastTime, skillData.projectileSkill.fireTime, direction,
+//                                 skillData.projectileSkill.radius, skillData.projectileSkill.maxSpeed, skillData.projectileSkill.lifeTime);
+//   projectileSkill.onTimeOver = onTimeOverHandler.bind(this, projectileSkill);
+//   return projectileSkill;
+// };
+// LivingEntity.prototype.makeSelfSkill = function(){
+//   var selfSkill = new Skill.selfSkill(this.objectID, skillData.selfSkill.totalCastTime, skillData.selfSkill.fireTime, skillData.selfSkill.lifeTime)
+//   selfSkill.onTimeOver = onTimeOverHandler.bind(this, selfSkill);
+//   return selfSkill;
+// }
+function onTimeOverHandler(skillInstance){
+  skillInstance.destroy();
   this.currentSkill = undefined;
   this.changeState(gameConfig.OBJECT_STATE_IDLE);
 };
 //excute base attack
-LivingEntity.prototype.executeSkill = function(skill){
-  this.currentSkill = skill;
-  skill.executeSkill();
+LivingEntity.prototype.executeSkill = function(skillInstance){
+  this.currentSkill = skillInstance;
+  skillInstance.executeSkill();
 };
 
 //rotate before move or fire skill etc..
