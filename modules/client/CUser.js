@@ -1,4 +1,5 @@
 var util = require('../public/util.js');
+var Skill = require('./CSkill.js');
 
 var User = function(userData, gameConfig){
   this.gameConfig = gameConfig;
@@ -6,6 +7,9 @@ var User = function(userData, gameConfig){
   this.objectID = userData.objectID;
 
   this.currentState = null;
+  this.currentSkill = undefined;
+  this.isExecutedSkill = false;
+
   this.size = userData.size;
 
   this.position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
@@ -53,6 +57,12 @@ User.prototype = {
         this.updateFunction = this.rotate.bind(this);
         break;
       case this.gameConfig.OBJECT_STATE_MOVE_OFFSET:
+        this.updateFunction = this.rotate.bind(this);
+        break;
+      case this.gameConfig.OBJECT_STATE_ATTACK:
+        this.updateFunction = this.attack;
+        break;
+      case this.gameConfig.OBJECT_STATE_CAST:
         this.updateFunction = this.rotate.bind(this);
         break;
     }
@@ -106,9 +116,32 @@ User.prototype = {
       id : this.objectID
     };
   },
+  makeSkillInstance : function(skillData){
+    var skillInstance = new Skill(skillData)
+    skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
+    return skillInstance;
+  },
+  setSkill : function(skillInstance){
+    this.currentSkill = skillInstance;
+  }
   executeSkill : function(){
-
+    if(!this.isExecutedSkill){
+      this.isExecutedSkill = true;
+      this.currentSkill.executeSkill();
+    }
   }
 };
-
+function onTimeOverHandler(skillInstance){
+  skillInstance.destroy();
+  this.currentSkill = undefined;
+  this.isExecutedSkill = false;
+  this.changeState(gameConfig.OBJECT_STATE_IDLE);
+}
+// var skillData = {
+//   timeSpan : Date.now() - skill.startTime,
+//   totalTime : skill.totalTime,
+//   fireTime : skill.fireTime,
+//   radius : skill.radius,
+//   targetPosition : skill.targetPosition
+// }
 module.exports = User;

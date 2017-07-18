@@ -3,6 +3,7 @@ var util = require('../../modules/public/util.js');
 var User = require('../../modules/client/CUser.js');
 var CManager = require('../../modules/client/CManager.js');
 var gameConfig = require('../../modules/public/gameConfig.json');
+var skillData = require('../../modules/public/skill.json');
 // var resource = require('../../modules/public/resource.json');
 
 var socket;
@@ -217,8 +218,7 @@ function setupSocket(){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
-    console.log(userData.objectID);
-    console.log('move start');
+    console.log(userData.objectID + ' move start');
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
@@ -226,8 +226,23 @@ function setupSocket(){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
+    switch (skillData.type) {
+      case gameConfig.SKILL_TYPE_BASIC:
+        skillData.aniTime = skillData.baseAttack.aniTime;
+        break;
+      case gameConfig.SKILL_TYPE_INSTANT:
+        skillData.aniTime = skillData.instantRangeSkill.aniTime;
+        break;
+      case gameConfig.SKILL_TYPE_PROJECTILE:
+        skillData.aniTime = skillData.projectileSkill.aniTime;
+        break;
+      case gameConfig.SKILL_TYPE_SELF:
+        skillData.aniTime = skillData.selfSkill.aniTime;
+        break;
+      default:
+    }
     Manager.updateUserData(userData);
-    Manager.attackUser(userData);
+    Manager.userSkill(userData.objectID, skillData);
 
     //create user castingEffect
     Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);

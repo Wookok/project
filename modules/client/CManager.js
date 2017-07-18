@@ -8,7 +8,7 @@ var map = require('../public/map.json');
 var QuadTree = require('../public/quadtree.min.js');
 
 var Obstacle = require('./CObstacle.js');
-var Effect = require('./CEffect.js');
+var Skll = require('./CSkill.js');
 
 var staticTree;
 var staticEles = [];
@@ -129,11 +129,55 @@ CManager.prototype = {
   		console.log('can`t find user data');
 		}
 	},
-	attackUser : function(userData){
-		if(this.checkUserAtUsers(userData)){
-			this.users[userData.objectID].changeState(this.gameConfig.currentState);
+	useSkill : function(userID, skillData){
+		var skillInstance = undefined;
+		switch (skill.type) {
+			case gameConfig.SKILL_TYPE_BASIC:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData);
+	      skillInstance.onFire = function(){
+
+	      };
+	      //on attack can cast skill but on attack cant attack;
+	      user.changeState(gameConfig.OBJECT_STATE_ATTACK);
+	      break;
+	    case gameConfig.SKILL_TYPE_INSTANT:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData, clickPosition);
+	      skillInstance.onFire = function(){
+
+	      };
+	      user.targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
+	      user.changeState(gameConfig.OBJECT_STATE_CAST);
+	      break;
+	    case gameConfig.SKILL_TYPE_PROJECTILE:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData, clickPosition);
+	      var projectiels = this.projectiles;
+	      skillInstance.onFire = function(){
+
+	        //create projectile object and push to projectiles
+	        var projectile = skillInstance.makeProjectile(user)
+	        projectiels.push(projectile);
+
+	      };
+				user.targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
+	      user.changeState(gameConfig.OBJECT_STATE_CAST);
+	      break;
+	    case gameConfig.SKILL_TYPE_SELF:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData);
+	      skillInstance.onFire = function(){
+
+	      };
+	      user.changeState(gameConfig.OBJECT_STATE_CAST);
+	      break;
+	    default:
+	      break;
 		}
+		user.setSkill(skillInstance);
 	},
+	// attackUser : function(userData){
+	// 	if(this.checkUserAtUsers(userData)){
+	// 		this.users[userData.objectID].changeState(this.gameConfig.currentState);
+	// 	}
+	// },
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);

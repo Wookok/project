@@ -7,7 +7,8 @@
     "explosionRadius" : 100,
     "lifeTime" : 0,
     "radius" : 0,
-    "maxSpeed" : 0
+    "maxSpeed" : 0,
+    "aniTime" : 100
   },
   "instantRangeSkill" : {
     "type" : 1,
@@ -17,7 +18,8 @@
     "explosionRadius" : 100,
     "lifeTime" : 0,
     "radius" : 0,
-    "maxSpeed" : 0
+    "maxSpeed" : 0,
+    "aniTime" : 100
   },
   "projectileSkill" : {
     "type" : 2,
@@ -27,7 +29,8 @@
     "explosionRadius" : 100,
     "lifeTime" : 15000,
     "radius" : 50,
-    "maxSpeed" : 30
+    "maxSpeed" : 30,
+    "aniTime" : 100
   },
   "selfSkill" : {
     "type" : 3,
@@ -37,6 +40,7 @@
     "explosionRadius" : 0,
     "lifeTime" : 0,
     "radius" : 0,
-    "maxSpeed" : 0
+    "maxSpeed" : 0,
+    "aniTime" : 100
   }
 }

@@ -156,49 +156,7 @@ GameManager.prototype.useSkill = function(user, skill, clickPosition){
   user.setSkill(skillInstance);
   return skillInstance;
 };
-//
-// GameManager.prototype.doBaseAttack = function(user){
-//   var baseAttack = user.makeBaseAttackInstance();
-//   baseAttack.onFire = function(){
-//     colliderEles.push(baseAttack.colliderEle);
-//   }
-//   //changeState must execute before doBaseAttack
-//   user.changeState(gameConfig.OBJECT_STATE_ATTACK);
-//   user.executeSkill(baseAttack);
-//   return baseAttack;
-// };
-// GameManager.prototype.doInstantRangeSkill = function(user, targetPosition){
-//   var instantRangeSkill = user.makeInstantRangeSkill(targetPosition);
-//   instantRangeSkill.onFire = function(){
-//     colliderEles.push(instantRangeSkill.colliderEle);
-//   }
-//   user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
-//   user.changeState(gameConfig.OBJECT_STATE_CAST);
-//   user.executeSkill(instantRangeSkill);
-//   return instantRangeSkill;
-// };
-// GameManager.prototype.doProjectileSkill = function(user, direction){
-//   var projectileSkill = user.makeProjectileSkill(direction);
-//   projectileSkill.onFire = function(){
-//     var projectileSkillColliderEle = new Skill.ProjectileSkillColliderEle(projectileSkill.objectID, 6,
-//                                          user.center.x, user.center.y, projectileSkill.size.width, projectileSkill.speed, projectileSkill.lifeTime);
-//     this.projectiles.push(projectileSkillColliderEle);
-//     colliderEles.push(projectileSkill);
-//   }
-//   user.targetDirection = util.calcTargetDirection(targetPosition, user.center);
-//   user.changeState(gameConfig.OBJECT_STATE_CAST);
-//   user.executeSkill(projectileSkill);
-//   return projectileSkill;
-// };
-// GameManager.prototype.doSelfSkill = function(user){
-//   var selfSkill = user.makeSelfSkill();
-//   selfSkill.onFire = function(){
-//
-//   }
-//   user.changeState(gameConfig.OBJECT_STATE_CAST);
-//   user.executeSkill(selfSkill);
-//   return selfSkill;
-// }
+
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
@@ -296,6 +254,7 @@ GameManager.prototype.updateDataSetting = function(user){
 };
 GameManager.prototype.updateSkillDataSetting = function(skill){
   var skillData = {
+    type : skill.type,
     timeSpan : Date.now() - skill.startTime,
     totalTime : skill.totalTime,
     fireTime : skill.fireTime,
