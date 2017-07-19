@@ -84,10 +84,16 @@ Skill.prototype = {
 
           this.targetPosition = {
             x : userCenterPosition.x + addPos.x,
-            y : userCenterPosition.y + addPosY.y
+            y : userCenterPosition.y + addPos.y
           }
           this.colliderEle.x = this.targetPosition.x;
           this.colliderEle.y = this.targetPosition.y;
+        }
+        break;
+      case gameConfig.SKILL_TYPE_PROJECTILE :
+        this.targetPosition = {
+          x : clickPosition.x,
+          y : clickPosition.y
         }
         break;
       default:

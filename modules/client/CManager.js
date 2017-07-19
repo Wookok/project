@@ -23,6 +23,7 @@ var CManager = function(gameConfig){
 	this.users = [];
 	this.obstacles = [];
 	this.effects = [];
+	this.projectiles = [];
 
 	this.staticInterval = null;
 	this.affectInterval = null;
@@ -177,13 +178,13 @@ CManager.prototype = {
 	      skillInstance = this.users[userID].makeSkillInstance(skillData);
 				thisUser = this.users[userID];
 				thisEffects = this.effects;
-	      var projectiels = this.projectiles;
+	      var projectiles = this.projectiles;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 	        //create projectile object and push to projectiles
 
 	        var projectile = skillInstance.makeProjectile(thisUser);
-	        projectiels.push(projectile);
+	        projectiles.push(projectile);
 					setTimeout(function(){
 						var index = projectiles.indexOf(projectile);
 						if(index !== -1){

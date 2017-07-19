@@ -187,6 +187,7 @@ function drawGame(){
   drawObstacles();
   drawUsers();
   drawEffect();
+  drawProjectile();
 };
 // socket connect and server response configs
 function setupSocket(){
@@ -232,18 +233,22 @@ function setupSocket(){
       case gameConfig.SKILL_TYPE_BASIC:
         skill.userAniStartTime = skillData.baseAttack.userAniStartTime;
         skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.lifeTime = skillData.baseAttack.lifeTime;
         break;
       case gameConfig.SKILL_TYPE_INSTANT:
         skill.userAniStartTime = skillData.instantRangeSkill.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.effectLastTime = skillData.instantRangeSkill.effectLastTime;
+        skill.lifeTime = skillData.instantRangeSkill.lifeTime;
         break;
       case gameConfig.SKILL_TYPE_PROJECTILE:
         skill.userAniStartTime = skillData.projectileSkill.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.effectLastTime = skillData.projectileSkill.effectLastTime;
+        skill.lifeTime = skillData.projectileSkill.lifeTime;
         break;
       case gameConfig.SKILL_TYPE_SELF:
         skill.userAniStartTime = skillData.selfSkill.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.effectLastTime = skillData.selfSkill.effectLastTime;
+        skill.lifeTime = skillData.selfSkill.lifeTime;
         break;
       default:
     }
@@ -327,14 +332,23 @@ function drawEffect(){
     ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].radius/2, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].radius/2, gameConfig.userOffset.y);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius/2, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius/2, gameConfig.userOffset.y);
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].radius/2, -Manager.effects[index].radius/2, Manager.effects[index].radius, Manager.effects[index].radius);
+    ctx.fillRect(-Manager.effects[index].explosionRadius/2, -Manager.effects[index].explosionRadius/2, Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.restore();
+  }
+};
+function drawProjectile(){
+  for(var index in Manager.projectiles){
+    ctx.fillStyle ="#ff0000";
+    ctx.beginPath();
+    ctx.arc(Manager.projectiles[index].position.x - Manager.projectiles[index].radius, Manager.projectiles[index].position.y - Manager.projectiles[index].radius, 50, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.closePath();
   }
 };
 function drawGrid(){

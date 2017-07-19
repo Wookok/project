@@ -15,7 +15,7 @@ var dataJson = require('./modules/public/data.json');
 var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var skillData = require('./modules/public/skill.json');
 
-console.log(skillTable);
+// console.log(skillTable);
 // var csvTest = fs.readFileSync(path.join(__dirname, '/modules/public/skill.csv'), { encoding : 'utf8'});
 // console.log(csvJson.toObject(csvTest, {delimiter : ',', quote : '"'}));
 

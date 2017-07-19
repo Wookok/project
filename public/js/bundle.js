@@ -24,6 +24,7 @@ var CManager = function(gameConfig){
 	this.users = [];
 	this.obstacles = [];
 	this.effects = [];
+	this.projectiles = [];
 
 	this.staticInterval = null;
 	this.affectInterval = null;
@@ -178,13 +179,13 @@ CManager.prototype = {
 	      skillInstance = this.users[userID].makeSkillInstance(skillData);
 				thisUser = this.users[userID];
 				thisEffects = this.effects;
-	      var projectiels = this.projectiles;
+	      var projectiles = this.projectiles;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 	        //create projectile object and push to projectiles
 
 	        var projectile = skillInstance.makeProjectile(thisUser);
-	        projectiels.push(projectile);
+	        projectiles.push(projectile);
 					setTimeout(function(){
 						var index = projectiles.indexOf(projectile);
 						if(index !== -1){
@@ -462,10 +463,11 @@ function CSkill(skillData, userAniStartTime){
   this.timeSpan = skillData.timeSpan;
   this.totalTime = skillData.totalTime;
   this.fireTime = skillData.fireTime;
-  this.radius = skillData.radius;
+  this.explosionRadius = skillData.explosionRadius;
   this.targetPosition = skillData.targetPosition;
   this.direction;
   this.maxSpeed = skillData.maxSpeed;
+  this.lifeTime = skillData.lifeTime;
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -522,7 +524,7 @@ var ProjectileSkill = function(user, skillInstance){
   this.lifeTime = skillInstance.lifeTime;
   this.radius = skillInstance.radius;
   this.position = {x : user.position.x, y : user.position.y};
-  this.speed = {x : this.maxSpeed * Math.cos(this.direction * Math.PI/180) , y : this.maxSpeed * Math.sin(this.direction * Math.PI/180)};
+  this.speed = {x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180) , y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)};
 };
 
 ProjectileSkill.prototype = {
@@ -665,6 +667,7 @@ User.prototype = {
       this.currentSkill.destroy();
       this.currentSkill = undefined;
       this.isExecutedSkill = false;
+      this.skillEffectPlay = false;
     }
   },
   setUserEle : function(){
@@ -1157,6 +1160,16 @@ exports.calcTargetPosition = function(centerPosition, direction, range){
 
   return {x : addPosX, y : addposY};
 };
+exports.findData = function(table, columnName, value){
+  var data = undefined;
+  for(var index in table){
+    //use ==, because value can be integer
+    if(table[index][columnName] == value){
+      data = table[index];
+    }
+  }
+  return data;
+}
 
 },{"./gameConfig.json":6}],12:[function(require,module,exports){
 
@@ -1789,6 +1802,7 @@ function drawGame(){
   drawObstacles();
   drawUsers();
   drawEffect();
+  drawProjectile();
 };
 // socket connect and server response configs
 function setupSocket(){
@@ -1834,18 +1848,22 @@ function setupSocket(){
       case gameConfig.SKILL_TYPE_BASIC:
         skill.userAniStartTime = skillData.baseAttack.userAniStartTime;
         skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.lifeTime = skillData.baseAttack.lifeTime;
         break;
       case gameConfig.SKILL_TYPE_INSTANT:
         skill.userAniStartTime = skillData.instantRangeSkill.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.effectLastTime = skillData.instantRangeSkill.effectLastTime;
+        skill.lifeTime = skillData.instantRangeSkill.lifeTime;
         break;
       case gameConfig.SKILL_TYPE_PROJECTILE:
         skill.userAniStartTime = skillData.projectileSkill.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.effectLastTime = skillData.projectileSkill.effectLastTime;
+        skill.lifeTime = skillData.projectileSkill.lifeTime;
         break;
       case gameConfig.SKILL_TYPE_SELF:
         skill.userAniStartTime = skillData.selfSkill.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        skill.effectLastTime = skillData.selfSkill.effectLastTime;
+        skill.lifeTime = skillData.selfSkill.lifeTime;
         break;
       default:
     }
@@ -1929,14 +1947,23 @@ function drawEffect(){
     ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].radius/2, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].radius/2, gameConfig.userOffset.y);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius/2, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius/2, gameConfig.userOffset.y);
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].radius/2, -Manager.effects[index].radius/2, Manager.effects[index].radius, Manager.effects[index].radius);
+    ctx.fillRect(-Manager.effects[index].explosionRadius/2, -Manager.effects[index].explosionRadius/2, Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.restore();
+  }
+};
+function drawProjectile(){
+  for(var index in Manager.projectiles){
+    ctx.fillStyle ="#ff0000";
+    ctx.beginPath();
+    ctx.arc(Manager.projectiles[index].position.x - Manager.projectiles[index].radius, Manager.projectiles[index].position.y - Manager.projectiles[index].radius, 50, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.closePath();
   }
 };
 function drawGrid(){
@@ -1983,18 +2010,17 @@ function documentAddEvent(){
 }
 update();
 
-function findData(table, columnName, value){
-  var data = undefined;
-  for(var index in table){
-    console.log(table[index][columnName]);
-    if(table[index][columnName] == value){
-      data = table[index];
-    }
-  }
-  return data;
-}
-var testdata = findData(skillTable, "type", 0);
-console.log(testdata);
+// function findData(table, columnName, value){
+//   var data = undefined;
+//   for(var index in table){
+//     //use ==, because value can be integer
+//     if(table[index][columnName] == value){
+//       data = table[index];
+//     }
+//   }
+//   return data;
+// }
+
 // local utils
 // function setCanvasSize(scaleFactor){
 //   // canvas.style.width = (canvas.width * scaleFactor) + 'px';

@@ -117,6 +117,7 @@ User.prototype = {
       this.currentSkill.destroy();
       this.currentSkill = undefined;
       this.isExecutedSkill = false;
+      this.skillEffectPlay = false;
     }
   },
   setUserEle : function(){

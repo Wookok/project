@@ -5,10 +5,11 @@ function CSkill(skillData, userAniStartTime){
   this.timeSpan = skillData.timeSpan;
   this.totalTime = skillData.totalTime;
   this.fireTime = skillData.fireTime;
-  this.radius = skillData.radius;
+  this.explosionRadius = skillData.explosionRadius;
   this.targetPosition = skillData.targetPosition;
   this.direction;
   this.maxSpeed = skillData.maxSpeed;
+  this.lifeTime = skillData.lifeTime;
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -65,7 +66,7 @@ var ProjectileSkill = function(user, skillInstance){
   this.lifeTime = skillInstance.lifeTime;
   this.radius = skillInstance.radius;
   this.position = {x : user.position.x, y : user.position.y};
-  this.speed = {x : this.maxSpeed * Math.cos(this.direction * Math.PI/180) , y : this.maxSpeed * Math.sin(this.direction * Math.PI/180)};
+  this.speed = {x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180) , y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)};
 };
 
 ProjectileSkill.prototype = {
