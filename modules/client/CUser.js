@@ -8,7 +8,11 @@ var User = function(userData, gameConfig){
 
   this.currentState = null;
   this.currentSkill = undefined;
+
+  //use for execute skill only once.
   this.isExecutedSkill = false;
+  //Effect around user skill effect, when cast skill. skill onFire set false.
+  this.skillEffectPlay = false;
 
   this.size = userData.size;
 
@@ -60,7 +64,7 @@ User.prototype = {
         this.updateFunction = this.rotate.bind(this);
         break;
       case this.gameConfig.OBJECT_STATE_ATTACK:
-        this.updateFunction = this.attack;
+        this.updateFunction = this.attack.bind(this);
         break;
       case this.gameConfig.OBJECT_STATE_CAST:
         this.updateFunction = this.rotate.bind(this);
@@ -91,6 +95,9 @@ User.prototype = {
   moveOffset : function(){
     util.moveOffset.call(this);
   },
+  attack : function(){
+    this.executeSkill();
+  },
   addPosAndTargetPos : function(addPosX , addPosY){
     this.position.x += addPosX;
     this.position.y += addPosY;
@@ -106,6 +113,11 @@ User.prototype = {
       clearInterval(this.updateInterval);
       this.updateInterval = false;
     }
+    if(this.currentSkill){
+      this.currentSkill.destroy();
+      this.currentSkill = undefined;
+      this.isExecutedSkill = false;
+    }
   },
   setUserEle : function(){
     this.entityTreeEle = {
@@ -117,15 +129,17 @@ User.prototype = {
     };
   },
   makeSkillInstance : function(skillData){
-    var skillInstance = new Skill(skillData)
+    var skillInstance = new Skill(skillData, skillData.fireTime - 100);
+    skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
     skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
     return skillInstance;
   },
   setSkill : function(skillInstance){
     this.currentSkill = skillInstance;
-  }
+  },
   executeSkill : function(){
     if(!this.isExecutedSkill){
+      this.skillEffectPlay = true;
       this.isExecutedSkill = true;
       this.currentSkill.executeSkill();
     }
@@ -135,8 +149,12 @@ function onTimeOverHandler(skillInstance){
   skillInstance.destroy();
   this.currentSkill = undefined;
   this.isExecutedSkill = false;
-  this.changeState(gameConfig.OBJECT_STATE_IDLE);
-}
+  this.skillEffectPlay = false;
+  this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
+};
+function onCastSkillHandler(skillInstance){
+  console.log('cast ani start');
+};
 // var skillData = {
 //   timeSpan : Date.now() - skill.startTime,
 //   totalTime : skill.totalTime,

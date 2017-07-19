@@ -5,7 +5,9 @@ var CManager = require('../../modules/client/CManager.js');
 var gameConfig = require('../../modules/public/gameConfig.json');
 var skillData = require('../../modules/public/skill.json');
 // var resource = require('../../modules/public/resource.json');
-
+var csvJson = require('csvjson');
+var dataJson = require('../../modules/public/data.json');
+var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var socket;
 
 // document elements
@@ -222,30 +224,34 @@ function setupSocket(){
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resSkill', function(userData, skillData){
+  socket.on('resSkill', function(userData, skill){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
-    switch (skillData.type) {
+    switch (skill.type) {
       case gameConfig.SKILL_TYPE_BASIC:
-        skillData.aniTime = skillData.baseAttack.aniTime;
+        skill.userAniStartTime = skillData.baseAttack.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
         break;
       case gameConfig.SKILL_TYPE_INSTANT:
-        skillData.aniTime = skillData.instantRangeSkill.aniTime;
+        skill.userAniStartTime = skillData.instantRangeSkill.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
         break;
       case gameConfig.SKILL_TYPE_PROJECTILE:
-        skillData.aniTime = skillData.projectileSkill.aniTime;
+        skill.userAniStartTime = skillData.projectileSkill.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
         break;
       case gameConfig.SKILL_TYPE_SELF:
-        skillData.aniTime = skillData.selfSkill.aniTime;
+        skill.userAniStartTime = skillData.selfSkill.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
         break;
       default:
     }
     Manager.updateUserData(userData);
-    Manager.userSkill(userData.objectID, skillData);
+    Manager.useSkill(userData.objectID, skill);
 
     //create user castingEffect
-    Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
+    // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
 
     // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
     // setInterval(animator.startAnimation, fps * 2);
@@ -288,6 +294,7 @@ function drawObstacles(){
     ctx.lineWidth = 5;
     ctx.strokeStyle = '#003300';
     ctx.stroke();
+    ctx.closePath();
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
   }
 }
@@ -302,6 +309,14 @@ function drawUsers(){
     ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
+    //draw cast effect
+    if(Manager.users[index].skillEffectPlay){
+      ctx.fillStyle ="#00ff00";
+      ctx.beginPath();
+      ctx.arc(-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 150, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.closePath();
+    }
     ctx.restore();
   }
 };
@@ -309,10 +324,11 @@ function drawEffect(){
   for(var index in Manager.effects){
     var radian = Manager.effects[index].direction * radianFactor;
 
+    ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = util.worldXCoordToLocalX(Manager.effects[index].position.x + Manager.effects[index].radius/2, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[index].position.y + Manager.effects[index].radius/2, gameConfig.userOffset.y);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].radius/2, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].radius/2, gameConfig.userOffset.y);
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
     ctx.fillRect(-Manager.effects[index].radius/2, -Manager.effects[index].radius/2, Manager.effects[index].radius, Manager.effects[index].radius);
@@ -320,7 +336,7 @@ function drawEffect(){
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.restore();
   }
-}
+};
 function drawGrid(){
   //draw boundary
 
@@ -351,7 +367,7 @@ function canvasAddEvent(){
 function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
-    var tempPos = util.localToWorldPosition({x : 1000, y : 1000}, gameConfig.userOffset);
+    var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
       socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_BASIC});
     }else if(keyCode === 49){
@@ -364,6 +380,18 @@ function documentAddEvent(){
   }, false);
 }
 update();
+
+// function findData(table, columnName, value){
+//   var data = undefined;
+//   for(var index in table){
+//     //use ==, because value can be integer
+//     if(table[index][columnName] == value){
+//       data = table[index];
+//     }
+//   }
+//   return data;
+// }
+
 // local utils
 // function setCanvasSize(scaleFactor){
 //   // canvas.style.width = (canvas.width * scaleFactor) + 'px';

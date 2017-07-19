@@ -330,3 +330,13 @@ exports.calcTargetPosition = function(centerPosition, direction, range){
 
   return {x : addPosX, y : addposY};
 };
+exports.findData = function(table, columnName, value){
+  var data = undefined;
+  for(var index in table){
+    //use ==, because value can be integer
+    if(table[index][columnName] == value){
+      data = table[index];
+    }
+  }
+  return data;
+}

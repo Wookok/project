@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/Wookok/project#readme",
   "dependencies": {
+    "csvjson": "^4.3.3",
     "express": "^4.15.3",
     "socket.io": "^2.0.3"
   }

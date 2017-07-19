@@ -4,12 +4,20 @@ var http = require('http');
 var express = require('express');
 var socketio = require('socket.io');
 var path = require('path');
+var fs = require('fs');
+var csvJson = require('csvjson');
 
 var app = express();
 
 var config = require('./config.json');
 var gameConfig = require('./modules/public/gameConfig.json');
+var dataJson = require('./modules/public/data.json');
+var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var skillData = require('./modules/public/skill.json');
+
+console.log(skillTable);
+// var csvTest = fs.readFileSync(path.join(__dirname, '/modules/public/skill.csv'), { encoding : 'utf8'});
+// console.log(csvJson.toObject(csvTest, {delimiter : ',', quote : '"'}));
 
 var util = require('./modules/public/util.js');
 

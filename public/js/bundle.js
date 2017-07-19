@@ -1,23 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-function CEffect(totalTime, fireTime, userData, targetPosition, radius, direction){
-  this.totalTime = totalTime;
-  this.fireTime = fireTime;
-
-  this.startTime = Date.now();
-  this.timeSpan = 0;
-
-  this.userData = userData;
-  this.targetPosition = targetPosition;
-  this.direction = direction;
-  this.radius = radius;
-};
-
-CEffect.prototype = {
-};
-
-module.exports = CEffect;
-
-},{}],2:[function(require,module,exports){
 var User = require('./CUser.js');
 
 var util = require('../public/util.js');
@@ -28,7 +9,7 @@ var map = require('../public/map.json');
 var QuadTree = require('../public/quadtree.min.js');
 
 var Obstacle = require('./CObstacle.js');
-var Effect = require('./CEffect.js');
+var Skll = require('./CSkill.js');
 
 var staticTree;
 var staticEles = [];
@@ -101,6 +82,11 @@ CManager.prototype = {
 			this.obstacles[index].localPosition.y = localPos.y
 		}
 	},
+	updateProjectile : function(){
+		for(var index in this.projectiles){
+			this.projectiles[index].move();
+		}
+	},
 	setUser : function(userData){
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData, this.gameConfig);
@@ -149,11 +135,94 @@ CManager.prototype = {
   		console.log('can`t find user data');
 		}
 	},
-	attackUser : function(userData){
-		if(this.checkUserAtUsers(userData)){
-			this.users[userData.objectID].changeState(this.gameConfig.currentState);
+	useSkill : function(userID, skillData){
+		var skillInstance = undefined;
+		switch (skillData.type) {
+			case this.gameConfig.SKILL_TYPE_BASIC:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData);
+				thisUser = this.users[userID];
+				thisEffects = this.effects;
+	      skillInstance.onFire = function(){
+					thisUser.skillEffectPlay = false;
+					thisEffects.push(skillInstance);
+					setTimeout(function(){
+						var index = thisEffects.indexOf(skillInstance);
+						if(index !== -1){
+							thisEffects.splice(index, 1);
+						}
+					}, skillInstance.effectLastTime);
+	      };
+				skillInstance.direction = this.users[userID].direction;
+	      //on attack can cast skill but on attack cant attack;
+	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_ATTACK);
+	      break;
+	    case this.gameConfig.SKILL_TYPE_INSTANT:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData);
+				thisUser = this.users[userID];
+				thisEffects = this.effects;
+	      skillInstance.onFire = function(){
+					thisUser.skillEffectPlay = false;
+					thisEffects.push(skillInstance);
+					setTimeout(function(){
+						var index = thisEffects.indexOf(skillInstance);
+						if(index !== -1){
+							thisEffects.splice(index, 1);
+						}
+					}, skillInstance.effectLastTime);
+	      };
+	      this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
+				skillInstance.direction = this.users[userID].targetDirection;
+				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+	      break;
+	    case this.gameConfig.SKILL_TYPE_PROJECTILE:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData);
+				thisUser = this.users[userID];
+				thisEffects = this.effects;
+	      var projectiels = this.projectiles;
+	      skillInstance.onFire = function(){
+					thisUser.skillEffectPlay = false;
+	        //create projectile object and push to projectiles
+
+	        var projectile = skillInstance.makeProjectile(thisUser);
+	        projectiels.push(projectile);
+					setTimeout(function(){
+						var index = projectiles.indexOf(projectile);
+						if(index !== -1){
+							projectiles.splice(index, 1);
+						}
+					}, projectile.lifeTime);
+	      };
+				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
+				skillInstance.direction = this.users[userID].targetDirection;
+				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+	      break;
+	    case this.gameConfig.SKILL_TYPE_SELF:
+	      skillInstance = this.users[userID].makeSkillInstance(skillData);
+				thisUser = this.users[userID];
+				thisEffects = this.effects;
+	      skillInstance.onFire = function(){
+					thisUser.skillEffectPlay = false;
+					thisEffects.push(skillInstance);
+					setTimeout(function(){
+						var index = thisEffects.indexOf(skillInstance);
+						if(index !== -1){
+							thisEffects.splice(index, 1);
+						}
+					}, skillInstance.effectLastTime);
+	      };
+				skillInstance.direction = this.users[userID].direction;
+	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+	      break;
+	    default:
+	      break;
 		}
+		this.users[userID].setSkill(skillInstance);
 	},
+	// attackUser : function(userData){
+	// 	if(this.checkUserAtUsers(userData)){
+	// 		this.users[userData.objectID].changeState(this.gameConfig.currentState);
+	// 	}
+	// },
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
@@ -286,7 +355,7 @@ function staticIntervalHandler(){
 		staticTree.remove(staticEles[index]);
 	}
 	this.updateObstacleEles();
-
+	this.updateProjectile();
   // for(var index in this.users){
   //   var tempUserEle = this.users[index].entityTreeEle;
   //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
@@ -334,7 +403,7 @@ var onMoveCalcCompelPos = function(user){
 };
 module.exports = CManager;
 
-},{"../public/map.json":6,"../public/quadtree.min.js":7,"../public/resource.json":8,"../public/util.js":9,"./CEffect.js":1,"./CObstacle.js":3,"./CUser.js":4}],3:[function(require,module,exports){
+},{"../public/map.json":7,"../public/quadtree.min.js":8,"../public/resource.json":9,"../public/util.js":11,"./CObstacle.js":2,"./CSkill.js":3,"./CUser.js":4}],2:[function(require,module,exports){
 function CObstacle(posX, posY, sizeW, sizeH, id, src){
   this.objectID = id;
   this.src = src;
@@ -385,8 +454,100 @@ CObstacle.prototype = {
 };
 module.exports = CObstacle;
 
+},{}],3:[function(require,module,exports){
+function CSkill(skillData, userAniStartTime){
+  this.type = skillData.type;
+
+  this.startTime = Date.now();
+  this.timeSpan = skillData.timeSpan;
+  this.totalTime = skillData.totalTime;
+  this.fireTime = skillData.fireTime;
+  this.radius = skillData.radius;
+  this.targetPosition = skillData.targetPosition;
+  this.direction;
+  this.maxSpeed = skillData.maxSpeed;
+
+  this.userAniStartTime = userAniStartTime;
+  this.effectLastTime = skillData.effectLastTime;
+
+  this.userAniTimeout = false;
+  this.fireTimeout = false;
+  this.totalTimeout = false;
+
+  this.onUserAniStart = new Function();
+  this.onFire = new Function();
+  this.onTimeOver = new Function();
+};
+
+CSkill.prototype = {
+  executeSkill : function(){
+    this.userAniTimeout = setTimeout(userAniTimeoutHandler.bind(this), this.userAniStartTime);
+
+    this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), this.fireTime);
+    this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);
+  },
+  destroy : function(){
+    if(this.fireTimeout){
+      console.log('clearTimeout');
+      clearTimeout(this.fireTimeout);
+    }
+    if(this.totalTimeout){
+      clearTimeout(this.totalTimeout);
+    }
+  },
+  makeProjectile : function(user){
+    var projectile = new ProjectileSkill(user, this);
+    return projectile;
+  },
+  skillAniIsExpired : function(){
+    return this.aniTime + this.fireTime > Date.now() - this.startTime
+  }
+};
+
+function userAniTimeoutHandler(){
+  this.onUserAniStart();
+};
+function fireTimeoutHandler(){
+  console.log('fireSkill');
+  this.onFire();
+};
+function totalTimeoutHandler(){
+  this.onTimeOver();
+};
+
+var ProjectileSkill = function(user, skillInstance){
+  this.startTime = Date.now();
+
+  this.explosionRadius = skillInstance.explosionRadius;
+  this.lifeTime = skillInstance.lifeTime;
+  this.radius = skillInstance.radius;
+  this.position = {x : user.position.x, y : user.position.y};
+  this.speed = {x : this.maxSpeed * Math.cos(this.direction * Math.PI/180) , y : this.maxSpeed * Math.sin(this.direction * Math.PI/180)};
+};
+
+ProjectileSkill.prototype = {
+  move : function(){
+    this.position.x += this.speed.x;
+    this.position.y += this.speed.y;
+  },
+  hit : function(user){
+    console.log('hit something');
+  },
+  isExpired : function(){
+    if(this.lifeTime > Date.now() - this.startTime){
+      return false;
+    }else{
+      return true;
+    }
+  }
+};
+
+
+module.exports = CSkill;
+
 },{}],4:[function(require,module,exports){
 var util = require('../public/util.js');
+var Skill = require('./CSkill.js');
 
 var User = function(userData, gameConfig){
   this.gameConfig = gameConfig;
@@ -394,6 +555,13 @@ var User = function(userData, gameConfig){
   this.objectID = userData.objectID;
 
   this.currentState = null;
+  this.currentSkill = undefined;
+
+  //use for execute skill only once.
+  this.isExecutedSkill = false;
+  //Effect around user skill effect, when cast skill. skill onFire set false.
+  this.skillEffectPlay = false;
+
   this.size = userData.size;
 
   this.position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
@@ -443,6 +611,12 @@ User.prototype = {
       case this.gameConfig.OBJECT_STATE_MOVE_OFFSET:
         this.updateFunction = this.rotate.bind(this);
         break;
+      case this.gameConfig.OBJECT_STATE_ATTACK:
+        this.updateFunction = this.attack.bind(this);
+        break;
+      case this.gameConfig.OBJECT_STATE_CAST:
+        this.updateFunction = this.rotate.bind(this);
+        break;
     }
     this.update();
   },
@@ -469,6 +643,9 @@ User.prototype = {
   moveOffset : function(){
     util.moveOffset.call(this);
   },
+  attack : function(){
+    this.executeSkill();
+  },
   addPosAndTargetPos : function(addPosX , addPosY){
     this.position.x += addPosX;
     this.position.y += addPosY;
@@ -484,6 +661,11 @@ User.prototype = {
       clearInterval(this.updateInterval);
       this.updateInterval = false;
     }
+    if(this.currentSkill){
+      this.currentSkill.destroy();
+      this.currentSkill = undefined;
+      this.isExecutedSkill = false;
+    }
   },
   setUserEle : function(){
     this.entityTreeEle = {
@@ -494,14 +676,48 @@ User.prototype = {
       id : this.objectID
     };
   },
+  makeSkillInstance : function(skillData){
+    var skillInstance = new Skill(skillData, skillData.fireTime - 100);
+    skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
+    skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
+    return skillInstance;
+  },
+  setSkill : function(skillInstance){
+    this.currentSkill = skillInstance;
+  },
   executeSkill : function(){
-
+    if(!this.isExecutedSkill){
+      this.skillEffectPlay = true;
+      this.isExecutedSkill = true;
+      this.currentSkill.executeSkill();
+    }
   }
 };
-
+function onTimeOverHandler(skillInstance){
+  skillInstance.destroy();
+  this.currentSkill = undefined;
+  this.isExecutedSkill = false;
+  this.skillEffectPlay = false;
+  this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
+};
+function onCastSkillHandler(skillInstance){
+  console.log('cast ani start');
+};
+// var skillData = {
+//   timeSpan : Date.now() - skill.startTime,
+//   totalTime : skill.totalTime,
+//   fireTime : skill.fireTime,
+//   radius : skill.radius,
+//   targetPosition : skill.targetPosition
+// }
 module.exports = User;
 
-},{"../public/util.js":9}],5:[function(require,module,exports){
+},{"../public/util.js":11,"./CSkill.js":3}],5:[function(require,module,exports){
+module.exports={
+"skillData" : "index,type,totalTime,fireTime,range,explosionRadius,radius,maxSpeed,lifeTime,effectLastTime\n1,0,5000,2500,100,100,0,0,0,10\n2,0,5000,2500,200,200,0,0,0,20\n3,1,5000,2500,500,500,0,0,0,30\n4,1,5000,2500,500,1000,0,0,0,40\n5,1,5000,2500,500,1500,0,0,0,50\n6,2,5000,2500,0,300,50,30,5000,60\n7,2,5000,2500,0,300,100,15,10000,70\n8,3,5000,2500,0,0,0,0,0,80"
+}
+
+},{}],6:[function(require,module,exports){
 module.exports={
   "INTERVAL" : 30,
 
@@ -531,7 +747,7 @@ module.exports={
   "SKILL_TYPE_SELF" : 3
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports={
   "Trees" : [
     {"id" : "OT1", "posX" : 200, "posY" : 200},
@@ -539,11 +755,11 @@ module.exports={
   ]
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 !function(e,t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&module.exports?module.exports=t():e.Quadtree=t()}(this,function(){return function(){function e(t){var n,i;if(this.x=t.x,this.y=t.y,this.width=t.width,this.height=t.height,this.maxElements=t.maxElements,null==this.width||null==this.height)throw new Error("Missing quadtree dimensions.");if(null==this.x&&(this.x=0),null==this.y&&(this.y=0),null==this.maxElements&&(this.maxElements=1),this.contents=[],this.oversized=[],this.size=0,this.width<1||this.height<1)throw new Error("Dimensions must be positive integers.");if(!Number.isInteger(this.x)||!Number.isInteger(this.y))throw new Error("Coordinates must be integers");if(this.maxElements<1)throw new Error("The maximum number of elements before a split must be a positive integer.");i=this,this.children={NW:{create:function(){return new e({x:i.x,y:i.y,width:Math.max(Math.floor(i.width/2),1),height:Math.max(Math.floor(i.height/2),1),maxElements:i.maxElements})},tree:null},NE:{create:function(){return new e({x:i.x+Math.max(Math.floor(i.width/2),1),y:i.y,width:Math.ceil(i.width/2),height:Math.max(Math.floor(i.height/2),1),maxElements:i.maxElements})},tree:null},SW:{create:function(){return new e({x:i.x,y:i.y+Math.max(Math.floor(i.height/2),1),width:Math.max(Math.floor(i.width/2),1),height:Math.ceil(i.height/2),maxElements:i.maxElements})},tree:null},SE:{create:function(){return new e({x:i.x+Math.max(Math.floor(i.width/2),1),y:i.y+Math.max(Math.floor(i.height/2),1),width:Math.ceil(i.width/2),height:Math.ceil(i.height/2),maxElements:i.maxElements})},tree:null}};for(n in this.children)this.children[n].get=function(){return null!=this.tree?this.tree:(this.tree=this.create(),this.tree)}}var t,n,i,r,h,l,o,s;return r=function(e){var t,n;return{x:Math.floor((null!=(t=e.width)?t:1)/2)+e.x,y:Math.floor((null!=(n=e.height)?n:1)/2)+e.y}},t=function(e,t){var n,i,r,h;return!(e.x>=t.x+(null!=(n=t.width)?n:1)||e.x+(null!=(i=e.width)?i:1)<=t.x||e.y>=t.y+(null!=(r=t.height)?r:1)||e.y+(null!=(h=e.height)?h:1)<=t.y)},n=function(e,t){var n;return n=r(t),e.x<n.x?e.y<n.y?"NW":"SW":e.y<n.y?"NE":"SE"},s=function(e){if("object"!=typeof e)throw new Error("Element must be an Object.");if(null==e.x||null==e.y)throw new Error("Coordinates properties are missing.");if((null!=e?e.width:void 0)<0||(null!=e?e.height:void 0)<0)throw new Error("Width and height must be positive integers.")},l=function(e){var t,n,i,r;return n=Math.max(Math.floor(e.width/2),1),i=Math.ceil(e.width/2),r=Math.max(Math.floor(e.height/2),1),t=Math.ceil(e.height/2),{NW:{x:e.x,y:e.y,width:n,height:r},NE:{x:e.x+n,y:e.y,width:i,height:r},SW:{x:e.x,y:e.y+r,width:n,height:t},SE:{x:e.x+n,y:e.y+r,width:i,height:t}}},i=function(e,n){var i,r,h,o;o=[],h=l(n);for(r in h)i=h[r],t(e,i)&&o.push(r);return o},h=function(e,t){var n;return n=function(n){return e["_"+n]=e[n],Object.defineProperty(e,n,{set:function(e){return t.remove(this,!0),this["_"+n]=e,t.push(this)},get:function(){return this["_"+n]},configurable:!0})},n("x"),n("y"),n("width"),n("height")},o=function(e){var t;return t=function(t){if(null!=e["_"+t])return delete e[t],e[t]=e["_"+t],delete e["_"+t]},t("x"),t("y"),t("width"),t("height")},e.prototype.push=function(e,t){return this.pushAll([e],t)},e.prototype.pushAll=function(e,t){var n,r,l,o,u,f,c,d,a,g,p,m,x,y,v,w,E,M,z,b;for(p=0,y=e.length;p<y;p++)g=e[p],s(g),t&&h(g,this);for(c=[{tree:this,elements:e}];c.length>0;){for(E=c.shift(),b=E.tree,f=E.elements,d={NW:null,NE:null,SW:null,SE:null},m=0,v=f.length;m<v;m++)if(u=f[m],b.size++,a=i(u,b),1!==a.length||1===b.width||1===b.height)b.oversized.push(u);else if(b.size-b.oversized.length<=b.maxElements)b.contents.push(u);else{for(o=a[0],z=b.children[o],null==d[o]&&(d[o]={tree:z.get(),elements:[]}),d[o].elements.push(u),M=b.contents,x=0,w=M.length;x<w;x++)r=M[x],l=i(r,b)[0],null==d[l]&&(d[l]={tree:b.children[l].get(),elements:[]}),d[l].elements.push(r);b.contents=[]}for(o in d)null!=(n=d[o])&&c.push(n)}return this},e.prototype.remove=function(e,t){var i,r;return s(e),(i=this.oversized.indexOf(e))>-1?(this.oversized.splice(i,1),this.size--,t||o(e),!0):(i=this.contents.indexOf(e))>-1?(this.contents.splice(i,1),this.size--,t||o(e),!0):(r=this.children[n(e,this)],!(null==r.tree||!r.tree.remove(e,t))&&(this.size--,0===r.tree.size&&(r.tree=null),!0))},e.prototype.colliding=function(e,n){var r,h,l,o,u,f,c,d,a,g,p,m,x,y;for(null==n&&(n=t),s(e),u=[],l=[this];l.length>0;){for(y=l.shift(),m=y.oversized,f=0,a=m.length;f<a;f++)(h=m[f])!==e&&n(e,h)&&u.push(h);for(x=y.contents,c=0,g=x.length;c<g;c++)(h=x[c])!==e&&n(e,h)&&u.push(h);for(o=i(e,y),0===o.length&&(o=[],e.x>=y.x+y.width&&o.push("NE"),e.y>=y.y+y.height&&o.push("SW"),o.length>0&&(1===o.length?o.push("SE"):o=["SE"])),d=0,p=o.length;d<p;d++)r=o[d],null!=y.children[r].tree&&l.push(y.children[r].tree)}return u},e.prototype.onCollision=function(e,n,r){var h,l,o,u,f,c,d,a,g,p,m,x,y;for(null==r&&(r=t),s(e),o=[this];o.length>0;){for(y=o.shift(),m=y.oversized,f=0,a=m.length;f<a;f++)(l=m[f])!==e&&r(e,l)&&n(l);for(x=y.contents,c=0,g=x.length;c<g;c++)(l=x[c])!==e&&r(e,l)&&n(l);for(u=i(e,y),0===u.length&&(u=[],e.x>=y.x+y.width&&u.push("NE"),e.y>=y.y+y.height&&u.push("SW"),u.length>0&&(1===u.length?u.push("SE"):u=["SE"])),d=0,p=u.length;d<p;d++)h=u[d],null!=y.children[h].tree&&o.push(y.children[h].tree)}return null},e.prototype.get=function(e){return this.where(e)},e.prototype.where=function(e){var t,i,r,h,l,o,u,f,c,d,a,g,p;if("object"==typeof e&&(null==e.x||null==e.y))return this.find(function(t){var n,i;n=!0;for(i in e)e[i]!==t[i]&&(n=!1);return n});for(s(e),h=[],r=[this];r.length>0;){for(p=r.shift(),d=p.oversized,l=0,f=d.length;l<f;l++){i=d[l],t=!0;for(u in e)e[u]!==i[u]&&(t=!1);t&&h.push(i)}for(a=p.contents,o=0,c=a.length;o<c;o++){i=a[o],t=!0;for(u in e)e[u]!==i[u]&&(t=!1);t&&h.push(i)}g=p.children[n(e,p)],null!=g.tree&&r.push(g.tree)}return h},e.prototype.each=function(e){var t,n,i,r,h,l,o,s,u,f;for(n=[this];n.length>0;){for(f=n.shift(),s=f.oversized,r=0,l=s.length;r<l;r++)i=s[r],"function"==typeof e&&e(i);for(u=f.contents,h=0,o=u.length;h<o;h++)i=u[h],"function"==typeof e&&e(i);for(t in f.children)null!=f.children[t].tree&&n.push(f.children[t].tree)}return this},e.prototype.find=function(e){var t,n,i,r,h,l,o,s,u,f,c;for(n=[this],r=[];n.length>0;){for(c=n.shift(),u=c.oversized,h=0,o=u.length;h<o;h++)i=u[h],("function"==typeof e?e(i):void 0)&&r.push(i);for(f=c.contents,l=0,s=f.length;l<s;l++)i=f[l],("function"==typeof e?e(i):void 0)&&r.push(i);for(t in c.children)null!=c.children[t].tree&&n.push(c.children[t].tree)}return r},e.prototype.filter=function(t){var n;return(n=function(i){var r,h,l,o,s,u,f,c,d,a,g;h=new e({x:i.x,y:i.y,width:i.width,height:i.height,maxElements:i.maxElements}),h.size=0;for(r in i.children)null!=i.children[r].tree&&(h.children[r].tree=n(i.children[r].tree),h.size+=null!=(c=null!=(d=h.children[r].tree)?d.size:void 0)?c:0);for(a=i.oversized,o=0,u=a.length;o<u;o++)l=a[o],(null==t||("function"==typeof t?t(l):void 0))&&h.oversized.push(l);for(g=i.contents,s=0,f=g.length;s<f;s++)l=g[s],(null==t||("function"==typeof t?t(l):void 0))&&h.contents.push(l);return h.size+=h.oversized.length+h.contents.length,0===h.size?null:h})(this)},e.prototype.reject=function(e){return this.filter(function(t){return!("function"==typeof e?e(t):void 0)})},e.prototype.visit=function(e){var t,n,i;for(n=[this];n.length>0;){i=n.shift(),e.bind(i)();for(t in i.children)null!=i.children[t].tree&&n.push(i.children[t].tree)}return this},e.prototype.pretty=function(){var e,t,n,i,r,h,l;for(h="",n=function(e){var t,n,i;for(i="",t=n=e;n<=0?t<0:t>0;n<=0?++t:--t)i+="   ";return i},t=[{label:"ROOT",tree:this,level:0}];t.length>0;){l=t.shift(),i=n(l.level),h+=i+"| "+l.label+"\n"+i+"| ------------\n",l.tree.oversized.length>0&&(h+=i+"| * Oversized elements *\n"+i+"|   "+l.tree.oversized+"\n"),l.tree.contents.length>0&&(h+=i+"| * Leaf content *\n"+i+"|   "+l.tree.contents+"\n"),r=!1;for(e in l.tree.children)null!=l.tree.children[e].tree&&(r=!0,t.unshift({label:e,tree:l.tree.children[e].tree,level:l.level+1}));r&&(h+=i+"└──┐\n")}return h},e}()});
 
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 module.exports={
   "USER_BODY_SRC" : "../images/CharBase.svg",
   "USER_BODY_SIZE" : 64,
@@ -556,7 +772,59 @@ module.exports={
   "OBJ_TREE_SIZE" : 100
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
+module.exports={
+  "baseAttack" : {
+    "type" : 0,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 100,
+    "explosionRadius" : 100,
+    "lifeTime" : 0,
+    "radius" : 0,
+    "maxSpeed" : 0,
+    "userAniStartTime" : 2400,
+    "effectLastTime" : 3000
+  },
+  "instantRangeSkill" : {
+    "type" : 1,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 1000,
+    "explosionRadius" : 100,
+    "lifeTime" : 0,
+    "radius" : 0,
+    "maxSpeed" : 0,
+    "userAniStartTime" : 2400,
+    "effectLastTime" : 3000
+  },
+  "projectileSkill" : {
+    "type" : 2,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 0,
+    "explosionRadius" : 100,
+    "lifeTime" : 15000,
+    "radius" : 50,
+    "maxSpeed" : 30,
+    "userAniStartTime" : 2400,
+    "effectLastTime" : 3000
+  },
+  "selfSkill" : {
+    "type" : 3,
+    "totalTime" : 5000,
+    "fireTime" : 2500,
+    "range" : 0,
+    "explosionRadius" : 0,
+    "lifeTime" : 0,
+    "radius" : 0,
+    "maxSpeed" : 0,
+    "userAniStartTime" : 2400,
+    "effectLastTime" : 3000
+  }
+}
+
+},{}],11:[function(require,module,exports){
 var gameConfig = require('./gameConfig.json');
 
 //must use with bind or call method
@@ -569,9 +837,7 @@ exports.rotate = function(){
         this.moveOffset();
     }else if(this.currentState === gameConfig.OBJECT_STATE_ATTACK){
     }else if(this.currentState === gameConfig.OBJECT_STATE_CAST){
-      console.log(this.targetDirection === this.direction);
-      console.log('executeSkill');
-      this.executeSkill(this.currentSkill);
+      this.executeSkill();
     }
   }
   //check rotate direction
@@ -892,14 +1158,458 @@ exports.calcTargetPosition = function(centerPosition, direction, range){
   return {x : addPosX, y : addposY};
 };
 
-},{"./gameConfig.json":5}],10:[function(require,module,exports){
+},{"./gameConfig.json":6}],12:[function(require,module,exports){
+
+module.exports = {
+    toObject        : toObject,
+    toArray         : toArray,
+    toColumnArray   : toColumnArray,
+    toSchemaObject  : toSchemaObject,
+    toCSV           : toCSV
+}
+
+
+function toColumnArray(data, opts){
+
+    opts = opts || { };
+
+    var delimiter   = (opts.delimiter || ',');
+    var quote       = _getQuote(opts.quote);
+    var content     = data;
+    var headers     = null;
+
+    if(typeof(content) !== "string"){
+        throw new Error("Invalid input, input data should be a string");
+    }
+
+    content         = content.split(/[\n\r]+/ig);
+
+    if(typeof(opts.headers) === "string"){
+        headers = opts.headers.split(/[\n\r]+/ig);
+        headers = quote ?
+                _convertArray(headers.shift(), delimiter, quote) :
+                headers.shift().split(delimiter);
+    }else{
+        headers = quote ?
+                _convertArray(content.shift(), delimiter, quote) :
+                content.shift().split(delimiter);
+    }
+
+
+    var hashData    = { };
+
+    headers.forEach(function(item){
+        hashData[item] = [];
+    });
+
+    content.forEach(function(item){
+        if(item){
+            item = quote ?
+                  _convertArray(item, delimiter, quote) :
+                  item.split(delimiter);
+            item.forEach(function(val, index){
+                hashData[headers[index]].push(_trimQuote(val));
+            });
+        }
+    });
+
+    return hashData;
+}
+
+function toObject(data, opts){
+
+    opts = opts || { };
+
+    var delimiter   = (opts.delimiter || ',');
+    var quote       = _getQuote(opts.quote);
+    var content     = data;
+    var headers     = null;
+
+    if(typeof(content) !== "string"){
+        throw new Error("Invalid input, input data should be a string");
+    }
+
+    content = content.split(/[\n\r]+/ig);
+
+    if(typeof(opts.headers) === "string"){
+        headers = opts.headers.split(/[\n\r]+/ig);
+        headers = quote ?
+                _convertArray(headers.shift(), delimiter, quote) :
+                headers.shift().split(delimiter);
+    }else{
+        headers = quote ?
+                _convertArray(content.shift(), delimiter, quote) :
+                content.shift().split(delimiter);
+    }
+
+    var hashData = [ ];
+    content.forEach(function(item){
+        if(item){
+          item = quote ?
+                _convertArray(item, delimiter, quote) :
+                item.split(delimiter);
+          var hashItem = { };
+          headers.forEach(function(headerItem, index){
+              hashItem[headerItem] = _trimQuote(item[index]);
+          });
+          hashData.push(hashItem);
+        }
+    });
+    return hashData;
+}
+
+function toSchemaObject(data, opts){
+
+    opts = opts || { };
+
+    var delimiter   = (opts.delimiter || ',');
+    var quote       = _getQuote(opts.quote);
+    var content     = data;
+    var headers     = null;
+    if(typeof(content) !== "string"){
+        throw new Error("Invalid input, input should be a string");
+    }
+
+    content         = content.split(/[\n\r]+/ig);
+
+
+    if(typeof(opts.headers) === "string"){
+        headers = opts.headers.split(/[\n\r]+/ig);
+        headers = quote ?
+                _convertArray(headers.shift(), delimiter, quote) :
+                headers.shift().split(delimiter);
+    }else{
+        headers = quote ?
+                _convertArray(content.shift(), delimiter, quote) :
+                content.shift().split(delimiter);
+    }
+
+
+    var hashData    = [ ];
+
+    content.forEach(function(item){
+        if(item){
+          item = quote ?
+                _convertArray(item, delimiter, quote) :
+                item.split(delimiter);
+            var schemaObject = {};
+            item.forEach(function(val, index){
+                _putDataInSchema(headers[index], val, schemaObject , delimiter, quote);
+            });
+            hashData.push(schemaObject);
+        }
+    });
+
+    return hashData;
+}
+
+function toArray(data, opts){
+
+    opts = opts || { };
+
+    var delimiter   = (opts.delimiter || ',');
+    var quote       = _getQuote(opts.quote);
+    var content     = data;
+
+    if(typeof(content) !== "string"){
+        throw new Error("Invalid input, input data should be a string");
+    }
+
+    content = content.split(/[\n\r]+/ig);
+    var arrayData = [ ];
+    content.forEach(function(item){
+        if(item){
+            item = quote ?
+                _convertArray(item, delimiter, quote) :
+                item.split(delimiter);
+
+            item = item.map(function(cItem){
+                return _trimQuote(cItem);
+            });
+            arrayData.push(item);
+        }
+    });
+    return arrayData;
+}
+
+function _getQuote(q){
+  if(typeof(q) === "string"){
+    return q;
+  }else if(q === true){
+    return '"';
+  }
+  return null;
+}
+
+function _dataType(arg) {
+    if (arg === null) {
+        return 'null';
+    }
+    else if (arg && (arg.nodeType === 1 || arg.nodeType === 9)) {
+        return 'element';
+    }
+    var type = (Object.prototype.toString.call(arg)).match(/\[object (.*?)\]/)[1].toLowerCase();
+    if (type === 'number') {
+        if (isNaN(arg)) {
+            return 'nan';
+        }
+        if (!isFinite(arg)) {
+            return 'infinity';
+        }
+    }
+    return type;
+}
+
+function toCSV(data, opts){
+
+    opts                = (opts || { });
+    opts.delimiter      = (opts.delimiter || ',');
+    opts.wrap           = (opts.wrap || '');
+    opts.arrayDenote    = (opts.arrayDenote && String(opts.arrayDenote).trim() ? opts.arrayDenote : '[]');
+    opts.objectDenote   = (opts.objectDenote && String(opts.objectDenote).trim() ? opts.objectDenote : '.');
+    opts.detailedOutput = (typeof(opts.detailedOutput) !== "boolean" ? true : opts.detailedOutput);
+    opts.headers        = String(opts.headers).toLowerCase();
+    var csvJSON         = { };
+    var csvData         = "";
+
+    if(!opts.headers.match(/none|full|relative|key/)){
+      opts.headers = 'full';
+    }else{
+      opts.headers = opts.headers.match(/none|full|relative|key/)[0];
+    }
+
+    if(opts.wrap === true){
+        opts.wrap = '"';
+    }
+
+    if(typeof(data) === "string"){
+        data = JSON.parse(data);
+    }
+
+    _toCsv(data, csvJSON, "", 0, opts);
+
+    var headers = _getHeaders(opts.headers, csvJSON, opts);
+
+    if(headers){
+      if(opts.wrap){
+        headers = headers.map(function(item){
+          return opts.wrap + item + opts.wrap;
+        });
+      }
+      csvData = headers.join(opts.delimiter);
+    }
+
+    var bigArrayLen = _getBigArrayLength(csvJSON);
+    var keys        = Object.keys(csvJSON);
+    var row         = [ ];
+
+    var replaceNewLinePattern = /\n|\r/g;
+    if(!opts.wrap){
+        replaceNewLinePattern = new RegExp('\n|\r|' + opts.delimiter, 'g');
+    }
+
+
+    for(var i = 0; i < bigArrayLen; i++){
+        row = [ ];
+        for(var j = 0; j < keys.length; j++){
+            if(csvJSON[keys[j]][i]){
+                csvJSON[keys[j]][i] = csvJSON[keys[j]][i].replace(replaceNewLinePattern, '\t');
+                if(opts.wrap){
+                    csvJSON[keys[j]][i] = opts.wrap + csvJSON[keys[j]][i] + opts.wrap;
+                }
+                row[row.length] = csvJSON[keys[j]][i];
+            }else{
+                row[row.length] = "";
+            }
+        }
+      csvData += '\n' + row.join(opts.delimiter);
+    }
+    return csvData;
+}
+
+function _toCsv(data, table, parent, row, opt){
+    if(_dataType(data) === 'undefined'){
+        return _putData('', table, parent, row, opt);
+    }else if(_dataType(data) === 'null'){
+        return _putData('null', table, parent, row, opt);
+    }else if(Array.isArray(data)){
+        return _arrayToCsv(data, table, parent, row, opt);
+    }else if(typeof(data) === "object"){
+        return _objectToCsv(data, table, parent, row, opt);
+    }else{
+        return _putData(String(data), table, parent, row, opt);
+    }
+}
+
+function _putData(data, table, parent, row, opt){
+  if(!table || !table[parent]){
+      table[parent] = [ ];
+  }
+  if(row < table[parent].length){
+    row = table[parent].length;
+  }
+  table[parent][row] = data;
+  return table;
+}
+
+function _arrayToCsv(data, table, parent, row, opt){
+    if(_doesNotContainsObjectAndArray(data)){
+      return _putData(data.join(';'), table, parent + opt.arrayDenote, row, opt);
+    }
+    data.forEach(function(item, index){
+        return _toCsv(item, table, parent + opt.arrayDenote, index, opt);
+    });
+}
+
+function _doesNotContainsObjectAndArray(array){
+  return array.every(function(item){
+        var datatype = _dataType(item);
+        if(!datatype.match(/array|object/)){
+          return true;
+        }
+        return false;
+  });
+}
+
+function _objectToCsv(data, table, parent, row, opt){
+  Object.keys(data).forEach(function(item){
+      return _toCsv(data[item], table, parent + opt.objectDenote + item, row, opt);
+  });
+}
+
+function _getHeaders(headerType, table, opt){
+  var keyMatchPattern       = /([^\[\]\.]+)$/;
+  var relativeMatchPattern  = /\[\]\.?([^\[\]]+)$/;
+  switch(headerType){
+    case "none":
+      return null;
+    case "full":
+      return Object.keys(table);
+    case "key":
+      return Object.keys(table).map(function(header){
+        var head = header.match(keyMatchPattern);
+        if(head && head.length === 2){
+          return head[1];
+        }
+        return header;
+      });
+    case "relative":
+      return Object.keys(table).map(function(header){
+        var head = header.match(relativeMatchPattern);
+        if(head && head.length === 2){
+          return head[1];
+        }
+        return header;
+      });
+  }
+}
+
+function _getBigArrayLength(table){
+  var len = 0;
+  Object.keys(table).forEach(function(item){
+      if(Array.isArray(table[item]) && table[item].length > len){
+        len = table[item].length;
+      }
+  });
+  return len;
+}
+
+function _putDataInSchema(header, item, schema, delimiter, quote){
+    var match = header.match(/\[*[\d]\]\.(\w+)|\.|\[\]|\[(.)\]|-|\+/ig);
+    var headerName, currentPoint;
+    if(match){
+        var testMatch = match[0];
+        if(match.indexOf('-') !== -1){
+            return true;
+        }else if(match.indexOf('.') !== -1){
+            var headParts = header.split('.');
+            currentPoint = headParts.shift();
+            schema[currentPoint] = schema[currentPoint] || {};
+            _putDataInSchema(headParts.join('.'), item, schema[currentPoint], delimiter, quote);
+        }else if(match.indexOf('[]') !== -1){
+            headerName = header.replace(/\[\]/ig,'');
+            if(!schema[headerName]){
+            schema[headerName] = [];
+            }
+            schema[headerName].push(item);
+        }else if(/\[*[\d]\]\.(\w+)/.test(testMatch)){
+            headerName = header.split('[').shift();
+            var index = parseInt(testMatch.match(/\[(.)\]/).pop(),10);
+            currentPoint = header.split('.').pop();
+            schema[headerName] = schema[headerName] || [];
+            schema[headerName][index] = schema[headerName][index] || {};
+            schema[headerName][index][currentPoint] = item;
+        }else if(/\[(.)\]/.test(testMatch)){
+            var delimiter = testMatch.match(/\[(.)\]/).pop();
+            headerName = header.replace(/\[(.)\]/ig,'');
+            schema[headerName] = _convertArray(item, delimiter, quote);
+        }else if(match.indexOf('+') !== -1){
+            headerName = header.replace(/\+/ig,"");
+            schema[headerName] = Number(item);
+        }
+    }else{
+        schema[header] = _trimQuote(item);
+    }
+    return schema ;
+}
+
+function _trimQuote(str){
+    if(str){
+        return String(str).trim().replace(/^["|'](.*)["|']$/, '$1');
+    }
+    return "";
+}
+
+function _convertArray(str, delimiter, quote) {
+    if(quote && str.indexOf(quote) !== -1){
+      return _csvToArray(str, delimiter, quote);
+    }
+    var output = [];
+    var arr = str.split(delimiter);
+    arr.forEach(function(val) {
+        var trimmed = val.trim();
+        output.push(trimmed);
+    });
+    return output;
+}
+
+function _csvToArray(text, delimit, quote) {
+
+    delimit = delimit || ",";
+    quote   = quote || '"';
+
+    var value = new RegExp("(?!\\s*$)\\s*(?:" +  quote + "([^" +  quote + "\\\\]*(?:\\\\[\\S\\s][^" +  quote + "\\\\]*)*)" +  quote + "|([^" +  delimit  +  quote + "\\s\\\\]*(?:\\s+[^" +  delimit  +  quote + "\\s\\\\]+)*))\\s*(?:" +  delimit + "|$)", "g");
+
+    var a = [ ];
+
+    text.replace(value,
+        function(m0, m1, m2) {
+            if(m1 !== undefined){
+                a.push(m1.replace(/\\'/g, "'"));
+            }else if(m2 !== undefined){
+                a.push(m2);
+            }
+            return '';
+        }
+    );
+
+    if (/,\s*$/.test(text)){
+        a.push('');
+    }
+    return a;
+}
+
+},{}],13:[function(require,module,exports){
 // inner Modules
 var util = require('../../modules/public/util.js');
 var User = require('../../modules/client/CUser.js');
 var CManager = require('../../modules/client/CManager.js');
 var gameConfig = require('../../modules/public/gameConfig.json');
+var skillData = require('../../modules/public/skill.json');
 // var resource = require('../../modules/public/resource.json');
-
+var csvJson = require('csvjson');
+var dataJson = require('../../modules/public/data.json');
+var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var socket;
 
 // document elements
@@ -1112,20 +1822,38 @@ function setupSocket(){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
-    console.log(userData.objectID);
-    console.log('move start');
+    console.log(userData.objectID + ' move start');
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resSkill', function(userData, skillData){
+  socket.on('resSkill', function(userData, skill){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
+    switch (skill.type) {
+      case gameConfig.SKILL_TYPE_BASIC:
+        skill.userAniStartTime = skillData.baseAttack.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        break;
+      case gameConfig.SKILL_TYPE_INSTANT:
+        skill.userAniStartTime = skillData.instantRangeSkill.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        break;
+      case gameConfig.SKILL_TYPE_PROJECTILE:
+        skill.userAniStartTime = skillData.projectileSkill.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        break;
+      case gameConfig.SKILL_TYPE_SELF:
+        skill.userAniStartTime = skillData.selfSkill.userAniStartTime;
+        skill.effectLastTime = skillData.baseAttack.effectLastTime;
+        break;
+      default:
+    }
     Manager.updateUserData(userData);
-    Manager.attackUser(userData);
+    Manager.useSkill(userData.objectID, skill);
 
     //create user castingEffect
-    Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
+    // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
 
     // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
     // setInterval(animator.startAnimation, fps * 2);
@@ -1168,6 +1896,7 @@ function drawObstacles(){
     ctx.lineWidth = 5;
     ctx.strokeStyle = '#003300';
     ctx.stroke();
+    ctx.closePath();
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
   }
 }
@@ -1182,6 +1911,14 @@ function drawUsers(){
     ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
+    //draw cast effect
+    if(Manager.users[index].skillEffectPlay){
+      ctx.fillStyle ="#00ff00";
+      ctx.beginPath();
+      ctx.arc(-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 150, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.closePath();
+    }
     ctx.restore();
   }
 };
@@ -1189,10 +1926,11 @@ function drawEffect(){
   for(var index in Manager.effects){
     var radian = Manager.effects[index].direction * radianFactor;
 
+    ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = util.worldXCoordToLocalX(Manager.effects[index].position.x + Manager.effects[index].radius/2, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[index].position.y + Manager.effects[index].radius/2, gameConfig.userOffset.y);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].radius/2, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].radius/2, gameConfig.userOffset.y);
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
     ctx.fillRect(-Manager.effects[index].radius/2, -Manager.effects[index].radius/2, Manager.effects[index].radius, Manager.effects[index].radius);
@@ -1200,7 +1938,7 @@ function drawEffect(){
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.restore();
   }
-}
+};
 function drawGrid(){
   //draw boundary
 
@@ -1231,7 +1969,7 @@ function canvasAddEvent(){
 function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
-    var tempPos = util.localToWorldPosition({x : 1000, y : 1000}, gameConfig.userOffset);
+    var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
       socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_BASIC});
     }else if(keyCode === 49){
@@ -1244,6 +1982,19 @@ function documentAddEvent(){
   }, false);
 }
 update();
+
+function findData(table, columnName, value){
+  var data = undefined;
+  for(var index in table){
+    console.log(table[index][columnName]);
+    if(table[index][columnName] == value){
+      data = table[index];
+    }
+  }
+  return data;
+}
+var testdata = findData(skillTable, "type", 0);
+console.log(testdata);
 // local utils
 // function setCanvasSize(scaleFactor){
 //   // canvas.style.width = (canvas.width * scaleFactor) + 'px';
@@ -1273,4 +2024,4 @@ update();
 //   return 1;
 // }
 
-},{"../../modules/client/CManager.js":2,"../../modules/client/CUser.js":4,"../../modules/public/gameConfig.json":5,"../../modules/public/resource.json":8,"../../modules/public/util.js":9}]},{},[10]);
+},{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/data.json":5,"../../modules/public/gameConfig.json":6,"../../modules/public/resource.json":9,"../../modules/public/skill.json":10,"../../modules/public/util.js":11,"csvjson":12}]},{},[13]);

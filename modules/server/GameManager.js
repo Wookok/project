@@ -259,7 +259,8 @@ GameManager.prototype.updateSkillDataSetting = function(skill){
     totalTime : skill.totalTime,
     fireTime : skill.fireTime,
     radius : skill.radius,
-    targetPosition : skill.targetPosition
+    targetPosition : skill.targetPosition,
+    maxSpeed : skill.maxSpeed
   }
   return skillData;
 }
