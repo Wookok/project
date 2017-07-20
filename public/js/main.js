@@ -4,7 +4,7 @@ var User = require('../../modules/client/CUser.js');
 var CManager = require('../../modules/client/CManager.js');
 var gameConfig = require('../../modules/public/gameConfig.json');
 // var resource = require('../../modules/public/resource.json');
-var csvJson = require('csvjson');
+var csvJson = require('../../modules/public/csvjson.js');
 var dataJson = require('../../modules/public/data.json');
 var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var socket;

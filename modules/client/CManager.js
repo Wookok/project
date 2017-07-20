@@ -201,6 +201,7 @@ CManager.prototype = {
 						}
 					}, skillInstance.effectLastTime);
 	      };
+				this.users[userID].targetDirection = this.users[userID].direction;
 				skillInstance.direction = this.users[userID].direction;
 	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;

@@ -328,7 +328,7 @@ exports.calcTargetPosition = function(centerPosition, direction, range){
   var addPosX = range * Math.cos(direction * Math.PI/180);
   var addPosY = range * Math.sin(direction * Math.PI/180);
 
-  return {x : addPosX, y : addposY};
+  return {x : addPosX, y : addPosY};
 };
 exports.findData = function(table, columnName, value){
   var data = undefined;

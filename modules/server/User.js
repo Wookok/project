@@ -1,13 +1,13 @@
 var LivingEntity = require('./LivingEntity.js');
 
-var csvJson = require('csvjson');
+var util = require('../public/util.js');
+var csvJson = require('../public/csvjson');
 
 var dataJson = require('../public/data.json');
 var userLevelDataTable = csvJson.toObject(dataJson.userLevelData, {delimiter : ',', quote : '"'});
 
 function User(id, userBaseTable, Exp){
   LivingEntity.call(this, Exp);
-
   // base setting;
   this.baseHP = userBaseTable.baseHP;
   this.baseMP = userBaseTable.baseMP;
@@ -49,7 +49,7 @@ function User(id, userBaseTable, Exp){
   this.updateUserStat();
 };
 User.prototype = Object.create(LivingEntity.prototype);
-User.prototype.constructor = LivingEntity;
+User.prototype.constructor = User;
 
 User.prototype.getExp = function(exp){
   this.Exp += exp;
@@ -102,7 +102,7 @@ User.prototype.updateUserStat = function(){
   this.attackSpeed  = this.baseAttackSpeed  ;
   this.castSpeed    = this.baseCastSpeed    ;
   this.damageRate   = this.baseDamageRate   ;
-  this.rotateSpeed  = this.baseRotateSpeed  ;
+  this.rotateSpeed  = 20                    ;
 };
 
 module.exports = User;

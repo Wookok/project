@@ -5,7 +5,7 @@ var express = require('express');
 var socketio = require('socket.io');
 var path = require('path');
 var fs = require('fs');
-var csvJson = require('csvjson');
+var csvJson = require('./modules/public/csvjson.js');
 
 var app = express();
 
@@ -43,7 +43,7 @@ var io = socketio.listen(server);
 io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
 
-  var user = new User(socket.id, userBaseTable, 0);
+  var user = new User(socket.id, userBaseTable[0], 0);
   var updateUserInterval = false;
 
   GM.onNeedInform = function(userID){
