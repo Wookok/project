@@ -11,13 +11,12 @@ var app = express();
 
 var config = require('./config.json');
 var gameConfig = require('./modules/public/gameConfig.json');
-var dataJson = require('./modules/public/data.json');
-var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
-var skillData = require('./modules/public/skill.json');
 
-// console.log(skillTable);
-// var csvTest = fs.readFileSync(path.join(__dirname, '/modules/public/skill.csv'), { encoding : 'utf8'});
-// console.log(csvJson.toObject(csvTest, {delimiter : ',', quote : '"'}));
+var dataJson = require('./modules/public/data.json');
+var csvJsonOption = {delimiter : ',', quote : '"'};
+
+var skillTable = csvJson.toObject(dataJson.skillData, csvJsonOption);
+var userBaseTable = csvJson.toObject(dataJson.userBaseData, csvJsonOption);
 
 var util = require('./modules/public/util.js');
 
@@ -44,7 +43,7 @@ var io = socketio.listen(server);
 io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
 
-  var user = new User(socket.id);
+  var user = new User(socket.id, userBaseTable, 0);
   var updateUserInterval = false;
 
   GM.onNeedInform = function(userID){
@@ -86,23 +85,17 @@ io.on('connection', function(socket){
     io.sockets.emit('resMove', data);
   });
 
-  socket.on('reqSkill', function(skill, clickPosition){
-    //check user state and skill.type is OBJECT_STATE_ATTACK. if then do nothing
-    if(skill.type !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
-      if(skill.type === gameConfig.SKILL_TYPE_BASIC){
-        skill = skillData.baseAttack;
-      }else if(skill.type === gameConfig.SKILL_TYPE_INSTANT){
-        skill = skillData.instantRangeSkill;
-      }else if(skill.type === gameConfig.SKILL_TYPE_PROJECTILE){
-        skill = skillData.projectileSkill;
-      }else if(skill.type === gameConfig.SKILL_TYPE_SELF){
-        skill = skillData.selfSkill;
+  socket.on('reqSkill', function(skillIndex, clickPosition){
+    //find skill by index
+    var skillData = util.findData(skillTable, 'index', skillIndex);
+    if(parseInt(skillData.type) !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
+      if(!clickPosition){
+        clickPosition = user.center;
       }
-      var skillInstance = GM.useSkill(user, skill, clickPosition);
+      var skillInstance = GM.useSkill(user, skillData, clickPosition);
 
       var userData = GM.updateDataSetting(user);
       var skillInstanceData = GM.updateSkillDataSetting(skillInstance);
-
       io.sockets.emit('resSkill', userData, skillInstanceData);
     }
   });

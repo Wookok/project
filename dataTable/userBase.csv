@@ -1,0 +1,2 @@
+baseHP,baseMP,baseMaxSpeed,baseHPRegen,baseMPRegen,baseHPRegenRate,baseMPRegenRate,baseAttackSpeed,baseCastSpeed,baseDamageRate
+100,1000,15,0.5,5,1,1,1,1,1

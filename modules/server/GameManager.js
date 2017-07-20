@@ -7,7 +7,6 @@ var resources = require('../public/resource.json');
 var map = require('../public/map.json');
 
 var Skill = require('./Skill.js');
-var skills = require('../public/skill.json');
 
 var QuadTree = require('quadtree-lib');
 
@@ -111,19 +110,16 @@ GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
   user.changeState(gameConfig.OBJECT_STATE_MOVE);
 };
 
-GameManager.prototype.useSkill = function(user, skill, clickPosition){
-  var skillInstance = undefined;
-  switch (skill.type) {
+GameManager.prototype.useSkill = function(user, skillData, clickPosition){
+  var skillInstance = user.makeSkillInstance(skillData, clickPosition);
+  switch (parseInt(skillData.type)) {
     case gameConfig.SKILL_TYPE_BASIC:
-      skillInstance = user.makeSkillInstance(skill);
-      skillInstance.onFire = function(){
-        colliderEles.push(skillInstance.colliderEle);
-      };
-      //on attack can cast skill but on attack cant attack;
+        skillInstance.onFire = function(){
+          colliderEles.push(skillInstance.colliderEle);
+        };
       user.changeState(gameConfig.OBJECT_STATE_ATTACK);
       break;
     case gameConfig.SKILL_TYPE_INSTANT:
-      skillInstance = user.makeSkillInstance(skill, clickPosition);
       skillInstance.onFire = function(){
         colliderEles.push(skillInstance.colliderEle);
       };
@@ -131,7 +127,6 @@ GameManager.prototype.useSkill = function(user, skill, clickPosition){
       user.changeState(gameConfig.OBJECT_STATE_CAST);
       break;
     case gameConfig.SKILL_TYPE_PROJECTILE:
-      skillInstance = user.makeSkillInstance(skill, clickPosition);
       var projectiels = this.projectiles;
       skillInstance.onFire = function(){
         //create projectile object and push to projectiles
@@ -143,16 +138,12 @@ GameManager.prototype.useSkill = function(user, skill, clickPosition){
       user.changeState(gameConfig.OBJECT_STATE_CAST);
       break;
     case gameConfig.SKILL_TYPE_SELF:
-      skillInstance = user.makeSkillInstance(skill);
       skillInstance.onFire = function(){
-        console.log('self skill is excuted');
       };
       user.changeState(gameConfig.OBJECT_STATE_CAST);
       break;
     default:
-      break;
   }
-  // user.executeSkill(skillInstance);
   user.setSkill(skillInstance);
   return skillInstance;
 };
@@ -198,8 +189,8 @@ GameManager.prototype.initializeUser = function(user){
   user.setSize(64,64);
   user.setPosition(10, 10);
 
-  user.setRotateSpeed(20);
-  user.setMaxSpeed(5);
+  // user.setRotateSpeed(20);
+  // user.setMaxSpeed(5);
 };
 
 GameManager.prototype.stopUser = function(user){
@@ -254,17 +245,26 @@ GameManager.prototype.updateDataSetting = function(user){
 };
 GameManager.prototype.updateSkillDataSetting = function(skill){
   var skillData = {
-    type : skill.type,
-    timeSpan : Date.now() - skill.startTime,
-    totalTime : skill.totalTime,
-    fireTime : skill.fireTime,
-    explosionRadius : skill.explosionRadius,
-    radius : skill.radius,
+    index : skill.index,
     targetPosition : skill.targetPosition,
-    maxSpeed : skill.maxSpeed
+    direction : skill.direction
+    // type : skill.type,
+    // timeSpan : Date.now() - skill.startTime,
+    // totalTime : skill.totalTime,
+    // fireTime : skill.fireTime,
+    // explosionRadius : skill.explosionRadius,
+    // radius : skill.radius,
+    // targetPosition : skill.targetPosition,
+    // maxSpeed : skill.maxSpeed
   }
   return skillData;
-}
+};
+GameManager.prototype.updateSkillsDataSettings = function(){
+
+};
+GameManager.prototype.updateProjectilesDataSettings = function(){
+
+};
 GameManager.prototype.checkStateIsAttack = function(user){
   if(user.currentState === gameConfig.OBJECT_STATE_ATTACK){
     return true;
@@ -319,7 +319,7 @@ function updateIntervalHandler(){
 
   //updateUserArray
   for(var index in this.users){
-    this.users[index].setUserEle();
+    this.users[index].setEntityEle();
     userEles.push(this.users[index].entityTreeEle);
   }
   //update projectiles array

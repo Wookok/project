@@ -3,7 +3,6 @@ var util = require('../../modules/public/util.js');
 var User = require('../../modules/client/CUser.js');
 var CManager = require('../../modules/client/CManager.js');
 var gameConfig = require('../../modules/public/gameConfig.json');
-var skillData = require('../../modules/public/skill.json');
 // var resource = require('../../modules/public/resource.json');
 var csvJson = require('csvjson');
 var dataJson = require('../../modules/public/data.json');
@@ -225,35 +224,17 @@ function setupSocket(){
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resSkill', function(userData, skill){
+  socket.on('resSkill', function(userData, resSkillData){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
-    switch (skill.type) {
-      case gameConfig.SKILL_TYPE_BASIC:
-        skill.userAniStartTime = skillData.baseAttack.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
-        skill.lifeTime = skillData.baseAttack.lifeTime;
-        break;
-      case gameConfig.SKILL_TYPE_INSTANT:
-        skill.userAniStartTime = skillData.instantRangeSkill.userAniStartTime;
-        skill.effectLastTime = skillData.instantRangeSkill.effectLastTime;
-        skill.lifeTime = skillData.instantRangeSkill.lifeTime;
-        break;
-      case gameConfig.SKILL_TYPE_PROJECTILE:
-        skill.userAniStartTime = skillData.projectileSkill.userAniStartTime;
-        skill.effectLastTime = skillData.projectileSkill.effectLastTime;
-        skill.lifeTime = skillData.projectileSkill.lifeTime;
-        break;
-      case gameConfig.SKILL_TYPE_SELF:
-        skill.userAniStartTime = skillData.selfSkill.userAniStartTime;
-        skill.effectLastTime = skillData.selfSkill.effectLastTime;
-        skill.lifeTime = skillData.selfSkill.lifeTime;
-        break;
-      default:
-    }
+    var skillData = util.findData(skillTable, 'index', resSkillData.index);
+
+    skillData.targetPosition = util.worldToLocalPosition(resSkillData.targetPosition, gameConfig.userOffset);
+    skillData.direction = resSkillData.direction;
+
     Manager.updateUserData(userData);
-    Manager.useSkill(userData.objectID, skill);
+    Manager.useSkill(userData.objectID, skillData);
 
     //create user castingEffect
     // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
@@ -383,13 +364,13 @@ function documentAddEvent(){
     var keyCode = e.keyCode;
     var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_BASIC});
+      socket.emit('reqSkill', 1);
     }else if(keyCode === 49){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_INSTANT}, tempPos);
+      socket.emit('reqSkill', 3, tempPos);
     }else if(keyCode === 50){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_PROJECTILE}, tempPos);
+      socket.emit('reqSkill', 6, tempPos);
     }else if(keyCode === 51){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_SELF});
+      socket.emit('reqSkill', 8);
     }
   }, false);
 }

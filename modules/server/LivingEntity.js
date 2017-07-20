@@ -1,7 +1,5 @@
 var GameObject = require('./GameObject.js');
 var util = require('../public/util.js');
-
-var skillData = require('../public/skill.json');
 var Skill = require('./Skill.js');
 
 var gameConfig = require('../public/gameConfig.json');
@@ -12,15 +10,14 @@ function LivingEntity(){
   GameObject.call(this);
   this.objectID = null;
 
+
   this.currentState = gameConfig.OBJECT_STATE_IDLE;
   this.currentSkill = undefined;
   this.isExecutedSkill = false;
 
   this.speed = {x: 0, y:0};
   this.direction = 0;
-  this.rotateSpeed = 0;
 
-  this.maxSpeed = 0;
   this.targetPosition = {
     x : this.position.x, y : this.position.y
   };
@@ -67,8 +64,9 @@ LivingEntity.prototype.update = function(){
 };
 
 //Instantiate base attack
-LivingEntity.prototype.makeSkillInstance = function(skill, clickPosition){
-  var skillInstance = new Skill(this.objectID, skill.type, skill.totalTime, skill.fireTime, skill.range, skill.explosionRadius, skill.lifeTime, skill.radius, skill.maxSpeed);
+LivingEntity.prototype.makeSkillInstance = function(skillData, clickPosition){
+  var skillInstance = new Skill(this.objectID, skillData);
+  skillInstance.setDirection(this.center, this.direction, clickPosition);
   skillInstance.setTargetPosition(this.center, this.direction, clickPosition);
   skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
   return skillInstance;
@@ -99,10 +97,10 @@ LivingEntity.prototype.move = function(){
   util.move.call(this);
 };
 LivingEntity.prototype.idle = function(){
-  //do nothing or send packet;
+  //do nothing or send current stat to client;
 };
 LivingEntity.prototype.attack = function(){
-  if(!this.isExecutedSkill){
+  if(!this.isExecutedSkill && this.currentSkill !== undefined){
     this.isExecutedSkill = true;
     this.currentSkill.executeSkill();
   }
@@ -157,7 +155,7 @@ LivingEntity.prototype.assignID = function(x){
 };
 
 // initialize and update for entityTreeEle
-LivingEntity.prototype.setUserEle = function(){
+LivingEntity.prototype.setEntityEle = function(){
   this.entityTreeEle = {
     x : this.position.x,
     y : this.position.y,

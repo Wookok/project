@@ -1,13 +1,19 @@
 function CSkill(skillData, userAniStartTime){
-  this.type = skillData.type;
 
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
+
+
+  this.index = skillData.index;
+  this.type = skillData.type;
+  this.name = skillData.name;
   this.totalTime = skillData.totalTime;
   this.fireTime = skillData.fireTime;
+  this.range = skillData.range;
   this.explosionRadius = skillData.explosionRadius;
+
+  this.direction = skillData.direction;
   this.targetPosition = skillData.targetPosition;
-  this.direction;
   this.maxSpeed = skillData.maxSpeed;
   this.lifeTime = skillData.lifeTime;
 
@@ -31,6 +37,9 @@ CSkill.prototype = {
     this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);
   },
   destroy : function(){
+    if(this.userAniTimeout){
+      clearTimeout(this.userAniTimeout);
+    }
     if(this.fireTimeout){
       console.log('clearTimeout');
       clearTimeout(this.fireTimeout);
@@ -63,10 +72,16 @@ var ProjectileSkill = function(user, skillInstance){
   this.startTime = Date.now();
 
   this.explosionRadius = skillInstance.explosionRadius;
-  this.lifeTime = skillInstance.lifeTime;
+
   this.radius = skillInstance.radius;
+  this.lifeTime = skillInstance.lifeTime;
+
+  this.direction = skillInstance.direction;
   this.position = {x : user.position.x, y : user.position.y};
-  this.speed = {x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180) , y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)};
+  this.speed = {
+    x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
+    y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
+  };
 };
 
 ProjectileSkill.prototype = {

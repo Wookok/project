@@ -136,12 +136,13 @@ CManager.prototype = {
 		}
 	},
 	useSkill : function(userID, skillData){
-		var skillInstance = undefined;
-		switch (skillData.type) {
+		var skillInstance = this.users[userID].makeSkillInstance(skillData);
+		var thisUser = this.users[userID];
+		var thisEffects = this.effects;
+
+		switch (parseInt(skillData.type)) {
 			case this.gameConfig.SKILL_TYPE_BASIC:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
+	      // skillInstance = this.users[userID].makeSkillInstance(skillData);
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
@@ -157,9 +158,6 @@ CManager.prototype = {
 	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_ATTACK);
 	      break;
 	    case this.gameConfig.SKILL_TYPE_INSTANT:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
@@ -175,14 +173,10 @@ CManager.prototype = {
 				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;
 	    case this.gameConfig.SKILL_TYPE_PROJECTILE:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
 	      var projectiles = this.projectiles;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 	        //create projectile object and push to projectiles
-
 	        var projectile = skillInstance.makeProjectile(thisUser);
 	        projectiles.push(projectile);
 					setTimeout(function(){
@@ -197,9 +191,6 @@ CManager.prototype = {
 				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;
 	    case this.gameConfig.SKILL_TYPE_SELF:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
@@ -218,11 +209,6 @@ CManager.prototype = {
 		}
 		this.users[userID].setSkill(skillInstance);
 	},
-	// attackUser : function(userData){
-	// 	if(this.checkUserAtUsers(userData)){
-	// 		this.users[userData.objectID].changeState(this.gameConfig.currentState);
-	// 	}
-	// },
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);

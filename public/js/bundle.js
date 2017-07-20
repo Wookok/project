@@ -137,12 +137,13 @@ CManager.prototype = {
 		}
 	},
 	useSkill : function(userID, skillData){
-		var skillInstance = undefined;
-		switch (skillData.type) {
+		var skillInstance = this.users[userID].makeSkillInstance(skillData);
+		var thisUser = this.users[userID];
+		var thisEffects = this.effects;
+
+		switch (parseInt(skillData.type)) {
 			case this.gameConfig.SKILL_TYPE_BASIC:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
+	      // skillInstance = this.users[userID].makeSkillInstance(skillData);
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
@@ -158,9 +159,6 @@ CManager.prototype = {
 	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_ATTACK);
 	      break;
 	    case this.gameConfig.SKILL_TYPE_INSTANT:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
@@ -176,14 +174,10 @@ CManager.prototype = {
 				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;
 	    case this.gameConfig.SKILL_TYPE_PROJECTILE:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
 	      var projectiles = this.projectiles;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 	        //create projectile object and push to projectiles
-
 	        var projectile = skillInstance.makeProjectile(thisUser);
 	        projectiles.push(projectile);
 					setTimeout(function(){
@@ -198,9 +192,6 @@ CManager.prototype = {
 				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;
 	    case this.gameConfig.SKILL_TYPE_SELF:
-	      skillInstance = this.users[userID].makeSkillInstance(skillData);
-				thisUser = this.users[userID];
-				thisEffects = this.effects;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
@@ -219,11 +210,6 @@ CManager.prototype = {
 		}
 		this.users[userID].setSkill(skillInstance);
 	},
-	// attackUser : function(userData){
-	// 	if(this.checkUserAtUsers(userData)){
-	// 		this.users[userData.objectID].changeState(this.gameConfig.currentState);
-	// 	}
-	// },
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
@@ -457,15 +443,21 @@ module.exports = CObstacle;
 
 },{}],3:[function(require,module,exports){
 function CSkill(skillData, userAniStartTime){
-  this.type = skillData.type;
 
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
+
+
+  this.index = skillData.index;
+  this.type = skillData.type;
+  this.name = skillData.name;
   this.totalTime = skillData.totalTime;
   this.fireTime = skillData.fireTime;
+  this.range = skillData.range;
   this.explosionRadius = skillData.explosionRadius;
+
+  this.direction = skillData.direction;
   this.targetPosition = skillData.targetPosition;
-  this.direction;
   this.maxSpeed = skillData.maxSpeed;
   this.lifeTime = skillData.lifeTime;
 
@@ -521,10 +513,16 @@ var ProjectileSkill = function(user, skillInstance){
   this.startTime = Date.now();
 
   this.explosionRadius = skillInstance.explosionRadius;
-  this.lifeTime = skillInstance.lifeTime;
+
   this.radius = skillInstance.radius;
+  this.lifeTime = skillInstance.lifeTime;
+
+  this.direction = skillInstance.direction;
   this.position = {x : user.position.x, y : user.position.y};
-  this.speed = {x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180) , y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)};
+  this.speed = {
+    x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
+    y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
+  };
 };
 
 ProjectileSkill.prototype = {
@@ -717,7 +715,7 @@ module.exports = User;
 
 },{"../public/util.js":11,"./CSkill.js":3}],5:[function(require,module,exports){
 module.exports={
-"skillData" : "index,type,totalTime,fireTime,range,explosionRadius,radius,maxSpeed,lifeTime,effectLastTime\n1,0,5000,2500,100,100,0,0,0,10\n2,0,5000,2500,200,200,0,0,0,20\n3,1,5000,2500,500,500,0,0,0,30\n4,1,5000,2500,500,1000,0,0,0,40\n5,1,5000,2500,500,1500,0,0,0,50\n6,2,5000,2500,0,300,50,30,5000,60\n7,2,5000,2500,0,300,100,15,10000,70\n8,3,5000,2500,0,0,0,0,0,80"
+  "skillData" : "index,type,name,totalTime,fireTime,range,explosionRadius,radius,maxSpeed,lifeTime,effectLastTime,\n1,0,BaseSkill1,5000,2500,100,100,0,0,0,10,\n2,0,BaseSkill2,5000,2500,200,200,0,0,0,20,\n3,1,InstantSkill1,5000,2500,500,500,0,0,0,30,\n4,1,InstantSkill2,5000,2500,500,1000,0,0,0,40,\n5,1,InstantSkill3,5000,2500,500,1500,0,0,0,50,\n6,2,ProjectileSkill1,5000,2500,0,300,50,30,5000,60,\n7,2,ProjectileSkill2,5000,2500,0,300,100,15,10000,70,\n8,3,SelfSkill1,5000,2500,0,0,0,0,0,80"
 }
 
 },{}],6:[function(require,module,exports){
@@ -1840,35 +1838,39 @@ function setupSocket(){
     Manager.updateUserData(userData);
     Manager.moveUser(userData);
   });
-  socket.on('resSkill', function(userData, skill){
+  socket.on('resSkill', function(userData, resSkillData){
     if(userData.objectID === gameConfig.userID){
       revisionUserPos(userData);
     }
-    switch (skill.type) {
-      case gameConfig.SKILL_TYPE_BASIC:
-        skill.userAniStartTime = skillData.baseAttack.userAniStartTime;
-        skill.effectLastTime = skillData.baseAttack.effectLastTime;
-        skill.lifeTime = skillData.baseAttack.lifeTime;
-        break;
-      case gameConfig.SKILL_TYPE_INSTANT:
-        skill.userAniStartTime = skillData.instantRangeSkill.userAniStartTime;
-        skill.effectLastTime = skillData.instantRangeSkill.effectLastTime;
-        skill.lifeTime = skillData.instantRangeSkill.lifeTime;
-        break;
-      case gameConfig.SKILL_TYPE_PROJECTILE:
-        skill.userAniStartTime = skillData.projectileSkill.userAniStartTime;
-        skill.effectLastTime = skillData.projectileSkill.effectLastTime;
-        skill.lifeTime = skillData.projectileSkill.lifeTime;
-        break;
-      case gameConfig.SKILL_TYPE_SELF:
-        skill.userAniStartTime = skillData.selfSkill.userAniStartTime;
-        skill.effectLastTime = skillData.selfSkill.effectLastTime;
-        skill.lifeTime = skillData.selfSkill.lifeTime;
-        break;
-      default:
-    }
+    var skillData = util.findData(skillTable, 'index', resSkillData.index);
+
+    skillData.targetPosition = util.worldToLocalPosition(resSkillData.targetPosition, gameConfig.userOffset);
+    skillData.direction = resSkillData.direction;
+    // switch (skill.type) {
+    //   case gameConfig.SKILL_TYPE_BASIC:
+    //     skill.userAniStartTime = skillData.baseAttack.userAniStartTime;
+    //     skill.effectLastTime = skillData.baseAttack.effectLastTime;
+    //     skill.lifeTime = skillData.baseAttack.lifeTime;
+    //     break;
+    //   case gameConfig.SKILL_TYPE_INSTANT:
+    //     skill.userAniStartTime = skillData.instantRangeSkill.userAniStartTime;
+    //     skill.effectLastTime = skillData.instantRangeSkill.effectLastTime;
+    //     skill.lifeTime = skillData.instantRangeSkill.lifeTime;
+    //     break;
+    //   case gameConfig.SKILL_TYPE_PROJECTILE:
+    //     skill.userAniStartTime = skillData.projectileSkill.userAniStartTime;
+    //     skill.effectLastTime = skillData.projectileSkill.effectLastTime;
+    //     skill.lifeTime = skillData.projectileSkill.lifeTime;
+    //     break;
+    //   case gameConfig.SKILL_TYPE_SELF:
+    //     skill.userAniStartTime = skillData.selfSkill.userAniStartTime;
+    //     skill.effectLastTime = skillData.selfSkill.effectLastTime;
+    //     skill.lifeTime = skillData.selfSkill.lifeTime;
+    //     break;
+    //   default:
+    // }
     Manager.updateUserData(userData);
-    Manager.useSkill(userData.objectID, skill);
+    Manager.useSkill(userData.objectID, skillData);
 
     //create user castingEffect
     // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
@@ -1998,13 +2000,13 @@ function documentAddEvent(){
     var keyCode = e.keyCode;
     var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_BASIC});
+      socket.emit('reqSkill', 1);
     }else if(keyCode === 49){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_INSTANT}, tempPos);
+      socket.emit('reqSkill', 3, tempPos);
     }else if(keyCode === 50){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_PROJECTILE}, tempPos);
+      socket.emit('reqSkill', 6, tempPos);
     }else if(keyCode === 51){
-      socket.emit('reqSkill', {'type' : gameConfig.SKILL_TYPE_SELF});
+      socket.emit('reqSkill', 8);
     }
   }, false);
 }
