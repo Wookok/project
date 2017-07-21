@@ -160,7 +160,7 @@ exports.setTargetDirection = function(){
 //check obstacle collision
 exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   var returnVal = [];
-  var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
+  var obj = {x : posX, y: posY, width:radius * 2, height: radius * 2, id: id};
   tree.onCollision(obj, function(item){
     if(obj.id !== item.id){
       var objCenterX = obj.x + obj.width/2;
@@ -207,7 +207,7 @@ exports.calcCompelPos = function(obj, collisionObjs){
 
 exports.checkAndCalcCompelPos = function(tree, posX, posY, radius, id, obj){
   var collisionObjs = [];
-  var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
+  var obj = {x : posX, y: posY, width:radius * 2, height: radius * 2, id: id};
   tree.onCollision(obj, function(item){
     if(obj.id !== item.id){
       var objCenterX = obj.x + obj.width/2;
@@ -339,4 +339,17 @@ exports.findData = function(table, columnName, value){
     }
   }
   return data;
+}
+exports.findAndSetBuffs = function(skillData, buffTable, columnName, length){
+  var returnVal = [];
+  for(var i=0; i<length; i++){
+    var buffIndex = skillData[columnName + (i + 1)];
+    if(buffIndex === ''){
+      return returnVal;
+    }else{
+      var buffData = exports.findData(buffTable, 'index', buffIndex);
+      returnVal.push(buffData);
+    }
+  }
+  return returnVal;
 }

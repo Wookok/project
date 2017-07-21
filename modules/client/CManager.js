@@ -8,7 +8,9 @@ var map = require('../public/map.json');
 var QuadTree = require('../public/quadtree.min.js');
 
 var Obstacle = require('./CObstacle.js');
-var Skll = require('./CSkill.js');
+var Skill = require('./CSkill.js');
+
+var colliderEles = [];
 
 var staticTree;
 var staticEles = [];
@@ -82,11 +84,11 @@ CManager.prototype = {
 			this.obstacles[index].localPosition.y = localPos.y
 		}
 	},
-	updateProjectile : function(){
-		for(var index in this.projectiles){
-			this.projectiles[index].move();
-		}
-	},
+	// updateProjectile : function(){
+	// 	for(var index in this.projectiles){
+	// 		this.projectiles[index].move();
+	// 	}
+	// },
 	setUser : function(userData){
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData, this.gameConfig);
@@ -111,9 +113,6 @@ CManager.prototype = {
 		}else{
 			delete this.users[objID];
 		}
-	},
-	createSkillEffect : function(targetPos, radius, direction, lifeTime){
-
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){
@@ -177,14 +176,14 @@ CManager.prototype = {
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 	        //create projectile object and push to projectiles
-	        var projectile = skillInstance.makeProjectile(thisUser);
-	        projectiles.push(projectile);
-					setTimeout(function(){
-						var index = projectiles.indexOf(projectile);
-						if(index !== -1){
-							projectiles.splice(index, 1);
-						}
-					}, projectile.lifeTime);
+	        // var projectile = skillInstance.makeProjectile(thisUser);
+	        // projectiles.push(projectile);
+					// setTimeout(function(){
+					// 	var index = projectiles.indexOf(projectile);
+					// 	if(index !== -1){
+					// 		projectiles.splice(index, 1);
+					// 	}
+					// }, projectile.lifeTime);
 	      };
 				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
 				skillInstance.direction = this.users[userID].targetDirection;
@@ -209,6 +208,11 @@ CManager.prototype = {
 	      break;
 		}
 		this.users[userID].setSkill(skillInstance);
+	},
+	makeProjectile : function(projetileData){
+		console.log(Skill.prototype);
+		var projectile = Skill.prototype.makeProjectile(projetileData);
+		this.projectiles.push(projectile);
 	},
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
@@ -342,7 +346,15 @@ function staticIntervalHandler(){
 		staticTree.remove(staticEles[index]);
 	}
 	this.updateObstacleEles();
-	this.updateProjectile();
+	var i = this.projectiles.length;
+  while(i--){
+    if(this.projectiles[i].isExpired()){
+      this.projectiles.splice(i, 1);
+    }else{
+      this.projectiles[i].move();
+      colliderEles.push(this.projectiles[i].colliderEle);
+    }
+  }
   // for(var index in this.users){
   //   var tempUserEle = this.users[index].entityTreeEle;
   //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);

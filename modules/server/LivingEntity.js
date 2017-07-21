@@ -10,7 +10,6 @@ function LivingEntity(){
   GameObject.call(this);
   this.objectID = null;
 
-
   this.currentState = gameConfig.OBJECT_STATE_IDLE;
   this.currentSkill = undefined;
   this.isExecutedSkill = false;
@@ -59,8 +58,10 @@ LivingEntity.prototype.changeState = function(newState){
     }
   this.update();
 };
-LivingEntity.prototype.update = function(){
-  this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
+LivingEntity.prototype.update = function(){]
+  if(!this.updateInterval){
+    this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
+  }
 };
 
 //Instantiate base attack
@@ -87,7 +88,6 @@ LivingEntity.prototype.executeSkill = function(){
     this.currentSkill.executeSkill();
   }
 };
-
 //rotate before move or fire skill etc..
 LivingEntity.prototype.rotate = function(){
   util.rotate.call(this);

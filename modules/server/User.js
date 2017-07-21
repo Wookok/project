@@ -45,12 +45,27 @@ function User(id, userBaseTable, Exp){
 
   this.socketID = id;
 
+  this.buffUpdateInterval = false;
+
   this.getExp(0);
   this.updateUserStat();
 };
 User.prototype = Object.create(LivingEntity.prototype);
 User.prototype.constructor = User;
 
+User.prototype.buffUpdate = function(){
+  if(!this.buffUpdateInterval){
+    this.buffUpdateInterval = setInterval(buffUpdateHandler.bind(this), 1000);
+  }
+};
+function buffUpdateHandler(){
+  for(var i=0; i<this.buffList.length; i++){
+    this[this.buffList[i].buffType] += this.buffList[i].buffAmount;
+  }
+  for(var i=0; i<this.debuffList.length; i++){
+    this[this.debuffList[i].buffType] += this.debuffList[i].buffAmount;
+  }
+};
 User.prototype.getExp = function(exp){
   this.Exp += exp;
   var userLevelData = util.findData(userLevelDataTable, 'level', this.level);

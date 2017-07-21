@@ -17,6 +17,7 @@ var csvJsonOption = {delimiter : ',', quote : '"'};
 
 var skillTable = csvJson.toObject(dataJson.skillData, csvJsonOption);
 var userBaseTable = csvJson.toObject(dataJson.userBaseData, csvJsonOption);
+var buffTable = csvJson.toObject(dataJson.buffData, csvJsonOption);
 
 var util = require('./modules/public/util.js');
 
@@ -46,13 +47,17 @@ io.on('connection', function(socket){
   var user = new User(socket.id, userBaseTable[0], 0);
   var updateUserInterval = false;
 
-  GM.onNeedInform = function(userID){
+  GM.onNeedUserInform = function(userID){
     var userData = GM.updateDataSetting(GM.users[userID]);
     socket.emit('updateUser', userData);
   };
-  GM.onNeedInformToAll = function(userID){
+  GM.onNeedUserInformToAll = function(userID){
     var userData = GM.updateDataSetting(GM.users[userID]);
     io.sockets.emit('updateUser', userData);
+  }
+  GM.onNeedProjectileSkillInformToAll = function(projectile){
+    var projectileData = GM.updateProjectileDataSetting(projectile);
+    io.sockets.emit('setProjectile', projectileData);
   }
 
   socket.on('reqStartGame', function(){
@@ -92,6 +97,13 @@ io.on('connection', function(socket){
       if(!clickPosition){
         clickPosition = user.center;
       }
+      //find and set buffData, debuffData
+      skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3);
+      skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3);
+
+      skillData.debuffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'debuffToSelf', 3);
+      skillData.debuffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'debuffToTarget', 3);
+
       var skillInstance = GM.useSkill(user, skillData, clickPosition);
 
       var userData = GM.updateDataSetting(user);

@@ -12,10 +12,12 @@ function CSkill(skillData, userAniStartTime){
   this.range = skillData.range;
   this.explosionRadius = skillData.explosionRadius;
 
-  this.direction = skillData.direction;
-  this.targetPosition = skillData.targetPosition;
+  this.radius = skillData.radius;
   this.maxSpeed = skillData.maxSpeed;
   this.lifeTime = skillData.lifeTime;
+
+  this.direction = skillData.direction;
+  this.targetPosition = skillData.targetPosition;
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -48,12 +50,13 @@ CSkill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(user){
-    var projectile = new ProjectileSkill(user, this);
-    return projectile;
-  },
   skillAniIsExpired : function(){
     return this.aniTime + this.fireTime > Date.now() - this.startTime
+  },
+  //static function
+  makeProjectile : function(projectileData){
+    var projectile = new ProjectileSkill(projectileData);
+    return projectile;
   }
 };
 
@@ -68,20 +71,22 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(user, skillInstance){
+var ProjectileSkill = function(projectileData){
   this.startTime = Date.now();
 
-  this.explosionRadius = skillInstance.explosionRadius;
+  this.objectID = projectileData.objectID;
+  this.position = projectileData.position;
+  this.speed = projectileData.speed;
+  this.radius = projectileData.radius;
+  this.lifeTime = projectileData.lifeTime;
+  this.explosionRadius = projectileData.explosionRadius;
 
-  this.radius = skillInstance.radius;
-  this.lifeTime = skillInstance.lifeTime;
-
-  this.direction = skillInstance.direction;
-  this.position = {x : user.position.x, y : user.position.y};
-  this.speed = {
-    x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
-    y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
-  };
+  // this.direction = skillInstance.direction;
+  // this.position = {x : user.position.x, y : user.position.y};
+  // this.speed = {
+    // x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
+    // y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
+  // };
 };
 
 ProjectileSkill.prototype = {

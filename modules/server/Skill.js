@@ -14,6 +14,7 @@ var Skill = function(userID, skillData){
   this.fireTime = skillData.fireTime;
   this.range = skillData.range;
   this.explosionRadius = skillData.explosionRadius;
+  this.damage = skillData.damage;
 
   this.radius = skillData.radius;
   this.maxSpeed = skillData.maxSpeed;
@@ -21,13 +22,21 @@ var Skill = function(userID, skillData){
   //direction when fired
   this.direction;
 
+  this.buffsToSelf = skillData.buffsToSelf;
+  this.buffsToTarget = skillData.buffsToTarget;
+  this.debuffsToSelf = skillData.debuffsToSelf;
+  this.debuffsToTarget = skillData.debuffsToTarget;
+
   this.targetPosition = {};
   this.colliderEle = {
     id : this.userID,
     x : 0,
     y : 0,
-    width : this.explosionRadius,
-    height : this.explosionRadius,
+    width : this.explosionRadius * 2,
+    height : this.explosionRadius * 2,
+    damage : this.damage,
+    buffsToTarget : this.buffsToTarget,
+    debuffsToTarget : this.debuffsToTarget
   };
   this.fireTimeout = false;
   this.totalTimeout = false;
@@ -41,6 +50,24 @@ Skill.prototype = {
     this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), this.fireTime);
     this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);
   },
+  applyBuff : function(user, keyName, userBuffArrayName){
+    var userBuffList = user[userBuffArrayName];
+    for(var i=0; i<this[keyName].length; i++){
+      var thisBuff = this[keyName][i];
+      if(thisBuff.isPermanent){
+        userBuffList.push(thisBuff);
+      }else{
+        var buffTimeout = setTimeout(function(){
+          var index = thisBuffList.indexOf(thisBuff);
+          if(index !== -1){
+            userBuffList.splice(index, 1);
+          }
+        },this.buffsToSelf[i].timeDuration);
+        thisBuff.buffTimeout = buffTimeout;
+        userBuffList.push(thisBuff);
+      }
+    }
+  },
   destroy : function(){
     if(this.fireTimeout){
       console.log('clearTimeout');
@@ -50,8 +77,8 @@ Skill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(user){
-    var projectile = new ProjectileSkill(user, this);
+  makeProjectile : function(user, randomID){
+    var projectile = new ProjectileSkill(user, this, randomID);
     return projectile;
   },
   setDirection : function(userCenterPosition, userDirection, clickPosition){
@@ -117,10 +144,15 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(user, skillInstance){
+var ProjectileSkill = function(user, skillInstance, randomID){
   this.startTime = Date.now();
 
   this.userID = skillInstance.userID;
+  this.objectID = randomID;
+  this.damage = skillInstance.damage;
+  this.buffsToTarget = skillInstance.buffsToTarget;
+  this.debuffsToTarget = skillInstance.debuffsToTarget;
+
   this.explosionRadius = skillInstance.explosionRadius;
 
   this.radius = skillInstance.radius;
@@ -137,9 +169,14 @@ var ProjectileSkill = function(user, skillInstance){
     id : this.userID,
     x : this.position.x,
     y : this.position.y,
-    width : this.radius,
-    height : this.radius,
-    explosionRadius : this.explosionRadius
+    width : this.radius * 2,
+    height : this.radius * 2,
+
+    objectID : this.objectID,
+    explosionRadius : this.explosionRadius,
+    damage : this.damage,
+    buffsToTarget : this.buffsToTarget,
+    debuffsToSelf : this.debuffsToTarget
   }
 };
 ProjectileSkill.prototype = {

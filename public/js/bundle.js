@@ -9,7 +9,9 @@ var map = require('../public/map.json');
 var QuadTree = require('../public/quadtree.min.js');
 
 var Obstacle = require('./CObstacle.js');
-var Skll = require('./CSkill.js');
+var Skill = require('./CSkill.js');
+
+var colliderEles = [];
 
 var staticTree;
 var staticEles = [];
@@ -83,11 +85,11 @@ CManager.prototype = {
 			this.obstacles[index].localPosition.y = localPos.y
 		}
 	},
-	updateProjectile : function(){
-		for(var index in this.projectiles){
-			this.projectiles[index].move();
-		}
-	},
+	// updateProjectile : function(){
+	// 	for(var index in this.projectiles){
+	// 		this.projectiles[index].move();
+	// 	}
+	// },
 	setUser : function(userData){
 		if(!this.checkUserAtUsers(userData)){
 			var tempUser = new User(userData, this.gameConfig);
@@ -112,9 +114,6 @@ CManager.prototype = {
 		}else{
 			delete this.users[objID];
 		}
-	},
-	createSkillEffect : function(targetPos, radius, direction, lifeTime){
-
 	},
 	checkUserAtUsers : function(userData){
 		if(userData.objectID in this.users){
@@ -178,14 +177,14 @@ CManager.prototype = {
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
 	        //create projectile object and push to projectiles
-	        var projectile = skillInstance.makeProjectile(thisUser);
-	        projectiles.push(projectile);
-					setTimeout(function(){
-						var index = projectiles.indexOf(projectile);
-						if(index !== -1){
-							projectiles.splice(index, 1);
-						}
-					}, projectile.lifeTime);
+	        // var projectile = skillInstance.makeProjectile(thisUser);
+	        // projectiles.push(projectile);
+					// setTimeout(function(){
+					// 	var index = projectiles.indexOf(projectile);
+					// 	if(index !== -1){
+					// 		projectiles.splice(index, 1);
+					// 	}
+					// }, projectile.lifeTime);
 	      };
 				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
 				skillInstance.direction = this.users[userID].targetDirection;
@@ -210,6 +209,11 @@ CManager.prototype = {
 	      break;
 		}
 		this.users[userID].setSkill(skillInstance);
+	},
+	makeProjectile : function(projetileData){
+		console.log(Skill.prototype);
+		var projectile = Skill.prototype.makeProjectile(projetileData);
+		this.projectiles.push(projectile);
 	},
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
@@ -343,7 +347,15 @@ function staticIntervalHandler(){
 		staticTree.remove(staticEles[index]);
 	}
 	this.updateObstacleEles();
-	this.updateProjectile();
+	var i = this.projectiles.length;
+  while(i--){
+    if(this.projectiles[i].isExpired()){
+      this.projectiles.splice(i, 1);
+    }else{
+      this.projectiles[i].move();
+      colliderEles.push(this.projectiles[i].colliderEle);
+    }
+  }
   // for(var index in this.users){
   //   var tempUserEle = this.users[index].entityTreeEle;
   //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
@@ -457,10 +469,12 @@ function CSkill(skillData, userAniStartTime){
   this.range = skillData.range;
   this.explosionRadius = skillData.explosionRadius;
 
-  this.direction = skillData.direction;
-  this.targetPosition = skillData.targetPosition;
+  this.radius = skillData.radius;
   this.maxSpeed = skillData.maxSpeed;
   this.lifeTime = skillData.lifeTime;
+
+  this.direction = skillData.direction;
+  this.targetPosition = skillData.targetPosition;
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -493,12 +507,13 @@ CSkill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(user){
-    var projectile = new ProjectileSkill(user, this);
-    return projectile;
-  },
   skillAniIsExpired : function(){
     return this.aniTime + this.fireTime > Date.now() - this.startTime
+  },
+  //static function
+  makeProjectile : function(projectileData){
+    var projectile = new ProjectileSkill(projectileData);
+    return projectile;
   }
 };
 
@@ -513,20 +528,22 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(user, skillInstance){
+var ProjectileSkill = function(projectileData){
   this.startTime = Date.now();
 
-  this.explosionRadius = skillInstance.explosionRadius;
+  this.objectID = projectileData.objectID;
+  this.position = projectileData.position;
+  this.speed = projectileData.speed;
+  this.radius = projectileData.radius;
+  this.lifeTime = projectileData.lifeTime;
+  this.explosionRadius = projectileData.explosionRadius;
 
-  this.radius = skillInstance.radius;
-  this.lifeTime = skillInstance.lifeTime;
-
-  this.direction = skillInstance.direction;
-  this.position = {x : user.position.x, y : user.position.y};
-  this.speed = {
-    x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
-    y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
-  };
+  // this.direction = skillInstance.direction;
+  // this.position = {x : user.position.x, y : user.position.y};
+  // this.speed = {
+    // x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
+    // y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
+  // };
 };
 
 ProjectileSkill.prototype = {
@@ -1170,7 +1187,8 @@ function _csvToArray(text, delimit, quote) {
 module.exports={
   "userBaseData" : "baseHP,baseMP,baseMaxSpeed,baseHPRegen,baseMPRegen,baseHPRegenRate,baseMPRegenRate,baseAttackSpeed,baseCastSpeed,baseDamageRate\n100,1000,15,0.5,5,1,1,1,1,1",
   "userLevelData" : "level,needExp,LevelBonusType1,LevelBonusAmount1,LevelBonusType2,LevelBonusAmount2,LevelBonusType3,LevelBonusAmount3\n1,100,,,,,,\n2,150,baseHP,10,baseMP,100,,\n3,250,baseHP,11,baseMP,101,,\n4,400,baseHP,12,baseMP,102,,\n5,600,baseHP,13,baseMP,103,,\n6,850,baseHP,14,baseMP,104,,\n7,1150,baseHP,15,baseMP,105,,\n8,1500,baseHP,16,baseMP,106,,\n9,1900,baseHP,17,baseMP,107,,\n10,2350,baseHP,18,baseMP,108,,\n11,2850,baseHP,19,baseMP,109,,\n12,3400,baseHP,20,baseMP,110,,\n13,4000,baseHP,21,baseMP,111,,\n14,4650,baseHP,22,baseMP,112,,\n15,5350,baseHP,23,baseMP,113,,\n16,6100,baseHP,24,baseMP,114,,\n17,6900,baseHP,25,baseMP,115,,\n18,7750,baseHP,26,baseMP,116,,\n19,8650,baseHP,27,baseMP,117,,\n20,-1,baseHP,28,baseMP,118,,",
-  "skillData" : "index,type,name,totalTime,fireTime,range,explosionRadius,radius,maxSpeed,lifeTime,effectLastTime,\n1,0,BaseSkill1,5000,2500,100,100,0,0,0,10,\n2,0,BaseSkill2,5000,2500,200,200,0,0,0,20,\n3,1,InstantSkill1,5000,2500,500,500,0,0,0,30,\n4,1,InstantSkill2,5000,2500,500,1000,0,0,0,40,\n5,1,InstantSkill3,5000,2500,500,1500,0,0,0,50,\n6,2,ProjectileSkill1,5000,2500,0,300,50,30,5000,60,\n7,2,ProjectileSkill2,5000,2500,0,300,100,15,10000,70,\n8,3,SelfSkill1,5000,2500,0,0,0,0,0,80"
+  "skillData" : "index,type,name,totalTime,fireTime,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n1,0,BaseSkill1,5000,2500,100,100,0,50,,,,,,,,,,,,,0,0,0,10\n2,0,BaseSkill2,5000,2500,200,200,0,100,,,,,,,,,,,,,0,0,0,20\n3,1,InstantSkill1,5000,2500,500,500,100,200,,,,,,,,,,,,,0,0,0,30\n4,1,InstantSkill2,5000,2500,500,1000,200,200,,,,,,,,,,,,,0,0,0,40\n5,1,InstantSkill3,5000,2500,500,1500,300,200,,,,,,,,,,,,,0,0,0,50\n6,2,ProjectileSkill1,5000,2500,0,300,150,50,,,,,,,,,,,,,50,30,5000,60\n7,2,ProjectileSkill2,5000,2500,0,300,150,100,,,,,,,,,,,,,100,15,10000,70\n8,3,SelfSkill1,1000,500,0,0,500,0,1,,,,,,,,,,,,0,0,0,10\n9,3,SelfSkill2,1000,500,0,0,500,0,2,,,,,,,,,,,,0,0,0,10\n10,3,SelfSkill3,1000,500,0,0,500,0,3,,,,,,,,,,,,0,0,0,10\n11,3,SelfSkill4,1000,500,0,0,500,0,4,,,,,,,,,,,,0,0,0,10\n12,3,SelfSkill5,1000,500,0,0,500,0,5,,,,,,,,,,,,0,0,0,10\n13,3,SelfSkill6,1000,500,0,0,500,0,6,,,,,,,,,,,,0,0,0,10\n",
+  "buffData" : "index,name,isPermanent,timeDuration,buffType,buffAmount,buffRate\n1,damageUP1,0,60000,baseDamage,20,0\n2,damageUP2,0,60000,baseDamage,30,0\n3,damageUP3,1,0,baseDamageRate,0,50\n4,Heal1,0,60000,currentHP,10,0\n5,Heal2,0,60000,currentHP,20,0\n6,Heal3,0,60000,currentHP,-30,0\n"
 }
 
 },{}],7:[function(require,module,exports){
@@ -1391,7 +1409,7 @@ exports.setTargetDirection = function(){
 //check obstacle collision
 exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   var returnVal = [];
-  var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
+  var obj = {x : posX, y: posY, width:radius * 2, height: radius * 2, id: id};
   tree.onCollision(obj, function(item){
     if(obj.id !== item.id){
       var objCenterX = obj.x + obj.width/2;
@@ -1438,7 +1456,7 @@ exports.calcCompelPos = function(obj, collisionObjs){
 
 exports.checkAndCalcCompelPos = function(tree, posX, posY, radius, id, obj){
   var collisionObjs = [];
-  var obj = {x : posX, y: posY, width:radius, height: radius, id: id};
+  var obj = {x : posX, y: posY, width:radius * 2, height: radius * 2, id: id};
   tree.onCollision(obj, function(item){
     if(obj.id !== item.id){
       var objCenterX = obj.x + obj.width/2;
@@ -1570,6 +1588,19 @@ exports.findData = function(table, columnName, value){
     }
   }
   return data;
+}
+exports.findAndSetBuffs = function(skillData, buffTable, columnName, length){
+  var returnVal = [];
+  for(var i=0; i<length; i++){
+    var buffIndex = skillData[columnName + (i + 1)];
+    if(buffIndex === ''){
+      return returnVal;
+    }else{
+      var buffData = exports.findData(buffTable, 'index', buffIndex);
+      returnVal.push(buffData);
+    }
+  }
+  return returnVal;
 }
 
 },{"./gameConfig.json":7}],12:[function(require,module,exports){
@@ -1819,6 +1850,10 @@ function setupSocket(){
     // user state change
     // animation start
   });
+  socket.on('setProjectile', function(projectileData){
+    console.log(projectileData);
+    Manager.makeProjectile(projectileData);
+  })
   socket.on('updateUser', function(userData){
     console.log('in updateUser')
     console.log(userData);
@@ -1888,11 +1923,11 @@ function drawEffect(){
     ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius/2, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius/2, gameConfig.userOffset.y);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius, gameConfig.userOffset.y);
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].explosionRadius/2, -Manager.effects[index].explosionRadius/2, Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius);
+    ctx.fillRect(-Manager.effects[index].explosionRadius, -Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.restore();
