@@ -408,7 +408,7 @@ function affectIntervalHandler(){
 // ({func : 'damageToUser', attackUser : tempCollider.id, hitUser : item.id, damage : tempCollider.damage })
 
 var onMoveCalcCompelPos = function(user){
-  var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width, user.entityTreeEle.id);
+  var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width/2, user.entityTreeEle.id);
   if(collisionObjs.length > 0 ){
     var addPos = util.calcCompelPos(user.entityTreeEle, collisionObjs);
   }

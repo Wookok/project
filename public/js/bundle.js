@@ -340,7 +340,7 @@ CManager.prototype = {
 function staticIntervalHandler(){
 	//user elements update for collision check
 	for(var index in this.users){
-		this.users[index].setUserEle();
+		this.users[index].setEntityEle();
 	}
 	//obstacle elements remove at tree and update position
 	for(var index in staticEles){
@@ -395,7 +395,7 @@ function affectIntervalHandler(){
   // }
 };
 var onMoveCalcCompelPos = function(user){
-	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width, user.entityTreeEle.id);
+	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width/2, user.entityTreeEle.id);
   if(collisionObjs.length > 0 ){
     var addPos = util.calcCompelPos(user.entityTreeEle, collisionObjs);
   }
@@ -689,7 +689,7 @@ User.prototype = {
       this.skillEffectPlay = false;
     }
   },
-  setUserEle : function(){
+  setEntityEle : function(){
     this.entityTreeEle = {
       x : this.position.x,
       y : this.position.y,
@@ -1329,9 +1329,11 @@ exports.move = function(){
     this.speed.y = distY;
   }
 
+  // this.setEntityEle();
   // check collision with obstacle
   // calculate compel add pos
   // add compel pos to postion
+  // console.log(this.position);
   var addPos = this.onMove(this);
   if(addPos !== undefined){
     this.position.x += addPos.x;
@@ -1356,6 +1358,7 @@ exports.moveOffset = function(){
   if(Math.abs(distY) < Math.abs(this.speed.y)){
     this.speed.y = distY;
   }
+  // this.setEntityEle();
   var addPos = this.onMove(this);
   if(addPos !== undefined){
     this.targetPosition.x -= addPos.x;
@@ -1412,6 +1415,8 @@ exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   var obj = {x : posX, y: posY, width:radius * 2, height: radius * 2, id: id};
   tree.onCollision(obj, function(item){
     if(obj.id !== item.id){
+      console.log(obj);
+      console.log(item);
       var objCenterX = obj.x + obj.width/2;
       var objCenterY = obj.y + obj.height/2;
 
@@ -1430,6 +1435,8 @@ exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   return returnVal;
 };
 exports.calcCompelPos = function(obj, collisionObjs){
+  console.log(obj);
+  console.log(collisionObjs);
   var addPos = { x : 0 , y : 0 };
   for(var i in collisionObjs){
     var objCenterX = obj.x + obj.width/2;

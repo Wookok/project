@@ -339,7 +339,7 @@ CManager.prototype = {
 function staticIntervalHandler(){
 	//user elements update for collision check
 	for(var index in this.users){
-		this.users[index].setUserEle();
+		this.users[index].setEntityEle();
 	}
 	//obstacle elements remove at tree and update position
 	for(var index in staticEles){
@@ -394,7 +394,7 @@ function affectIntervalHandler(){
   // }
 };
 var onMoveCalcCompelPos = function(user){
-	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width, user.entityTreeEle.id);
+	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width/2, user.entityTreeEle.id);
   if(collisionObjs.length > 0 ){
     var addPos = util.calcCompelPos(user.entityTreeEle, collisionObjs);
   }

@@ -58,7 +58,7 @@ LivingEntity.prototype.changeState = function(newState){
     }
   this.update();
 };
-LivingEntity.prototype.update = function(){]
+LivingEntity.prototype.update = function(){
   if(!this.updateInterval){
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   }

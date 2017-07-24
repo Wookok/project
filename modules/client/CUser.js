@@ -120,7 +120,7 @@ User.prototype = {
       this.skillEffectPlay = false;
     }
   },
-  setUserEle : function(){
+  setEntityEle : function(){
     this.entityTreeEle = {
       x : this.position.x,
       y : this.position.y,
