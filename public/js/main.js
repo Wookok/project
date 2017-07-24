@@ -246,7 +246,12 @@ function setupSocket(){
   });
   socket.on('setProjectile', function(projectileData){
     console.log(projectileData);
-    Manager.makeProjectile(projectileData);
+    if(projectileData.explode){
+      var skillData = util.findData(skillTable, 'index', projectileData.index);
+      Manager.explodeProjectile(projectileData, skillData.effectLastTime);
+    }else{
+      Manager.makeProjectile(projectileData);
+    }
   })
   socket.on('updateUser', function(userData){
     console.log('in updateUser')
@@ -317,11 +322,11 @@ function drawEffect(){
     ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius, gameConfig.userOffset.y);
+    var centerX = Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius;
+    var centerY = Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius;
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].explosionRadius, -Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius);
+    ctx.fillRect(-Manager.effects[index].explosionRadius, -Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius * 2, Manager.effects[index].explosionRadius * 2);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.restore();

@@ -134,8 +134,8 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
       user.changeState(gameConfig.OBJECT_STATE_CAST);
       break;
     case gameConfig.SKILL_TYPE_PROJECTILE:
-      var projectiels = this.projectiles;
-      var onProjectileFire = this.onNeedProjectileSkillInformToAll;
+      var projectiles = this.projectiles;
+      var onProjectileFireOrExplode = this.onNeedProjectileSkillInformToAll;
       skillInstance.onFire = function(){
         //buff and debuff apply to self;
         skillInstance.applyBuff(user, 'buffsToSelf', 'buffList');
@@ -152,10 +152,11 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
           }
         }
         var projectile = skillInstance.makeProjectile(user, randomID);
+        projectile.onExplosion = onProjectileFireOrExplode;
         console.log(projectile);
-        projectiels.push(projectile);
+        projectiles.push(projectile);
         colliderEles.push(projectile.colliderEle);
-        onProjectileFire(projectile);
+        onProjectileFireOrExplode(projectile);
       };
       user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
       user.changeState(gameConfig.OBJECT_STATE_CAST);
@@ -179,6 +180,7 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
   this.users[user.objectID].onMove = onMoveCalcCompelPos.bind(this);
+  this.users[user.objectID].onDeath = onUserDeath.bind(this);
   console.log(this.users);
   console.log(user.objectID + ' join in GameManager');
 };
@@ -292,14 +294,15 @@ GameManager.prototype.updateSkillsDataSettings = function(){
 };
 GameManager.prototype.updateProjectileDataSetting = function(projectile){
   var projectileData = {
+    index : projectile.index,
     objectID : projectile.objectID,
     position : projectile.position,
     speed : projectile.speed,
     radius : projectile.radius,
     lifeTime : projectile.lifeTime,
-    explosionRadius : projectile.explosionRadius
+    explosionRadius : projectile.explosionRadius,
+    explode : projectile.colliderEle.isCollide,
   }
-  console.log(projectileData);
   return projectileData;
 };
 GameManager.prototype.updateProjectilesDataSettings = function(){
@@ -314,16 +317,31 @@ GameManager.prototype.checkStateIsAttack = function(user){
 
 function updateIntervalHandler(){
   for(var i=0; i<colliderEles.length; i++){
+    //tempCollider == skill
     var tempCollider = colliderEles[i];
+    //collision with user
     var collisionObjs = util.checkCircleCollision(entityTree, tempCollider.x, tempCollider.y, tempCollider.width, tempCollider.id);
     if(collisionObjs.length > 0){
-      for(var index in collisionObjs){
-        if(!tempCollider.objectID){
-          affectedEles.push({attackUser : tempCollider.id, hitUser : collisionObjs[index].id, damage : tempCollider.damage,
-                            buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
+      for(var j = 0; j<collisionObjs.length; j++){
+        if(tempCollider.objectID){
+          if(tempCollider.isCollide){
+            affectedEles.push({objectID : tempCollider.objectID, attackUser : tempCollider.id, hitUser : collisionObjs[j].id, damage : tempCollider.damage,
+                              buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
+            // for(var i=0; i<this.projectiles; i++){
+            //   if(this.projectiles[i].objectID === tempCollider.objectID){
+            //     this.projectiles.splice(i, 1);
+            //   }
+            // }
+          }else{
+            for(var k=0; j<this.projectiles; k++){
+              if(this.projectiles[k].objectID === tempCollider.objectID){
+                this.projectiles[k].explode();
+              }
+            }
+          }
         }else{
           //case projectile
-          affectedEles.push({objectID : tempCollider.objectID, attackUser : tempCollider.id, hitUser : collisionObjs[index].id, damage : tempCollider.damage,
+          affectedEles.push({attackUser : tempCollider.id, hitUser : collisionObjs[j].id, damage : tempCollider.damage,
                             buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
         }
       }
@@ -365,7 +383,7 @@ function updateIntervalHandler(){
   //update projectiles array
   var i = this.projectiles.length;
   while(i--){
-    if(this.projectiles[i].isExpired()){
+    if(this.projectiles[i].isExpired() || this.projectiles[i].colliderEle.isCollide){
       this.projectiles.splice(i, 1);
     }else{
       this.projectiles[i].move();
@@ -380,28 +398,42 @@ function updateIntervalHandler(){
   entityTree.pushAll(userEles);
 };
 function staticIntervalHandler(){
-  // for(var index in this.users){
-  //   var tempUserEle = this.users[index].entityTreeEle;
-  //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
-  //   if(collisionObjs.length > 0 ){
-  //     var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
-  //     // affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
-  //   }
-  // }
+  for(var i=0; i<this.projectiles; i++){
+    var projectileCollider = this.projectiles[i].colliderEle;
+    var collisionObjs = util.checkCircleCollision(staticTree, projectileCollider.x, projectileCollider.y, projectileCollider.width/2, projectileCollider.id);
+    if(collisionObjs.length > 0 ){
+      for(var j = 0; j<collisionObjs.length; j++){
+        if(!projectileCollider.isCollide){
+          for(var k=0; k<this.projectiles; k++){
+            if(this.projectiles[k].objectID === tempCollider.objectID){
+              this.projectiles[k].explode();
+            }
+          }
+        }
+      }
+    }
+  }
 };
 
 function affectIntervalHandler(){
   var i = affectedEles.length;
   while(i--){
-    if(affectedEles[i].objectID){
-      //projectiles
-      console.log(affectedEles[i]);
-      //explode projectile;
-    }else{
-      console.log(affectedEles[i]);
-      // this.onNeedInformToAll(affectedEles[i].hitUser);
-      // console.log(affectedEles[i])
+    if(affectedEles[i].hitUser in this.users){
+      this.users[affectedEles[i].hitUser].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
+      //buff and debuff apply
+      for(var j=0; j<affectedEles[i].buffsToTarget.length; j++){
+        this.users.buffList.push(affectedEles[i].buffsToTarget[j]);
+      }
+      for(var j=0; j<affectedEles[i].debuffsToTarget.length; j++){
+        this.users.debuffList.push(affectedEles[i].debuffsToTarget[j]);
+      }
     }
+    //projectiles
+    // {attackUser : tempCollider.id, hitUser : collisionObjs[index].id,
+    // damage : tempCollider.damage, buffsToTarget : tempCollider.buffsToTarget,
+    // debuffsToTarget : tempCollider.debuffsToTarget}
+    console.log(affectedEles[i]);
+    //explode projectile;
     affectedEles.splice(i, 1);
   }
 };
@@ -413,6 +445,13 @@ var onMoveCalcCompelPos = function(user){
     var addPos = util.calcCompelPos(user.entityTreeEle, collisionObjs);
   }
   return addPos;
+};
+var onUserDeath = function(attackUserID, exp, deadUser){
+  if(attackUserID in this.users){
+    this.users[attackUserID].getExp(exp);
+  }else{
+    console.log(attackUserID + ' is not exists');
+  }
 };
 
 function generateRandomID(prefix){

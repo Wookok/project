@@ -147,6 +147,7 @@ function totalTimeoutHandler(){
 var ProjectileSkill = function(user, skillInstance, randomID){
   this.startTime = Date.now();
 
+  this.index = skillInstance.index;
   this.userID = skillInstance.userID;
   this.objectID = randomID;
   this.damage = skillInstance.damage;
@@ -173,13 +174,25 @@ var ProjectileSkill = function(user, skillInstance, randomID){
     height : this.radius * 2,
 
     objectID : this.objectID,
-    explosionRadius : this.explosionRadius,
     damage : this.damage,
     buffsToTarget : this.buffsToTarget,
-    debuffsToSelf : this.debuffsToTarget
+    debuffsToTarget : this.debuffsToTarget,
+
+    isCollide : false
   }
+  //inform client to explode
+  this.onExplosion = new Function();
 };
+
 ProjectileSkill.prototype = {
+  explode : function(){
+    this.colliderEle.width = this.explosionRadius * 2;
+    this.colliderEle.height = this.explosionRadius * 2;
+    this.colliderEle.isCollide = true;
+    this.speed.x = 0;
+    this.speed.y = 0;
+    this.onExplosion(this);
+  },
   move : function(){
     this.position.x += this.speed.x;
     this.position.y += this.speed.y;
@@ -187,13 +200,11 @@ ProjectileSkill.prototype = {
     this.colliderEle.x = this.position.x;
     this.colliderEle.y = this.position.y;
   },
-  hit : function(user){
-    console.log('hit something');
-  },
   isExpired : function(){
     if(this.lifeTime > Date.now() - this.startTime){
       return false;
     }else{
+      this.explode();
       return true;
     }
   }

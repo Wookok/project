@@ -32,7 +32,7 @@ function User(id, userBaseTable, Exp){
 
   //current stat
   this.HP;
-  this.currentHP;
+  this.currentHP = 100;
   this.MP;
   this.currentMP;
   // this.maxSpeed;
@@ -47,12 +47,26 @@ function User(id, userBaseTable, Exp){
 
   this.buffUpdateInterval = false;
 
+  this.onDeath = new Function();
+
   this.getExp(0);
-  this.updateUserStat();
+  this.setUserStatToMaxBase();
 };
 User.prototype = Object.create(LivingEntity.prototype);
 User.prototype.constructor = User;
 
+User.prototype.takeDamage = function(attackUserID, dmg){
+  this.currentHP -= dmg;
+  if(this.currentHP <= 0){
+    this.death(attackUserID);
+  }
+};
+User.prototype.death = function(attackUserID){
+  //calculate exp to attacker
+  console.log(this.objectID + ' is dead by ' + attackUserID);
+  var exp = this.level *  10000;
+  this.onDeath(attackUserID, exp, this);
+};
 User.prototype.buffUpdate = function(){
   if(!this.buffUpdateInterval){
     this.buffUpdateInterval = setInterval(buffUpdateHandler.bind(this), 1000);
@@ -69,18 +83,22 @@ function buffUpdateHandler(){
 User.prototype.getExp = function(exp){
   this.Exp += exp;
   var userLevelData = util.findData(userLevelDataTable, 'level', this.level);
-  if(this.Exp >= userLevelData.needExp){
+  if(userLevelData.needExp === -1){
+    console.log('user reach max level');
+  }else if(this.Exp >= userLevelData.needExp){
     this.levelUp();
   }
 };
 User.prototype.levelUp = function(){
   this.level ++;
   var userLevelData = util.findData(userLevelDataTable, 'level', this.level);
+  console.log('level up to ' + this.level);
   //add levelBonus
   //additional level up check.
   this.updateUserBaseStat();
   this.getExp(0);
 };
+//execute when level up or down
 User.prototype.updateUserBaseStat = function(){
   for(var index in this.levelBonus){
     switch (index) {
@@ -101,7 +119,19 @@ User.prototype.updateUserBaseStat = function(){
   this.baseAttackSpeed;
   this.baseCastSpeed;
   this.baseDamageRate;
-}
+};
+User.prototype.setUserStatToMaxBase = function(){
+  this.HP           = this.baseHP           ;
+  this.MP           = this.baseMP           ;
+  this.maxSpeed     = 10     ;
+  this.HPRegen      = this.baseHPRegen      ;
+  this.MPRegen      = this.baseMPRegen      ;
+  this.attackSpeed  = this.baseAttackSpeed  ;
+  this.castSpeed    = this.baseCastSpeed    ;
+  this.damageRate   = this.baseDamageRate   ;
+  this.rotateSpeed  = 10                    ;
+};
+//execute every frame?
 User.prototype.updateUserStat = function(){
   for(var index in this.buffList){
 
@@ -111,13 +141,13 @@ User.prototype.updateUserStat = function(){
   }
   this.HP           = this.baseHP           ;
   this.MP           = this.baseMP           ;
-  this.maxSpeed     = this.baseMaxSpeed     ;
+  this.maxSpeed     = 10     ;
   this.HPRegen      = this.baseHPRegen      ;
   this.MPRegen      = this.baseMPRegen      ;
   this.attackSpeed  = this.baseAttackSpeed  ;
   this.castSpeed    = this.baseCastSpeed    ;
   this.damageRate   = this.baseDamageRate   ;
-  this.rotateSpeed  = 20                    ;
+  this.rotateSpeed  = 10                    ;
 };
 
 module.exports = User;

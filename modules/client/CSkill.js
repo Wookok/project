@@ -1,4 +1,6 @@
-function CSkill(skillData, userAniStartTime){
+var util = require('../public/util.js');
+
+function CSkill(skillData, userAniStartTime, offset){
 
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
@@ -17,7 +19,7 @@ function CSkill(skillData, userAniStartTime){
   this.lifeTime = skillData.lifeTime;
 
   this.direction = skillData.direction;
-  this.targetPosition = skillData.targetPosition;
+  this.targetPosition = util.worldToLocalPosition(skillData.targetPosition, offset);
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -54,9 +56,17 @@ CSkill.prototype = {
     return this.aniTime + this.fireTime > Date.now() - this.startTime
   },
   //static function
-  makeProjectile : function(projectileData){
-    var projectile = new ProjectileSkill(projectileData);
+  makeProjectile : function(projectileData, offset){
+    var projectile = new ProjectileSkill(projectileData, offset);
     return projectile;
+  },
+  makeProjectileEffect : function(projectileData, offset){
+    var returnVal = {
+      targetPosition : util.worldToLocalPosition(projectileData.position, offset),
+      explosionRadius : projectileData.explosionRadius,
+      direction : 0
+    }
+    return returnVal;
   }
 };
 
@@ -71,16 +81,17 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(projectileData){
+var ProjectileSkill = function(projectileData, offset){
   this.startTime = Date.now();
 
   this.objectID = projectileData.objectID;
-  this.position = projectileData.position;
+  this.position = util.worldToLocalPosition(projectileData.position, offset);
   this.speed = projectileData.speed;
   this.radius = projectileData.radius;
   this.lifeTime = projectileData.lifeTime;
   this.explosionRadius = projectileData.explosionRadius;
 
+  this.currentOffset = offset;
   // this.direction = skillInstance.direction;
   // this.position = {x : user.position.x, y : user.position.y};
   // this.speed = {
@@ -93,6 +104,16 @@ ProjectileSkill.prototype = {
   move : function(){
     this.position.x += this.speed.x;
     this.position.y += this.speed.y;
+    if(this.currentOffset == offset){
+      this.revision(offset);
+    }
+  },
+  revision : function(offset){
+    var diffX = this.currentOffset.x - offset.x;
+    var diffY = this.currentOffset.y - offset.y;
+    this.position.x -= diffX;
+    this.position.y -= diffY;
+    this.currentOffset = offset;
   },
   hit : function(user){
     console.log('hit something');

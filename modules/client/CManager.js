@@ -211,8 +211,19 @@ CManager.prototype = {
 	},
 	makeProjectile : function(projetileData){
 		console.log(Skill.prototype);
-		var projectile = Skill.prototype.makeProjectile(projetileData);
+		var projectile = Skill.prototype.makeProjectile(projetileData, this.gameConfig.userOffset);
 		this.projectiles.push(projectile);
+	},
+	explodeProjectile : function(projectileData, effectLastTime){
+		var thisEffects = this.effects;
+		var projectileEffect = Skill.prototype.makeProjectileEffect(projectileData, this.gameConfig.userOffset);
+		thisEffects.push(projectileEffect)
+		setTimeout(function(){
+			var index = thisEffects.indexOf(projectile);
+			if(index !== -1){
+				thisEffects.splice(index, 1);
+			}
+		}, effectLastTime);
 	},
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
@@ -351,7 +362,7 @@ function staticIntervalHandler(){
     if(this.projectiles[i].isExpired()){
       this.projectiles.splice(i, 1);
     }else{
-      this.projectiles[i].move();
+      this.projectiles[i].move(this.gameConfig.userOffset);
       colliderEles.push(this.projectiles[i].colliderEle);
     }
   }

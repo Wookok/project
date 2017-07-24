@@ -130,7 +130,7 @@ User.prototype = {
     };
   },
   makeSkillInstance : function(skillData){
-    var skillInstance = new Skill(skillData, skillData.fireTime - 100);
+    var skillInstance = new Skill(skillData, skillData.fireTime - 100, this.gameConfig.userOffset);
     skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
     skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
     return skillInstance;
