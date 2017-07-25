@@ -36,7 +36,6 @@ function GameManager(){
 };
 
 GameManager.prototype.start = function(){
-
   entityTree = new QuadTree({
     width : gameConfig.CANVAS_MAX_SIZE.width,
     height : gameConfig.CANVAS_MAX_SIZE.height,
@@ -277,7 +276,9 @@ GameManager.prototype.updateSkillDataSetting = function(skill){
   var skillData = {
     index : skill.index,
     targetPosition : skill.targetPosition,
-    direction : skill.direction
+    direction : skill.direction,
+    totalTime : skill.totalTime,
+    fireTime : skillData.fireTime
     // type : skill.type,
     // timeSpan : Date.now() - skill.startTime,
     // totalTime : skill.totalTime,
