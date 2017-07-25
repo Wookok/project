@@ -1,6 +1,6 @@
 var GameObject = require('./GameObject.js');
 var util = require('../public/util.js');
-var Skill = require('./Skill.js');
+// var Skill = require('./Skill.js');
 
 var gameConfig = require('../public/gameConfig.json');
 
@@ -11,8 +11,8 @@ function LivingEntity(){
   this.objectID = null;
 
   this.currentState = gameConfig.OBJECT_STATE_IDLE;
-  this.currentSkill = undefined;
-  this.isExecutedSkill = false;
+  // this.currentSkill = undefined;
+  // this.isExecutedSkill = false;
 
   this.speed = {x: 0, y:0};
   this.direction = 0;
@@ -63,31 +63,31 @@ LivingEntity.prototype.update = function(){
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   }
 };
-
-//Instantiate base attack
-LivingEntity.prototype.makeSkillInstance = function(skillData, clickPosition){
-  var skillInstance = new Skill(this.objectID, skillData);
-  skillInstance.setDirection(this.center, this.direction, clickPosition);
-  skillInstance.setTargetPosition(this.center, this.direction, clickPosition);
-  skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
-  return skillInstance;
-};
-function onTimeOverHandler(skillInstance){
-  skillInstance.destroy();
-  this.currentSkill = undefined;
-  this.isExecutedSkill = false;
-  this.changeState(gameConfig.OBJECT_STATE_IDLE);
-};
-LivingEntity.prototype.setSkill = function(skillInstance){
-  this.currentSkill = skillInstance;
-};
-//excute skill
-LivingEntity.prototype.executeSkill = function(){
-  if(!this.isExecutedSkill){
-    this.isExecutedSkill = true;
-    this.currentSkill.executeSkill();
-  }
-};
+//
+// //Instantiate base attack
+// LivingEntity.prototype.makeSkillInstance = function(skillData, clickPosition){
+//   var skillInstance = new Skill(this.objectID, skillData);
+//   skillInstance.setDirection(this.center, this.direction, clickPosition);
+//   skillInstance.setTargetPosition(this.center, this.direction, clickPosition);
+//   skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
+//   return skillInstance;
+// };
+// function onTimeOverHandler(skillInstance){
+//   skillInstance.destroy();
+//   this.currentSkill = undefined;
+//   this.isExecutedSkill = false;
+//   this.changeState(gameConfig.OBJECT_STATE_IDLE);
+// };
+// LivingEntity.prototype.setSkill = function(skillInstance){
+//   this.currentSkill = skillInstance;
+// };
+// //excute skill
+// LivingEntity.prototype.executeSkill = function(){
+//   if(!this.isExecutedSkill){
+//     this.isExecutedSkill = true;
+//     this.currentSkill.executeSkill();
+//   }
+// };
 //rotate before move or fire skill etc..
 LivingEntity.prototype.rotate = function(){
   util.rotate.call(this);
@@ -99,39 +99,39 @@ LivingEntity.prototype.move = function(){
 LivingEntity.prototype.idle = function(){
   //do nothing or send current stat to client;
 };
-LivingEntity.prototype.attack = function(){
-  if(!this.isExecutedSkill && this.currentSkill !== undefined){
-    this.isExecutedSkill = true;
-    this.currentSkill.executeSkill();
-  }
-};
+// LivingEntity.prototype.attack = function(){
+//   if(!this.isExecutedSkill && this.currentSkill !== undefined){
+//     this.isExecutedSkill = true;
+//     this.currentSkill.executeSkill();
+//   }
+// };
 //interval clear
 LivingEntity.prototype.stop = function(){
   if(this.updateInterval){
     clearInterval(this.updateInterval);
     this.updateInterval = false;
   }
-  if(this.currentSkill){
-    this.currentSkill.destroy();
-    this.currentSkill = undefined;
-    this.isExecutedSkill = false;
-  }
+  // if(this.currentSkill){
+  //   this.currentSkill.destroy();
+  //   this.currentSkill = undefined;
+  //   this.isExecutedSkill = false;
+  // }
 };
 
 // setup when click canvas for move
 LivingEntity.prototype.setTargetPosition = function(newPosition){
-  if(newPosition.x <= 0){
-    this.targetPosition.x = 0;
-  }else if(newPosition.x >= gameConfig.CANVAS_MAX_SIZE.width - this.size.width){
-    this.targetPosition.x = gameConfig.CANVAS_MAX_SIZE.width - this.size.width;
+  if(newPosition.x <= this.width/2){
+    this.targetPosition.x = this.width/2;
+  }else if(newPosition.x >= gameConfig.CANVAS_MAX_SIZE.width - this.size.width/2){
+    this.targetPosition.x = gameConfig.CANVAS_MAX_SIZE.width - this.size.width/2;
   }else{
     this.targetPosition.x = newPosition.x;
   }
 
-  if(newPosition.y <=0){
-    this.targetPosition.y = 0;
-  }else if(newPosition.y >= gameConfig.CANVAS_MAX_SIZE.height - this.size.height){
-    this.targetPosition.y = gameConfig.CANVAS_MAX_SIZE.height - this.size.height;
+  if(newPosition.y <=this.height/2){
+    this.targetPosition.y = this.height/2;
+  }else if(newPosition.y >= gameConfig.CANVAS_MAX_SIZE.height - this.size.height/2){
+    this.targetPosition.y = gameConfig.CANVAS_MAX_SIZE.height - this.size.height/2;
   }else{
     this.targetPosition.y = newPosition.y;
   }

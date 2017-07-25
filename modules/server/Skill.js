@@ -3,18 +3,18 @@ var gameConfig = require('../public/gameConfig.json');
 
 var radianFactor = Math.PI/180;
 
-var Skill = function(userID, skillData){
+var Skill = function(user, skillData, castSpeed, damage){
   this.startTime = Date.now();
 
-  this.userID = userID;
+  this.userID = user.objectID;
   this.index = skillData.index;
   this.type = skillData.type;
   this.name = skillData.name;
-  this.totalTime = skillData.totalTime;
-  this.fireTime = skillData.fireTime;
+  this.totalTime = skillData.totalTime/user.castSpeed;
+  this.fireTime = skillData.fireTime/user.castSpeed;
   this.range = skillData.range;
   this.explosionRadius = skillData.explosionRadius;
-  this.damage = skillData.damage;
+  this.damage = (skillData.damage * user.addDamageRate) + user.addDamageAmount;
 
   this.radius = skillData.radius;
   this.maxSpeed = skillData.maxSpeed;
