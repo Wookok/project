@@ -349,13 +349,13 @@ function drawGrid(){
   //draw boundary
 
   //draw grid
-  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor; i += resource.GRID_SIZE * gameConfig.scaleFactor){
+  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor; i += resources.GRID_SIZE * gameConfig.scaleFactor){
     if(util.isDrawX(i * gameConfig.scaleFactor, gameConfig)){
       var x = util.worldXCoordToLocalX(i * gameConfig.scaleFactor, gameConfig.userOffset.x);
-      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor; j += resource.GRID_SIZE * gameConfig.scaleFactor){
+      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor; j += resources.GRID_SIZE * gameConfig.scaleFactor){
         if(util.isDrawY(j * gameConfig.scaleFactor, gameConfig)){
           var y = util.worldYCoordToLocalY(j * gameConfig.scaleFactor, gameConfig.userOffset.y);
-          ctx.drawImage(grid, 0, 0, 48, 48, x, y, resource.GRID_IMG_SIZE * gameConfig.scaleFactor, resource.GRID_IMG_SIZE * gameConfig.scaleFactor);
+          ctx.drawImage(grid, 0, 0, 48, 48, x, y, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
         }
       }
     }
@@ -377,13 +377,13 @@ function documentAddEvent(){
     var keyCode = e.keyCode;
     var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
-      socket.emit('reqSkill', 1);
+      socket.emit('reqSkill', 11);
     }else if(keyCode === 49){
-      socket.emit('reqSkill', 3, tempPos);
+      socket.emit('reqSkill', 21, tempPos);
     }else if(keyCode === 50){
-      socket.emit('reqSkill', 6, tempPos);
+      socket.emit('reqSkill', 41, tempPos);
     }else if(keyCode === 51){
-      socket.emit('reqSkill', 8);
+      socket.emit('reqSkill', 51);
     }
   }, false);
 }

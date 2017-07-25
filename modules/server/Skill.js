@@ -3,7 +3,7 @@ var gameConfig = require('../public/gameConfig.json');
 
 var radianFactor = Math.PI/180;
 
-var Skill = function(user, skillData, castSpeed, damage){
+var Skill = function(user, skillData){
   this.startTime = Date.now();
 
   this.userID = user.objectID;

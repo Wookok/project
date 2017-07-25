@@ -6,7 +6,7 @@ var csvJson = require('../public/csvjson');
 
 var dataJson = require('../public/data.json');
 var userBaseTable = csvJson.toObject(dataJson.userBaseData, {delimiter : ',', quote : '"'});
-var userLevelDataTable = csvJson.toObject(dataJson.userLevelData, {delimiter : ',', quote : '"'});
+// var userLevelDataTable = csvJson.toObject(dataJson.userLevelData, {delimiter : ',', quote : '"'});
 
 var gameConfig = require('../public/gameConfig.json');
 

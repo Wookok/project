@@ -278,7 +278,7 @@ GameManager.prototype.updateSkillDataSetting = function(skill){
     targetPosition : skill.targetPosition,
     direction : skill.direction,
     totalTime : skill.totalTime,
-    fireTime : skillData.fireTime
+    fireTime : skill.fireTime
     // type : skill.type,
     // timeSpan : Date.now() - skill.startTime,
     // totalTime : skill.totalTime,

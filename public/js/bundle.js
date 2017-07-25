@@ -212,8 +212,19 @@ CManager.prototype = {
 	},
 	makeProjectile : function(projetileData){
 		console.log(Skill.prototype);
-		var projectile = Skill.prototype.makeProjectile(projetileData);
+		var projectile = Skill.prototype.makeProjectile(projetileData, this.gameConfig.userOffset);
 		this.projectiles.push(projectile);
+	},
+	explodeProjectile : function(projectileData, effectLastTime){
+		var thisEffects = this.effects;
+		var projectileEffect = Skill.prototype.makeProjectileEffect(projectileData, this.gameConfig.userOffset);
+		thisEffects.push(projectileEffect)
+		setTimeout(function(){
+			var index = thisEffects.indexOf(projectile);
+			if(index !== -1){
+				thisEffects.splice(index, 1);
+			}
+		}, effectLastTime);
 	},
 	updateUserData : function(userData){
 		if(this.checkUserAtUsers(userData)){
@@ -352,7 +363,7 @@ function staticIntervalHandler(){
     if(this.projectiles[i].isExpired()){
       this.projectiles.splice(i, 1);
     }else{
-      this.projectiles[i].move();
+      this.projectiles[i].move(this.gameConfig.userOffset);
       colliderEles.push(this.projectiles[i].colliderEle);
     }
   }
@@ -455,7 +466,9 @@ CObstacle.prototype = {
 module.exports = CObstacle;
 
 },{}],3:[function(require,module,exports){
-function CSkill(skillData, userAniStartTime){
+var util = require('../public/util.js');
+
+function CSkill(skillData, userAniStartTime, offset){
 
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
@@ -474,7 +487,7 @@ function CSkill(skillData, userAniStartTime){
   this.lifeTime = skillData.lifeTime;
 
   this.direction = skillData.direction;
-  this.targetPosition = skillData.targetPosition;
+  this.targetPosition = util.worldToLocalPosition(skillData.targetPosition, offset);
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -511,9 +524,17 @@ CSkill.prototype = {
     return this.aniTime + this.fireTime > Date.now() - this.startTime
   },
   //static function
-  makeProjectile : function(projectileData){
-    var projectile = new ProjectileSkill(projectileData);
+  makeProjectile : function(projectileData, offset){
+    var projectile = new ProjectileSkill(projectileData, offset);
     return projectile;
+  },
+  makeProjectileEffect : function(projectileData, offset){
+    var returnVal = {
+      targetPosition : util.worldToLocalPosition(projectileData.position, offset),
+      explosionRadius : projectileData.explosionRadius,
+      direction : 0
+    }
+    return returnVal;
   }
 };
 
@@ -528,16 +549,17 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(projectileData){
+var ProjectileSkill = function(projectileData, offset){
   this.startTime = Date.now();
 
   this.objectID = projectileData.objectID;
-  this.position = projectileData.position;
+  this.position = util.worldToLocalPosition(projectileData.position, offset);
   this.speed = projectileData.speed;
   this.radius = projectileData.radius;
   this.lifeTime = projectileData.lifeTime;
   this.explosionRadius = projectileData.explosionRadius;
 
+  this.currentOffset = offset;
   // this.direction = skillInstance.direction;
   // this.position = {x : user.position.x, y : user.position.y};
   // this.speed = {
@@ -550,6 +572,16 @@ ProjectileSkill.prototype = {
   move : function(){
     this.position.x += this.speed.x;
     this.position.y += this.speed.y;
+    if(this.currentOffset == offset){
+      this.revision(offset);
+    }
+  },
+  revision : function(offset){
+    var diffX = this.currentOffset.x - offset.x;
+    var diffY = this.currentOffset.y - offset.y;
+    this.position.x -= diffX;
+    this.position.y -= diffY;
+    this.currentOffset = offset;
   },
   hit : function(user){
     console.log('hit something');
@@ -566,7 +598,7 @@ ProjectileSkill.prototype = {
 
 module.exports = CSkill;
 
-},{}],4:[function(require,module,exports){
+},{"../public/util.js":11}],4:[function(require,module,exports){
 var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
 
@@ -699,7 +731,7 @@ User.prototype = {
     };
   },
   makeSkillInstance : function(skillData){
-    var skillInstance = new Skill(skillData, skillData.fireTime - 100);
+    var skillInstance = new Skill(skillData, skillData.fireTime - 100, this.gameConfig.userOffset);
     skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
     skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
     return skillInstance;
@@ -1185,10 +1217,9 @@ function _csvToArray(text, delimit, quote) {
 
 },{}],6:[function(require,module,exports){
 module.exports={
-  "userBaseData" : "baseHP,baseMP,baseMaxSpeed,baseHPRegen,baseMPRegen,baseHPRegenRate,baseMPRegenRate,baseAttackSpeed,baseCastSpeed,baseDamageRate\n100,1000,15,0.5,5,1,1,1,1,1",
-  "userLevelData" : "level,needExp,LevelBonusType1,LevelBonusAmount1,LevelBonusType2,LevelBonusAmount2,LevelBonusType3,LevelBonusAmount3\n1,100,,,,,,\n2,150,baseHP,10,baseMP,100,,\n3,250,baseHP,11,baseMP,101,,\n4,400,baseHP,12,baseMP,102,,\n5,600,baseHP,13,baseMP,103,,\n6,850,baseHP,14,baseMP,104,,\n7,1150,baseHP,15,baseMP,105,,\n8,1500,baseHP,16,baseMP,106,,\n9,1900,baseHP,17,baseMP,107,,\n10,2350,baseHP,18,baseMP,108,,\n11,2850,baseHP,19,baseMP,109,,\n12,3400,baseHP,20,baseMP,110,,\n13,4000,baseHP,21,baseMP,111,,\n14,4650,baseHP,22,baseMP,112,,\n15,5350,baseHP,23,baseMP,113,,\n16,6100,baseHP,24,baseMP,114,,\n17,6900,baseHP,25,baseMP,115,,\n18,7750,baseHP,26,baseMP,116,,\n19,8650,baseHP,27,baseMP,117,,\n20,-1,baseHP,28,baseMP,118,,",
-  "skillData" : "index,type,name,totalTime,fireTime,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n1,0,BaseSkill1,5000,2500,100,100,0,50,,,,,,,,,,,,,0,0,0,10\n2,0,BaseSkill2,5000,2500,200,200,0,100,,,,,,,,,,,,,0,0,0,20\n3,1,InstantSkill1,5000,2500,500,500,100,200,,,,,,,,,,,,,0,0,0,30\n4,1,InstantSkill2,5000,2500,500,1000,200,200,,,,,,,,,,,,,0,0,0,40\n5,1,InstantSkill3,5000,2500,500,1500,300,200,,,,,,,,,,,,,0,0,0,50\n6,2,ProjectileSkill1,5000,2500,0,300,150,50,,,,,,,,,,,,,50,30,5000,60\n7,2,ProjectileSkill2,5000,2500,0,300,150,100,,,,,,,,,,,,,100,15,10000,70\n8,3,SelfSkill1,1000,500,0,0,500,0,1,,,,,,,,,,,,0,0,0,10\n9,3,SelfSkill2,1000,500,0,0,500,0,2,,,,,,,,,,,,0,0,0,10\n10,3,SelfSkill3,1000,500,0,0,500,0,3,,,,,,,,,,,,0,0,0,10\n11,3,SelfSkill4,1000,500,0,0,500,0,4,,,,,,,,,,,,0,0,0,10\n12,3,SelfSkill5,1000,500,0,0,500,0,5,,,,,,,,,,,,0,0,0,10\n13,3,SelfSkill6,1000,500,0,0,500,0,6,,,,,,,,,,,,0,0,0,10\n",
-  "buffData" : "index,name,isPermanent,timeDuration,buffType,buffAmount,buffRate\n1,damageUP1,0,60000,baseDamage,20,0\n2,damageUP2,0,60000,baseDamage,30,0\n3,damageUP3,1,0,baseDamageRate,0,50\n4,Heal1,0,60000,currentHP,10,0\n5,Heal2,0,60000,currentHP,20,0\n6,Heal3,0,60000,currentHP,-30,0\n"
+  "userBaseData" : "level,needExp,baseHP,baseMP,baseMaxSpeed,baseRotateSpeed,baseHPRegen,baseMPRegen,baseCastSpeed,baseDamage,baseDamageRate\n1,100,100,1000,10,15,0.5,5,1,0,1\n2,150,100,1000,10,15,0.5,5,1,0,1\n3,250,100,1000,10,15,0.5,5,1,0,1\n4,400,100,1000,10,15,0.5,5,1,0,1\n5,600,100,1000,10,15,0.5,5,1,0,1\n6,850,100,1000,10,15,0.5,5,1,0,1\n7,1150,100,1000,10,15,0.5,5,1,0,1\n8,1500,100,1000,10,15,0.5,5,1,0,1\n9,1900,100,1000,10,15,0.5,5,1,0,1\n10,2350,100,1000,10,15,0.5,5,1,0,1\n11,2850,100,1000,10,15,0.5,5,1,0,1\n12,3400,100,1000,10,15,0.5,5,1,0,1\n13,4000,100,1000,10,15,0.5,5,1,0,1\n14,4650,100,1000,10,15,0.5,5,1,0,1\n15,5350,100,1000,10,15,0.5,5,1,0,1\n16,6100,100,1000,10,15,0.5,5,1,0,1\n17,6900,100,1000,10,15,0.5,5,1,0,1\n18,7750,100,1000,10,15,0.5,5,1,0,1\n19,8650,100,1000,10,15,0.5,5,1,0,1\n20,-1,100,1000,10,15,0.5,5,1,0,1\n",
+  "skillData" : "index,name,level,type,isPassive,totalTime,fireTime,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n11,RedSkillBase1,1,0,1,1000,600,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n12,RedSkillBase2,2,0,1,1000,600,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n13,RedSkillBase3,3,0,1,1000,600,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n14,RedSkillBase4,4,0,1,1000,600,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n15,RedSkillBase5,5,0,1,1000,600,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n21,RedSkillProjectileWeak1,1,2,0,1500,900,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n22,RedSkillProjectileWeak2,2,2,0,1500,900,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n23,RedSkillProjectileWeak3,3,2,0,1500,900,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n24,RedSkillProjectileWeak4,4,2,0,1500,900,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n25,RedSkillProjectileWeak5,5,2,0,1500,900,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n31,RedSkillProjectileStrong1,1,2,0,2000,1200,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n32,RedSkillProjectileStrong2,2,2,0,2000,1200,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n33,RedSkillProjectileStrong3,3,2,0,2000,1200,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n34,RedSkillProjectileStrong4,4,2,0,2000,1200,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n35,RedSkillProjectileStrong5,5,2,0,2000,1200,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n41,RedSkillRange1,1,1,0,2000,1200,400,150,300,30,,,,,,,,,,,,,,,,100\n42,RedSkillRange2,2,1,0,2000,1200,400,150,300,35,,,,,,,,,,,,,,,,100\n43,RedSkillRange3,3,1,0,2000,1200,400,150,300,40,,,,,,,,,,,,,,,,100\n44,RedSkillRange4,4,1,0,2000,1200,400,150,300,45,,,,,,,,,,,,,,,,100\n45,RedSkillRange5,5,1,0,2000,1200,400,150,300,50,,,,,,,,,,,,,,,,100\n51,RedSkillSelfRange1,1,3,0,1500,900,0,250,500,30,,,,,,,,,,,,,,,,100\n52,RedSkillSelfRange2,2,3,0,1500,900,0,250,500,35,,,,,,,,,,,,,,,,100\n53,RedSkillSelfRange3,3,3,0,1500,900,0,250,500,40,,,,,,,,,,,,,,,,100\n54,RedSkillSelfRange4,4,3,0,1500,900,0,250,500,45,,,,,,,,,,,,,,,,100\n55,RedSkillSelfRange5,5,3,0,1500,900,0,250,500,50,,,,,,,,,,,,,,,,100\n111,BlueSkillBase1,1,0,1,1000,600,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n112,BlueSkillBase2,2,0,1,1000,600,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n113,BlueSkillBase3,3,0,1,1000,600,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n114,BlueSkillBase4,4,0,1,1000,600,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n115,BlueSkillBase5,5,0,1,1000,600,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n121,BlueSkillProjectileWeak1,1,2,0,1500,900,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n122,BlueSkillProjectileWeak2,2,2,0,1500,900,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n123,BlueSkillProjectileWeak3,3,2,0,1500,900,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n124,BlueSkillProjectileWeak4,4,2,0,1500,900,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n125,BlueSkillProjectileWeak5,5,2,0,1500,900,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n131,BlueSkillProjectileStrong1,1,2,0,2000,1200,0,150,200,30,,,,,,,,,,,frozen1,,30,10,3000,100\n132,BlueSkillProjectileStrong2,2,2,0,2000,1200,0,150,200,35,,,,,,,,,,,frozen2,,30,10,3000,100\n133,BlueSkillProjectileStrong3,3,2,0,2000,1200,0,150,200,40,,,,,,,,,,,frozen3,,30,10,3000,100\n134,BlueSkillProjectileStrong4,4,2,0,2000,1200,0,150,200,45,,,,,,,,,,,frozen4,,30,10,3000,100\n135,BlueSkillProjectileStrong5,5,2,0,2000,1200,0,150,200,50,,,,,,,,,,,frozen5,,30,10,3000,100\n141,BlueSkillRange1,1,1,0,2000,1200,400,150,300,30,,,,,,,,,,,,,,,,100\n142,BlueSkillRange2,2,1,0,2000,1200,400,150,300,35,,,,,,,,,,,,,,,,100\n143,BlueSkillRange3,3,1,0,2000,1200,400,150,300,40,,,,,,,,,,,,,,,,100\n144,BlueSkillRange4,4,1,0,2000,1200,400,150,300,45,,,,,,,,,,,,,,,,100\n145,BlueSkillRange5,5,1,0,2000,1200,400,150,300,50,,,,,,,,,,,,,,,,100\n151,BlueSkillRangeTick1,1,3,0,1500,900,0,250,500,30,,,,,,,,,,,,,,,,100\n152,BlueSkillRangeTick2,2,3,0,1500,900,0,250,500,35,,,,,,,,,,,,,,,,100\n153,BlueSkillRangeTick3,3,3,0,1500,900,0,250,500,40,,,,,,,,,,,,,,,,100\n154,BlueSkillRangeTick4,4,3,0,1500,900,0,250,500,45,,,,,,,,,,,,,,,,100\n155,BlueSkillRangeTick5,5,3,0,1500,900,0,250,500,50,,,,,,,,,,,,,,,,100\n211,YellowSkillBase1,1,0,1,1000,600,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n212,YellowSkillBase2,2,0,1,1000,600,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n213,YellowSkillBase3,3,0,1,1000,600,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n214,YellowSkillBase4,4,0,1,1000,600,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n215,YellowSkillBase5,5,0,1,1000,600,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n221,YellowSkillProjectileWeak1,1,2,0,1500,900,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n222,YellowSkillProjectileWeak2,2,2,0,1500,900,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n223,YellowSkillProjectileWeak3,3,2,0,1500,900,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n224,YellowSkillProjectileWeak4,4,2,0,1500,900,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n225,YellowSkillProjectileWeak5,5,2,0,1500,900,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n231,YellowSkillProjectileStrong1,1,2,0,2000,1200,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n232,YellowSkillProjectileStrong2,2,2,0,2000,1200,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n233,YellowSkillProjectileStrong3,3,2,0,2000,1200,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n234,YellowSkillProjectileStrong4,4,2,0,2000,1200,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n235,YellowSkillProjectileStrong5,5,2,0,2000,1200,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n241,YellowSkillRange1,1,1,0,2000,1200,400,150,300,30,,,,,,,,,,,,,,,,100\n242,YellowSkillRange2,2,1,0,2000,1200,400,150,300,35,,,,,,,,,,,,,,,,100\n243,YellowSkillRange3,3,1,0,2000,1200,400,150,300,40,,,,,,,,,,,,,,,,100\n244,YellowSkillRange4,4,1,0,2000,1200,400,150,300,45,,,,,,,,,,,,,,,,100\n245,YellowSkillRange5,5,1,0,2000,1200,400,150,300,50,,,,,,,,,,,,,,,,100\n251,YellowSkillProjectileVStrong1,1,3,0,1500,900,0,250,500,30,,,,,,,,,,,,,,,,100\n252,YellowSkillProjectileVStrong2,2,3,0,1500,900,0,250,500,35,,,,,,,,,,,,,,,,100\n253,YellowSkillProjectileVStrong3,3,3,0,1500,900,0,250,500,40,,,,,,,,,,,,,,,,100\n254,YellowSkillProjectileVStrong4,4,3,0,1500,900,0,250,500,45,,,,,,,,,,,,,,,,100\n255,YellowSkillProjectileVStrong5,5,3,0,1500,900,0,250,500,50,,,,,,,,,,,,,,,,100\n301,BPurpleSkillTeleportShort1,1,SKILL_TYPE_TELEPORT,0,1000,600,150,0,150,0,,,,,,,,,,,,,,,,100\n302,BPurpleSkillTeleportShort2,2,SKILL_TYPE_TELEPORT,0,1000,600,150,0,150,0,,,,,,,,,,,,,,,,100\n303,BPurpleSkillTeleportShort3,3,SKILL_TYPE_TELEPORT,0,1000,600,150,0,150,0,,,,,,,,,,,,,,,,100\n304,BPurpleSkillTeleportShort4,4,SKILL_TYPE_TELEPORT,0,1000,600,150,0,150,0,,,,,,,,,,,,,,,,100\n305,BPurpleSkillTeleportShort5,5,SKILL_TYPE_TELEPORT,0,1000,600,150,0,150,0,,,,,,,,,,,,,,,,100\n311,BPurpleSkillTeleportLong1,1,SKILL_TYPE_TELEPORT,0,2000,1200,400,0,250,0,,,,,,,,,,,,,,,,100\n312,BPurpleSkillTeleportLong2,2,SKILL_TYPE_TELEPORT,0,2000,1200,400,0,250,0,,,,,,,,,,,,,,,,100\n313,BPurpleSkillTeleportLong3,3,SKILL_TYPE_TELEPORT,0,2000,1200,400,0,250,0,,,,,,,,,,,,,,,,100\n314,BPurpleSkillTeleportLong4,4,SKILL_TYPE_TELEPORT,0,2000,1200,400,0,250,0,,,,,,,,,,,,,,,,100\n315,BPurpleSkillTeleportLong5,5,SKILL_TYPE_TELEPORT,0,2000,1200,400,0,250,0,,,,,,,,,,,,,,,,100\n",
+  "buffData" : "index,name,isPermanent,timeDuration,buffType,buffTickTime,buffAmount,buffApplyRate\n1,damageUP1,0,60000,BUFF_TICK_DAMAGE,,20,1\n2,damageUP2,0,60000,baseDamage,,30,1\n3,damageUP3,1,0,baseDamageRate,,0.1,1\n4,Heal1,0,60000,currentHP,,10,1\n5,Heal2,0,60000,currentHP,,20,1\n6,Heal3,0,60000,currentHP,,-30,0.2\n"
 }
 
 },{}],7:[function(require,module,exports){
@@ -1241,6 +1272,7 @@ module.exports={
   "USER_HAND_SIZE" : 64,
   "GRID_SRC" : "../images/map-grass.png",
   "GRID_SIZE" : 60,
+  "GRID_IMG_SIZE" : 58,
 
   "OBJ_TREE_SRC" : "",
   "OBJ_TREE_SIZE" : 100
@@ -1760,8 +1792,8 @@ function setCanvasSize(){
     var oldOffsetY = gameConfig.userOffset.y;
   }
 
-  gameConfig.scaleFactor = 1;
   gameConfig.canvasSize = {width : window.innerWidth, height : window.innerHeight};
+  gameConfig.scaleFactor = setCanvasScale(gameConfig.canvasSize, gameConfig.CANVAS_MAX_LOCAL_SIZE);
 
   if(gameConfig.userOffset){
     var worldPosUser = {
@@ -1845,6 +1877,8 @@ function setupSocket(){
 
     skillData.targetPosition = util.worldToLocalPosition(resSkillData.targetPosition, gameConfig.userOffset);
     skillData.direction = resSkillData.direction;
+    skillData.totalTime = resSkillData.totalTime;
+    skillData.fireTime = resSkillData.fireTime;
 
     Manager.updateUserData(userData);
     Manager.useSkill(userData.objectID, skillData);
@@ -1859,7 +1893,12 @@ function setupSocket(){
   });
   socket.on('setProjectile', function(projectileData){
     console.log(projectileData);
-    Manager.makeProjectile(projectileData);
+    if(projectileData.explode){
+      var skillData = util.findData(skillTable, 'index', projectileData.index);
+      Manager.explodeProjectile(projectileData, skillData.effectLastTime);
+    }else{
+      Manager.makeProjectile(projectileData);
+    }
   })
   socket.on('updateUser', function(userData){
     console.log('in updateUser')
@@ -1879,7 +1918,7 @@ function revisionUserPos(userData){
   var revisionY = oldOffsetY - gameConfig.userOffset.y;
   // Manager.revisionAllObj(revisionX, revisionY);
   Manager.revisionUserPos(revisionX, revisionY);
-}
+};
 //draw
 function drawScreen(){
   //draw background
@@ -1891,7 +1930,7 @@ function drawObstacles(){
 
   for(var index in Manager.obstacles){
     ctx.beginPath();
-    ctx.arc(Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2, Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2,
+    ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor, (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor,
             resources.OBJ_TREE_SIZE/2, 0, 2*Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
@@ -1909,14 +1948,14 @@ function drawUsers(){
     ctx.setTransform(1,0,0,1,0,0);
     ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
     ctx.rotate(radian);
-    ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
-    ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
+    ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
+    ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
     //draw cast effect
     if(Manager.users[index].skillEffectPlay){
       ctx.fillStyle ="#00ff00";
       ctx.beginPath();
-      ctx.arc(-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 150, 0, 2 * Math.PI);
+      ctx.arc(-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 100, 0, 2 * Math.PI);
       ctx.fill();
       ctx.closePath();
     }
@@ -1930,11 +1969,12 @@ function drawEffect(){
     ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = util.worldXCoordToLocalX(Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius, gameConfig.userOffset.y);
+    var centerX = Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius;
+    var centerY = Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius;
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].explosionRadius, -Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius, Manager.effects[index].explosionRadius);
+    ctx.fillRect(-Manager.effects[index].explosionRadius * gameConfig.scaleFactor, -Manager.effects[index].explosionRadius * gameConfig.scaleFactor,
+                 Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor, Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     ctx.restore();
@@ -1944,7 +1984,8 @@ function drawProjectile(){
   for(var index in Manager.projectiles){
     ctx.fillStyle ="#ff0000";
     ctx.beginPath();
-    ctx.arc(Manager.projectiles[index].position.x - Manager.projectiles[index].radius, Manager.projectiles[index].position.y - Manager.projectiles[index].radius, 50, 0, 2 * Math.PI);
+    ctx.arc((Manager.projectiles[index].position.x - Manager.projectiles[index].radius) * gameConfig.scaleFactor,
+            (Manager.projectiles[index].position.y - Manager.projectiles[index].radius) * gameConfig.scaleFactor, 50, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
   }
@@ -1953,13 +1994,13 @@ function drawGrid(){
   //draw boundary
 
   //draw grid
-  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
-    if(util.isDrawX(i, gameConfig)){
-      var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
-      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
-        if(util.isDrawY(j, gameConfig)){
-          var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
-          ctx.drawImage(grid, x, y);
+  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor; i += resources.GRID_SIZE * gameConfig.scaleFactor){
+    if(util.isDrawX(i * gameConfig.scaleFactor, gameConfig)){
+      var x = util.worldXCoordToLocalX(i * gameConfig.scaleFactor, gameConfig.userOffset.x);
+      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor; j += resources.GRID_SIZE * gameConfig.scaleFactor){
+        if(util.isDrawY(j * gameConfig.scaleFactor, gameConfig)){
+          var y = util.worldYCoordToLocalY(j * gameConfig.scaleFactor, gameConfig.userOffset.y);
+          ctx.drawImage(grid, 0, 0, 48, 48, x, y, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
         }
       }
     }
@@ -1981,56 +2022,25 @@ function documentAddEvent(){
     var keyCode = e.keyCode;
     var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
     if(keyCode === 69 || keyCode === 32){
-      socket.emit('reqSkill', 1);
+      socket.emit('reqSkill', 11);
     }else if(keyCode === 49){
-      socket.emit('reqSkill', 3, tempPos);
+      socket.emit('reqSkill', 21, tempPos);
     }else if(keyCode === 50){
-      socket.emit('reqSkill', 6, tempPos);
+      socket.emit('reqSkill', 41, tempPos);
     }else if(keyCode === 51){
-      socket.emit('reqSkill', 8);
+      socket.emit('reqSkill', 51);
     }
   }, false);
 }
 update();
 
-// function findData(table, columnName, value){
-//   var data = undefined;
-//   for(var index in table){
-//     //use ==, because value can be integer
-//     if(table[index][columnName] == value){
-//       data = table[index];
-//     }
-//   }
-//   return data;
-// }
-
-// local utils
-// function setCanvasSize(scaleFactor){
-//   // canvas.style.width = (canvas.width * scaleFactor) + 'px';
-//   // canvas.style.height = (canvas.height * scaleFactor) + 'px';
-//   canvas.width = window.innerWidth;
-//   canvas.height = window.innerHeight;
-//
-// };
-// function getWindowSize(){
-//   var returnVal = {
-//     width : window.innerWidth,
-//     height : window.innerHeight
-//   }
-//   return returnVal;
-// };
-// function setCanvasSizeAndScale(windowSize, canvasMaxSize){
-//   if(windowSize.width >= canvasMaxLocalSize.width || windowSize.height >= canvasMaxLocalSize.height){
-//     var scaleFactor = (windowSize.width / canvasMaxLocalSize.width) > (windowSize.height / canvasMaxLocalSize.height) ?
-//                   (windowSize.width / canvasMaxLocalSize.width) : (windowSize.height / canvasMaxLocalSize.height);
-//     // localConfig.canvasSize = {
-//     //   width : config.canvasMaxLocalSize.width,
-//     //   height : config.canvasMaxLocalSize.height
-//     // };
-//   }
-//   gameConfig.scaleFactor = scaleFactor;
-//   gameConfig.canvasSize = windowSize;
-//   return 1;
-// }
+function setCanvasScale(windowSize, canvasMaxLocalSize){
+  var scaleFactor = 1;
+  if(windowSize.width >= canvasMaxLocalSize.width || windowSize.height >= canvasMaxLocalSize.height){
+    var scaleFactor = (windowSize.width / canvasMaxLocalSize.width) > (windowSize.height / canvasMaxLocalSize.height) ?
+                  (windowSize.width / canvasMaxLocalSize.width) : (windowSize.height / canvasMaxLocalSize.height);
+  }
+  return scaleFactor;
+}
 
 },{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/csvjson.js":5,"../../modules/public/data.json":6,"../../modules/public/gameConfig.json":7,"../../modules/public/resource.json":10,"../../modules/public/util.js":11}]},{},[12]);
