@@ -134,7 +134,7 @@ User.prototype.addDebuff = function(debuff){
 
 };
 User.prototype.addDebuffs = function(debuffs){
-  for(var i=0; i<Objects.keys(debufss).lenght; i++){
+  for(var i=0; i<Object.keys(debuffs).lenght; i++){
 
   }
 };

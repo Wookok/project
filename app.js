@@ -78,7 +78,7 @@ io.on('connection', function(socket){
     var userDatas = GM.updateDataSettings();
     console.log(userDatas);
     var skillDatas = GM.updateSkillsDataSettings();
-    var projectileData = GM.updateProjectilesDataSettings();
+    var projectileDatas = GM.updateProjectilesDataSettings();
 
     socket.emit('setSyncUser', userData);
     socket.emit('resStartGame', userDatas, skillDatas, projectileDatas);

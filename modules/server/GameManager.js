@@ -318,7 +318,7 @@ GameManager.prototype.updateSkillDataSetting = function(skill){
 GameManager.prototype.updateSkillsDataSettings = function(){
   var skillDatas = [];
   for(var index in this.users){
-    if(this.users[index].currentState === this.gameConfig.OBJECT_STATE_CAST){
+    if(this.users[index].currentState === gameConfig.OBJECT_STATE_CAST){
       var skillData = {
         userID : this.users[index].objectID,
         index : this.users[index].currentSkill.index,

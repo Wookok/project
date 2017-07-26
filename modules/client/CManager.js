@@ -108,8 +108,10 @@ CManager.prototype = {
 		}
 	},
 	setUsersSkills : function(skillDatas){
-		for(var i=0; i<Object.keys(skillData).length; i++){
-			this.userSkill(skillDatas[i].userID, skillDatas[i]);
+		for(var i=0; i<Object.keys(skillDatas).length; i++){
+			if(skillDatas[i].fireTime > 0){
+				this.userSkill(skillDatas[i].userID, skillDatas[i]);
+			}
 		}
 	},
 	setProjectiles : function(projectileDatas){
@@ -303,16 +305,24 @@ CManager.prototype = {
 				console.log('can`t find user data');
 			}
 		}
-		for(var index in this.obstacles){
-			this.obstacles[index].localPosition.x -= this.user.speed.x;
-			this.obstacles[index].localPosition.y -= this.user.speed.y;
+		for(var i=0; i<Object.keys(this.obstacles).length; i++){
+			this.obstacles[i].localPosition.x -= this.user.speed.x;
+			this.obstacles[i].localPosition.y -= this.user.speed.y;
 		}
-		if(addPos !== undefined){
-			for(var index in this.obstacles){
-				this.obstacles[index].localPosition.x -= addPos.x;
-				this.obstacles[index].localPosition.y -= addPos.y;
+		for(var i=0; i<Object.keys(this.projectiles).length; i++){
+			this.projectiles[i].position.x -= this.user.speed.x;
+			this.projectiles[i].position.y -= this.user.speed.y;
+		}
+		if(addPos){
+			for(var i=0; i<Object.keys(this.obstacles).length; i++){
+				this.obstacles[i].localPosition.x -= addPos.x;
+				this.obstacles[i].localPosition.y -= addPos.y;
 				// this.obstacles[index].staticEle.x -= addPos.x;
 				// this.obstacles[index].staticEle.y -= addPos.y;
+			}
+			for(var i=0; i<Object.keys(this.projectiles).length; i++){
+				this.projectiles[i].position.x -= addPos.x;
+				this.projectiles[i].position.y -= addPos.y;
 			}
 		}
 	},
