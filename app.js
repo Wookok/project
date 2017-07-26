@@ -54,11 +54,11 @@ io.on('connection', function(socket){
   GM.onNeedUserInformToAll = function(userID){
     var userData = GM.updateDataSetting(GM.users[userID]);
     io.sockets.emit('updateUser', userData);
-  }
+  };
   GM.onNeedProjectileSkillInformToAll = function(projectile){
     var projectileData = GM.updateProjectileDataSetting(projectile);
     io.sockets.emit('setProjectile', projectileData);
-  }
+  };
 
   socket.on('reqStartGame', function(){
 
@@ -77,9 +77,11 @@ io.on('connection', function(socket){
 
     var userDatas = GM.updateDataSettings();
     console.log(userDatas);
+    var skillDatas = GM.updateSkillsDataSettings();
+    var projectileData = GM.updateProjectilesDataSettings();
 
     socket.emit('setSyncUser', userData);
-    socket.emit('resStartGame', userDatas);
+    socket.emit('resStartGame', userDatas, skillDatas, projectileDatas);
   });
 
   socket.on('reqMove', function(targetPosition, localOffset){

@@ -50,24 +50,24 @@ Skill.prototype = {
     this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), this.fireTime);
     this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);
   },
-  applyBuff : function(user, keyName, userBuffArrayName){
-    var userBuffList = user[userBuffArrayName];
-    for(var i=0; i<this[keyName].length; i++){
-      var thisBuff = this[keyName][i];
-      if(thisBuff.isPermanent){
-        userBuffList.push(thisBuff);
-      }else{
-        var buffTimeout = setTimeout(function(){
-          var index = thisBuffList.indexOf(thisBuff);
-          if(index !== -1){
-            userBuffList.splice(index, 1);
-          }
-        },this.buffsToSelf[i].timeDuration);
-        thisBuff.buffTimeout = buffTimeout;
-        userBuffList.push(thisBuff);
-      }
-    }
-  },
+  // applyBuff : function(user, keyName, userBuffArrayName){
+  //   var userBuffList = user[userBuffArrayName];
+  //   for(var i=0; i<this[keyName].length; i++){
+  //     var thisBuff = this[keyName][i];
+  //     if(thisBuff.isPermanent){
+  //       userBuffList.push(thisBuff);
+  //     }else{
+  //       var buffTimeout = setTimeout(function(){
+  //         var index = thisBuffList.indexOf(thisBuff);
+  //         if(index !== -1){
+  //           userBuffList.splice(index, 1);
+  //         }
+  //       },this.buffsToSelf[i].timeDuration);
+  //       thisBuff.buffTimeout = buffTimeout;
+  //       userBuffList.push(thisBuff);
+  //     }
+  //   }
+  // },
   destroy : function(){
     if(this.fireTimeout){
       console.log('clearTimeout');
@@ -77,8 +77,8 @@ Skill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(user, randomID){
-    var projectile = new ProjectileSkill(user, this, randomID);
+  makeProjectile : function(user, randomID, isExplosive){
+    var projectile = new ProjectileSkill(user, this, randomID, isExplosive);
     return projectile;
   },
   setDirection : function(userCenterPosition, userDirection, clickPosition){
@@ -144,7 +144,7 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(user, skillInstance, randomID){
+var ProjectileSkill = function(user, skillInstance, randomID, isExplosive){
   this.startTime = Date.now();
 
   this.index = skillInstance.index;
@@ -166,6 +166,7 @@ var ProjectileSkill = function(user, skillInstance, randomID){
     y : skillInstance.maxSpeed * Math.sin(this.direction * Math.PI/180)
   };
 
+  this.isExplosive = isExplosive;
   this.colliderEle = {
     id : this.userID,
     x : this.position.x,
@@ -178,7 +179,8 @@ var ProjectileSkill = function(user, skillInstance, randomID){
     buffsToTarget : this.buffsToTarget,
     debuffsToTarget : this.debuffsToTarget,
 
-    isCollide : false
+    isCollide : false,
+    isExplosive : this.isExplosive
   }
   //inform client to explode
   this.onExplosion = new Function();

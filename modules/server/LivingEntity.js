@@ -99,6 +99,10 @@ LivingEntity.prototype.move = function(){
 LivingEntity.prototype.idle = function(){
   //do nothing or send current stat to client;
 };
+LivingEntity.prototype.moveDirect = function(newPosition){
+  this.position = newPosition;
+  this.setCenter();
+};
 // LivingEntity.prototype.attack = function(){
 //   if(!this.isExecutedSkill && this.currentSkill !== undefined){
 //     this.isExecutedSkill = true;

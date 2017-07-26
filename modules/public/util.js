@@ -166,8 +166,6 @@ exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   var obj = {x : posX, y: posY, width:radius * 2, height: radius * 2, id: id};
   tree.onCollision(obj, function(item){
     if(obj.id !== item.id){
-      console.log(obj);
-      console.log(item);
       var objCenterX = obj.x + obj.width/2;
       var objCenterY = obj.y + obj.height/2;
 
@@ -186,8 +184,6 @@ exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   return returnVal;
 };
 exports.calcCompelPos = function(obj, collisionObjs){
-  console.log(obj);
-  console.log(collisionObjs);
   var addPos = { x : 0 , y : 0 };
   for(var i in collisionObjs){
     var objCenterX = obj.x + obj.width/2;

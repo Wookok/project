@@ -199,8 +199,10 @@ function setupSocket(){
   });
 
   //change state game on
-  socket.on('resStartGame', function(datas){
-    Manager.setUsers(datas);
+  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas){
+    Manager.setUsers(userDatas, skillDatas);
+    Manager.setUsersSkills(skillDatas);
+    Manager.setProjectiles(projectileDatas);
     Manager.synchronizeUser(gameConfig.userID);
     Manager.start();
     console.log(Manager.users);

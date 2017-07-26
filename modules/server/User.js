@@ -122,6 +122,22 @@ User.prototype.buffUpdate = function(){
 function buffUpdateHandler(){
   this.updateUserStat();
 };
+User.prototype.addBuff = function(buff){
+
+};
+User.prototype.addBuffs = function(buffs){
+  for(var i=0; i<Object.keys(buffs).length; i++){
+
+  }
+};
+User.prototype.addDebuff = function(debuff){
+
+};
+User.prototype.addDebuffs = function(debuffs){
+  for(var i=0; i<Objects.keys(debufss).lenght; i++){
+
+  }
+};
 User.prototype.getExp = function(exp){
   this.Exp += exp;
   var userLevelData = util.findData(userBaseTable, 'level', this.level);

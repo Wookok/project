@@ -116,18 +116,24 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
     case gameConfig.SKILL_TYPE_BASIC:
         skillInstance.onFire = function(){
           //buff and debuff apply to self;
-          skillInstance.applyBuff(user, 'buffsToSelf', 'buffList');
-          skillInstance.applyBuff(user, 'debuffsToSelf', 'buffList');
-          colliderEles.push(skillInstance.colliderEle);
+          user.addBuffs(skillInstance.buffsToSelf);
+          user.addDebuffs(skillInstance.debuffsToSelf);
+          // skillInstance.applyBuff(user, 'buffsToSelf', 'buffList');
+          // skillInstance.applyBuff(user, 'debuffsToSelf', 'buffList');
+          setTimeout(function(){
+            colliderEles.push(skillInstance.colliderEle);
+          }, skillData.effectLastTime/2);
         };
       user.changeState(gameConfig.OBJECT_STATE_ATTACK);
       break;
     case gameConfig.SKILL_TYPE_INSTANT:
       skillInstance.onFire = function(){
         //buff and debuff apply to self;
-        skillInstance.applyBuff(user, 'buffsToSelf', 'buffList');
-        skillInstance.applyBuff(user, 'debuffsToSelf', 'buffList');
-        colliderEles.push(skillInstance.colliderEle);
+        user.addBuffs(skillInstance.buffsToSelf);
+        user.addDebuffs(skillInstance.debuffsToSelf);
+        setTimeout(function(){
+          colliderEles.push(skillInstance.colliderEle);
+        }, skillData.effectLastTime/2);
       };
       user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
       user.changeState(gameConfig.OBJECT_STATE_CAST);
@@ -137,22 +143,12 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
       var onProjectileFireOrExplode = this.onNeedProjectileSkillInformToAll;
       skillInstance.onFire = function(){
         //buff and debuff apply to self;
-        skillInstance.applyBuff(user, 'buffsToSelf', 'buffList');
-        skillInstance.applyBuff(user, 'debuffsToSelf', 'buffList');
+        user.addBuffs(skillInstance.buffsToSelf);
+        user.addDebuffs(skillInstance.debuffsToSelf);
         //create projectile object and push to projectiles
-        var IDisUnique = false;
-        while(!IDisUnique){
-          var randomID = generateRandomID('P');
-          IDisUnique = true;
-          for(var index in this.projectiles){
-            if(randomID == this.projectiles[index].objectID){
-              IDisUnique = false;
-            }
-          }
-        }
-        var projectile = skillInstance.makeProjectile(user, randomID);
+        var randomID = generateRandomUniqueID(this.projectiles, 'P');
+        var projectile = skillInstance.makeProjectile(user, randomID, true);
         projectile.onExplosion = onProjectileFireOrExplode;
-        console.log(projectile);
         projectiles.push(projectile);
         colliderEles.push(projectile.colliderEle);
         onProjectileFireOrExplode(projectile);
@@ -163,13 +159,51 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
     case gameConfig.SKILL_TYPE_SELF:
       skillInstance.onFire = function(){
         //buff and debuff apply to self;
-        skillInstance.applyBuff(user, 'buffsToSelf', 'buffList');
-        skillInstance.applyBuff(user, 'debuffsToSelf', 'buffList');
-        console.log(user.buffList);
+        user.addBuffs(skillInstance.buffsToSelf);
+        user.addDebuffs(skillInstance.debuffsToSelf);
       };
       user.changeState(gameConfig.OBJECT_STATE_CAST);
       break;
+    case gameConfig.SKILL_TYPE_SELF_EXPLOSION:
+      skillInstance.onFire = function(){
+        user.addBuffs(skillInstance.buffsToSelf);
+        user.addDebuffs(skillInstance.debuffsToSelf);
+        setTimeout(function(){
+          colliderEles.push(skillInstance.colliderEle);
+        }, skillData.effectLastTime/2);
+      };
+      user.changeState(gameConfig.OBJECT_STATE_CAST);
+      break;
+    case gameConfig.SKILL_TYPE_TELEPORT:
+      skillInstance.onFire = function(){
+        user.addBuffs(skillInstance.buffsToSelf);
+        user.addDebuffs(skillInstance.debuffsToSelf);
+        setTimeout(function(){
+          user.moveDirect(clickPosition);
+        }, skillData.effectLastTime/2);
+      };
+      break;
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK:
+      var projectiles = this.projectiles;
+      var onProjectileFireOrExplode = this.onNeedProjectileSkillInformToAll;
+      skillInstance.onFire = function(){
+        //buff and debuff apply to self;
+        user.addBuffs(skillInstance.buffsToSelf);
+        user.addDebuffs(skillInstance.debuffsToSelf);
+        //create projectile object and push to projectiles
+        var randomID = generateRandomUniqueID(this.projectiles, 'P');
+        var projectile = skillInstance.makeProjectile(user, randomID, false);
+        projectile.onExplosion = onProjectileFireOrExplode;
+        projectiles.push(projectile);
+        colliderEles.push(projectile.colliderEle);
+        onProjectileFireOrExplode(projectile);
+      };
+      user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
+      user.changeState(gameConfig.OBJECT_STATE_CAST);
+      break;
     default:
+      console.log('skill type error!!!');
+      break;
   }
   user.setSkill(skillInstance);
   return skillInstance;
@@ -201,16 +235,7 @@ GameManager.prototype.updateUser = function(user){
 //user initialize
 GameManager.prototype.initializeUser = function(user){
   // check ID is unique
-  var IDisUnique = false;
-  while(!IDisUnique){
-    var randomID = generateRandomID('U');
-    IDisUnique = true;
-    for(var index in this.users){
-      if(randomID == this.users[index].objectID){
-        IDisUnique = false;
-      }
-    }
-  }
+  var randomID = generateRandomUniqueID(this.users, 'U');
   //initialize variables;
   user.assignID(randomID);
 
@@ -291,7 +316,20 @@ GameManager.prototype.updateSkillDataSetting = function(skill){
   return skillData;
 };
 GameManager.prototype.updateSkillsDataSettings = function(){
-
+  var skillDatas = [];
+  for(var index in this.users){
+    if(this.users[index].currentState === this.gameConfig.OBJECT_STATE_CAST){
+      var skillData = {
+        userID : this.users[index].objectID,
+        index : this.users[index].currentSkill.index,
+        targetPosition : this.users[index].currentSkill.targetPosition,
+        direction : this.users[index].currentSkill.direction,
+        totalTime : this.users[index].currentSkill.totalTime - (Date.now() - this.users[index].currentSkill.startTime),
+        fireTime : this.users[index].currentSkill.fireTime - (Date.now() - this.users[index].currentSkill.startTime)
+      }
+    }
+  }
+  return skillDatas;
 };
 GameManager.prototype.updateProjectileDataSetting = function(projectile){
   var projectileData = {
@@ -302,11 +340,26 @@ GameManager.prototype.updateProjectileDataSetting = function(projectile){
     radius : projectile.radius,
     lifeTime : projectile.lifeTime,
     explosionRadius : projectile.explosionRadius,
-    explode : projectile.colliderEle.isCollide,
+    explode : projectile.colliderEle.isCollide
   }
   return projectileData;
 };
 GameManager.prototype.updateProjectilesDataSettings = function(){
+  var projectileDatas = [];
+  for(var i=0; i<this.projectiles; i++){
+    var projectile = {
+      index : this.projectiles[i].index,
+      objectID : this.projectiles[i].objectID,
+      position : this.projectiles[i].position,
+      speed : this.projectiles[i].speed,
+      radius : this.projectiles[i].radius,
+      lifeTime : this.projectiles[i].lifeTime - (Date.now() - this.projectiles[i].startTime),
+      explosionRadius : this.projectiles[i].explosionRadius,
+      explode : this.projectiles[i].colliderEle.isCollide,
+    }
+    projectileDatas.push(projectile);
+  }
+  return projectileDatas;
 };
 GameManager.prototype.checkStateIsAttack = function(user){
   if(user.currentState === gameConfig.OBJECT_STATE_ATTACK){
@@ -317,6 +370,7 @@ GameManager.prototype.checkStateIsAttack = function(user){
 };
 
 function updateIntervalHandler(){
+  //colliderEle : skill, collisionObj : userTree
   for(var i=0; i<colliderEles.length; i++){
     //tempCollider == skill
     var tempCollider = colliderEles[i];
@@ -324,51 +378,26 @@ function updateIntervalHandler(){
     var collisionObjs = util.checkCircleCollision(entityTree, tempCollider.x, tempCollider.y, tempCollider.width, tempCollider.id);
     if(collisionObjs.length > 0){
       for(var j = 0; j<collisionObjs.length; j++){
-        if(tempCollider.objectID){
+        //case projectile explosive skill
+        if(tempCollider.objectID && tempCollider.isExplosive){
           if(tempCollider.isCollide){
             affectedEles.push({objectID : tempCollider.objectID, attackUser : tempCollider.id, hitUser : collisionObjs[j].id, damage : tempCollider.damage,
                               buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
-            // for(var i=0; i<this.projectiles; i++){
-            //   if(this.projectiles[i].objectID === tempCollider.objectID){
-            //     this.projectiles.splice(i, 1);
-            //   }
-            // }
           }else{
             for(var k=0; j<this.projectiles; k++){
               if(this.projectiles[k].objectID === tempCollider.objectID){
                 this.projectiles[k].explode();
+                break;
               }
             }
           }
         }else{
-          //case projectile
           affectedEles.push({attackUser : tempCollider.id, hitUser : collisionObjs[j].id, damage : tempCollider.damage,
                             buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
         }
       }
     }
   }
-    // entityTree.onCollision(tempCollider, function(item){
-    //   if(tempCollider.id !== item.id){
-    //     var colCenterX = tempCollider.x + tempCollider.width/2;
-    //     var colCenterY = tempCollider.y + tempCollider.height/2;
-    //
-    //     var itemCenterX = item.x + item.width/2;
-    //     var itemCenterY = item.y + item.height/2;
-    //
-    //     var distSquare = Math.pow(itemCenterX - colCenterX,2) + Math.pow(itemCenterY - colCenterY ,2);
-    //     if(distSquare < Math.pow(tempCollider.width/2 + item.width/2, 2)){
-    //       console.log('collision is occured');
-    //       switch (tempCollider.type) {
-    //         case 'baseAttack':
-    //           affectedEles.push({func : 'damageToUser', attackUser : tempCollider.id, hitUser : item.id, damage : tempCollider.damage });
-    //           break;
-    //         default:
-    //           break;
-    //       }
-    //     }
-    //   }
-    // });
   //clear tree and treeArray
   for(var index in userEles){
     entityTree.remove(userEles[index]);
@@ -385,16 +414,16 @@ function updateIntervalHandler(){
   var i = this.projectiles.length;
   while(i--){
     if(this.projectiles[i].isExpired() || this.projectiles[i].colliderEle.isCollide){
+      if(this.projectiles[i].colliderEle.isExplosive){
+        this.projectiles[i].explode();
+      }
       this.projectiles.splice(i, 1);
     }else{
       this.projectiles[i].move();
       colliderEles.push(this.projectiles[i].colliderEle);
     }
   }
-  //test
-  // for(var index in this.users){
-  //   colliderEles.push(this.users[index].entityTreeEle);
-  // }
+
   //put users data to tree
   entityTree.pushAll(userEles);
 };
@@ -423,10 +452,12 @@ function affectIntervalHandler(){
       this.users[affectedEles[i].hitUser].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
       //buff and debuff apply
       for(var j=0; j<affectedEles[i].buffsToTarget.length; j++){
-        this.users.buffList.push(affectedEles[i].buffsToTarget[j]);
+        this.users.addBuff(affectedEles[i].buffsToTarget[j]);
+        // this.users.buffList.push(affectedEles[i].buffsToTarget[j]);
       }
       for(var j=0; j<affectedEles[i].debuffsToTarget.length; j++){
-        this.users.debuffList.push(affectedEles[i].debuffsToTarget[j]);
+        this.users.addDebuff(affectedEles[i].debuffsToTarget[j]);
+        // this.users.debuffList.push(affectedEles[i].debuffsToTarget[j]);
       }
     }
     //projectiles
@@ -454,7 +485,19 @@ var onUserDeath = function(attackUserID, exp, deadUser){
     console.log(attackUserID + ' is not exists');
   }
 };
-
+function generateRandomUniqueID(uniqueCheckArray, prefix){
+  var IDisUnique = false;
+  while(!IDisUnique){
+    var randomID = generateRandomID(prefix);
+    IDisUnique = true;
+    for(var index in uniqueCheckArray){
+      if(randomID == uniqueCheckArray[index].objectID){
+        IDisUnique = false;
+      }
+    }
+  }
+  return randomID;
+};
 function generateRandomID(prefix){
   var output = prefix;
   for(var i=0; i<6; i++){

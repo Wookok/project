@@ -100,11 +100,21 @@ CManager.prototype = {
 		}
 	},
 	setUsers : function(userDatas){
-		for(var index in userDatas){
-			var tempUser = new User(userDatas[index], this.gameConfig);
-			this.users[userDatas[index].objectID] = tempUser;
-			this.users[userDatas[index].objectID].onMove = onMoveCalcCompelPos.bind(this);
-			this.users[userDatas[index].objectID].changeState(userDatas[index].currentState);
+		for(var i=0; i<Object.keys(userDatas).length; i++){
+			var tempUser = new User(userDatas[i], this.gameConfig);
+			this.users[userDatas[i].objectID] = tempUser;
+			this.users[userDatas[i].objectID].onMove = onMoveCalcCompelPos.bind(this);
+			this.users[userDatas[i].objectID].changeState(userDatas[i].currentState);
+		}
+	},
+	setUsersSkills : function(skillDatas){
+		for(var i=0; i<Object.keys(skillData).length; i++){
+			this.userSkill(skillDatas[i].userID, skillDatas[i]);
+		}
+	},
+	setProjectiles : function(projectileDatas){
+		for(var i=0; i<Object.keys(projectileDatas).length; i++){
+			this.makeProjectile(projectileDatas[i]);
 		}
 	},
 	kickUser : function(objID){
@@ -172,18 +182,8 @@ CManager.prototype = {
 				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;
 	    case this.gameConfig.SKILL_TYPE_PROJECTILE:
-	      var projectiles = this.projectiles;
 	      skillInstance.onFire = function(){
 					thisUser.skillEffectPlay = false;
-	        //create projectile object and push to projectiles
-	        // var projectile = skillInstance.makeProjectile(thisUser);
-	        // projectiles.push(projectile);
-					// setTimeout(function(){
-					// 	var index = projectiles.indexOf(projectile);
-					// 	if(index !== -1){
-					// 		projectiles.splice(index, 1);
-					// 	}
-					// }, projectile.lifeTime);
 	      };
 				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
 				skillInstance.direction = this.users[userID].targetDirection;
@@ -204,22 +204,67 @@ CManager.prototype = {
 				skillInstance.direction = this.users[userID].direction;
 	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;
+			case this.gameConfig.SKILL_TYPE_SELF_EXPLOSION:
+				skillInstance.onFire = function(){
+					thisUser.skillEffectPlay = false;
+					thisEffects.push(skillInstance);
+					setTimeout(function(){
+						var index = thisEffects.indexOf(skillInstance);
+						if(index !== -1){
+							thisEffects.splice(index, 1);
+						}
+					}, skillInstance.effectLastTime);
+				};
+				this.users[userID].targetDirection = this.users[userID].direction;
+				skillInstance.direction = this.users[userID].direction;
+				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+				break;
+			case this.gameConfig.SKILL_TYPE_TELEPORT:
+				skillInstance.onFire = function(){
+					thisUser.skillEffectPlay = false;
+					thisEffects.push(skillInstance);
+					setTimeout(function(){
+						var index = thisEffects.indexOf(skillInstance);
+						if(index !== -1){
+							thisEffects.splice(index, 1);
+						}
+					}, skillInstance.effectLastTime);
+				};
+				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
+				skillInstance.direction = this.users[userID].targetDirection;
+				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+				break;
+			case this.gameConfig.SKILL_TYPE_PROJECTILE_TICK:
+				skillInstance.onFire = function(){
+					thisUser.skillEffectPlay = false;
+				};
+				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
+				skillInstance.direction = this.users[userID].targetDirection;
+				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+				break;
 	    default:
+				console.log('skill type error!!!');
 	      break;
 		}
 		this.users[userID].setSkill(skillInstance);
 	},
 	makeProjectile : function(projetileData){
-		console.log(Skill.prototype);
 		var projectile = Skill.prototype.makeProjectile(projetileData, this.gameConfig.userOffset);
 		this.projectiles.push(projectile);
 	},
 	explodeProjectile : function(projectileData, effectLastTime){
 		var thisEffects = this.effects;
 		var projectileEffect = Skill.prototype.makeProjectileEffect(projectileData, this.gameConfig.userOffset);
+		//delete if this projectile is exist in projectile array
+		for(var i=0; i<Object.keys(this.projectiles).length; i++){
+			if(this.projectiles[i].objectID === projectileData.objectID){
+				this.projectiles.splice(i, 1);
+			}
+		}
+
 		thisEffects.push(projectileEffect)
 		setTimeout(function(){
-			var index = thisEffects.indexOf(projectile);
+			var index = thisEffects.indexOf(projectileEffect);
 			if(index !== -1){
 				thisEffects.splice(index, 1);
 			}
@@ -363,7 +408,6 @@ function staticIntervalHandler(){
       this.projectiles.splice(i, 1);
     }else{
       this.projectiles[i].move(this.gameConfig.userOffset);
-      colliderEles.push(this.projectiles[i].colliderEle);
     }
   }
   // for(var index in this.users){
