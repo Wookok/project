@@ -126,10 +126,22 @@ CManager.prototype = {
 		for(var i=0; i<Object.keys(objDatas).length; i++){
 			if(objDatas[i].objectID.substr(0, 3) === 'EXP'){
 				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
-				this.objExps.push({id : objDatas[i].objectID, position : localPosition});
+				this.objExps.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
 			}else if(objDatas[i].objectID.substr(0, 3) === 'SKL'){
 
 			}
+		}
+	},
+	deleteOBJ : function(objID){
+		if(objID.substr(0,3) === 'EXP'){
+			for(var i=0; i<this.objExps.length; i++){
+				if(this.objExps[i].objectID === objID){
+					this.objExps.splice(i, 1);
+					return;
+				}
+			}
+		}else if(objID.substr(0,3) === 'SKL'){
+
 		}
 	},
 	kickUser : function(objID){
@@ -326,6 +338,14 @@ CManager.prototype = {
 			this.projectiles[i].position.x -= this.user.speed.x;
 			this.projectiles[i].position.y -= this.user.speed.y;
 		}
+		for(var i=0; i<this.objExps.length; i++){
+			this.objExps[i].position.x -= this.user.speed.x;
+			this.objExps[i].position.y -= this.user.speed.y;
+		}
+		for(var i=0; i<this.objSkills.length; i++){
+			this.objSkills[i].position.x -= this.user.speed.x;
+			this.objSkills[i].position.y -= this.user.speed.y;
+		}
 		if(addPos){
 			for(var i=0; i<Object.keys(this.obstacles).length; i++){
 				this.obstacles[i].localPosition.x -= addPos.x;
@@ -336,6 +356,14 @@ CManager.prototype = {
 			for(var i=0; i<Object.keys(this.projectiles).length; i++){
 				this.projectiles[i].position.x -= addPos.x;
 				this.projectiles[i].position.y -= addPos.y;
+			}
+			for(var i=0; i<this.objExps.length; i++){
+				this.objExps[i].position.x -= addPos.x;
+				this.objExps[i].position.y -= addPos.y;
+			}
+			for(var i=0; i<this.objSkills.length; i++){
+				this.objSkills[i].position.x -= addPos.x;
+				this.objSkills[i].position.y -= addPos.y;
 			}
 		}
 	},
@@ -359,9 +387,14 @@ CManager.prototype = {
 		for(var index in this.obstacles){
 			this.obstacles[index].localPosition.x += revisionX;
 			this.obstacles[index].localPosition.y += revisionY;
-
-			// this.obstacles[index].staticEle.x += revisionX;
-			// this.obstacles[index].staticEle.y += revisionY;
+		}
+		for(var i=0; i<this.objExps.length; i++){
+			this.objExps[i].position.x += revisionX;
+			this.objExps[i].position.y += revisionY;
+		}
+		for(var i=0; i<this.objSkills.length; i++){
+			this.objSkills[i].position.x += revisionX;
+			this.objSkills[i].position.y += revisionY;
 		}
 	},
 	revisionAllObj : function(revisionX, revisionY){
@@ -373,9 +406,14 @@ CManager.prototype = {
 		for(var index in this.obstacles){
 			this.obstacles[index].localPosition.x += revisionX;
 			this.obstacles[index].localPosition.y += revisionY;
-
-			// this.obstacles[index].staticEle.x += revisionX;
-			// this.obstacles[index].staticEle.y += revisionY;
+		}
+		for(var i=0; i<this.objExps.length; i++){
+			this.objExps[i].position.x += revisionX;
+			this.objExps[i].position.y += revisionY;
+		}
+		for(var i=0; i<this.objSkills.length; i++){
+			this.objSkills[i].position.x += revisionX;
+			this.objSkills[i].position.y += revisionY;
 		}
 	},
 	// set this client user
@@ -1327,7 +1365,7 @@ module.exports={
   "SKILL_TYPE_TELEPORT" : 5,
   "SKILL_TYPE_PROJECTILE_TICK" : 6,
 
-  "OBJ_EXP_MIN_COUNT" : 150,
+  "OBJ_EXP_MIN_COUNT" : 500,
   "OBJ_EXP_ADD_PER_USER" : 5,
   "OBJ_EXP_MIN_AMOUNT" : 50,
   "OBJ_EXP_MAX_AMOUNT" : 100,
@@ -1988,7 +2026,7 @@ function setupSocket(){
     }
   });
   socket.on('deleteOBJ', function(objID){
-    console.log(objID + ' collide');
+    Manager.deleteOBJ(objID);
   });
   socket.on('updateUser', function(userData){
     console.log('in updateUser')

@@ -60,6 +60,7 @@ io.on('connection', function(socket){
     io.sockets.emit('setProjectile', projectileData);
   };
   GM.onNeedInformDeleteObj = function(objID){
+    console.log('onNeedInformDeleteObj : ' + objID);
     io.sockets.emit('deleteOBJ', objID)
   };
 

@@ -261,7 +261,7 @@ function setupSocket(){
     }
   });
   socket.on('deleteOBJ', function(objID){
-    console.log(objID + ' collide');
+    Manager.deleteOBJ(objID);
   });
   socket.on('updateUser', function(userData){
     console.log('in updateUser')

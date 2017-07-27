@@ -133,25 +133,31 @@ GameManager.prototype.createOBJSkills = function(){
   // }
 };
 GameManager.prototype.deleteExpObj = function(expObjID){
-  for(var i=0; i<collectionEles.length; i++){
-    if(collectionEles[i].id === expObjID){
-      deleteCollectionEle.push(collectionEles[i]);
-      console.log(deleteCollectionEle);
-      break;
+  if(expObjID.substr(0,3) === 'EXP'){
+    for(var i=0; i<collectionEles.length; i++){
+      if(collectionEles[i].id === expObjID){
+        deleteCollectionEle.push(collectionEles[i]);
+        collectionEles.splice(i, 1);
+        this.onNeedInformDeleteObj(expObjID);
+        return;
+      }
+    }
+  }else if(expObjID.substr(0,3) === 'SKL'){
+    for(var i=0; i<this.objExps.length; i++){
+      if(this.objExps[i].objectID === expObjID){
+        this.objExps.splice(i, 1);
+        collectionEles.splice(i, 1);
+        this.onNeedInformDeleteObj(expObjID);
+        break;
+      }
     }
   }
-  for(var i=0; i<this.objExps.length; i++){
-    if(this.objExps[i].objectID === expObjID){
-      this.objExps.splice(i, 1);
-      break;
-    }
-  }
-  this.onNeedInformDeleteObj(expObjID);
 };
 //setting User for moving and move user;
 GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
-  var collisionObjs = util.checkCircleCollision(staticTree, targetPosition.x - user.size.width/2, targetPosition.y - user.size.width/2, user.size.width, user.objectID);
+  var collisionObjs = util.checkCircleCollision(staticTree, targetPosition.x - user.size.width/2, targetPosition.y - user.size.width/2, user.size.width/2, user.objectID);
   //if click in obstacle calculate new target position
+
   if(collisionObjs.length > 0){
     var curPosX = user.position.x + user.size.width/2;
     var curPosY = user.position.y + user.size.width/2;
@@ -508,9 +514,9 @@ function updateIntervalHandler(){
   for(var i=0; i<userEles.length; i++){
     entityTree.remove(userEles[i]);
   }
-  for(var i=0; i<deleteCollectionEle.length; i++){
-    console.log(deleteCollectionEle[i]);
+  for(var i=deleteCollectionEle.length-1; i>=0; i--){
     collectionTree.remove(deleteCollectionEle[i]);
+    deleteCollectionEle.splice(i, 1);
   }
 
   userEles = [];
