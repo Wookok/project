@@ -184,6 +184,7 @@ function drawGame(){
   drawScreen();
   drawGrid();
   drawObstacles();
+  drawObjs();
   drawUsers();
   drawEffect();
   drawProjectile();
@@ -199,10 +200,12 @@ function setupSocket(){
   });
 
   //change state game on
-  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas){
+  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas){
     Manager.setUsers(userDatas, skillDatas);
     Manager.setUsersSkills(skillDatas);
     Manager.setProjectiles(projectileDatas);
+    Manager.setObjs(objDatas);
+
     Manager.synchronizeUser(gameConfig.userID);
     Manager.start();
     console.log(Manager.users);
@@ -256,11 +259,14 @@ function setupSocket(){
     }else{
       Manager.makeProjectile(projectileData);
     }
-  })
+  });
+  socket.on('deleteOBJ', function(objID){
+    console.log(objID + ' collide');
+  });
   socket.on('updateUser', function(userData){
     console.log('in updateUser')
     console.log(userData);
-  })
+  });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });
@@ -295,6 +301,14 @@ function drawObstacles(){
     ctx.stroke();
     ctx.closePath();
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
+  }
+};
+function drawObjs(){
+  ctx.fillStyle = "#0000ff";
+  for(var i=0; i<Manager.objExps.length; i++){
+    ctx.beginPath();
+    ctx.fillRect(Manager.objExps[i].position.x, Manager.objExps[i].position.y, Manager.objExps[i].radius * 2, Manager.objExps[i].radius * 2);
+    ctx.closePath();
   }
 }
 function drawUsers(){

@@ -26,6 +26,8 @@ var CManager = function(gameConfig){
 	this.obstacles = [];
 	this.effects = [];
 	this.projectiles = [];
+	this.objExps = [];
+	this.objSkills = [];
 
 	this.staticInterval = null;
 	this.affectInterval = null;
@@ -117,6 +119,16 @@ CManager.prototype = {
 	setProjectiles : function(projectileDatas){
 		for(var i=0; i<Object.keys(projectileDatas).length; i++){
 			this.makeProjectile(projectileDatas[i]);
+		}
+	},
+	setObjs : function(objDatas){
+		for(var i=0; i<Object.keys(objDatas).length; i++){
+			if(objDatas[i].objectID.substr(0, 3) === 'EXP'){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objExps.push({id : objDatas[i].objectID, position : localPosition});
+			}else if(objDatas[i].objectID.substr(0, 3) === 'SKL'){
+
+			}
 		}
 	},
 	kickUser : function(objID){

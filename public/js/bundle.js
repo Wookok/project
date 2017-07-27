@@ -27,6 +27,8 @@ var CManager = function(gameConfig){
 	this.obstacles = [];
 	this.effects = [];
 	this.projectiles = [];
+	this.objExps = [];
+	this.objSkills = [];
 
 	this.staticInterval = null;
 	this.affectInterval = null;
@@ -110,12 +112,24 @@ CManager.prototype = {
 	},
 	setUsersSkills : function(skillDatas){
 		for(var i=0; i<Object.keys(skillDatas).length; i++){
-			this.userSkill(skillDatas[i].userID, skillDatas[i]);
+			if(skillDatas[i].fireTime > 0){
+				this.userSkill(skillDatas[i].userID, skillDatas[i]);
+			}
 		}
 	},
 	setProjectiles : function(projectileDatas){
 		for(var i=0; i<Object.keys(projectileDatas).length; i++){
 			this.makeProjectile(projectileDatas[i]);
+		}
+	},
+	setObjs : function(objDatas){
+		for(var i=0; i<Object.keys(objDatas).length; i++){
+			if(objDatas[i].objectID.substr(0, 3) === 'EXP'){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objExps.push({id : objDatas[i].objectID, position : localPosition});
+			}else if(objDatas[i].objectID.substr(0, 3) === 'SKL'){
+
+			}
 		}
 	},
 	kickUser : function(objID){
@@ -1276,10 +1290,10 @@ module.exports={
 
 },{}],7:[function(require,module,exports){
 module.exports={
-  "INTERVAL" : 30,
+  "INTERVAL" : 20,
 
-  "CANVAS_MAX_SIZE" : {"width" : 11200 , "height" : 11200},
-  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1600},
+  "CANVAS_MAX_SIZE" : {"width" : 5600 , "height" : 3360},
+  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
 
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,
@@ -1311,7 +1325,17 @@ module.exports={
   "SKILL_TYPE_SELF" : 3,
   "SKILL_TYPE_SELF_EXPLOSION" : 4,
   "SKILL_TYPE_TELEPORT" : 5,
-  "SKILL_TYPE_PROJECTILE_TICK" : 6
+  "SKILL_TYPE_PROJECTILE_TICK" : 6,
+
+  "OBJ_EXP_MIN_COUNT" : 150,
+  "OBJ_EXP_ADD_PER_USER" : 5,
+  "OBJ_EXP_MIN_AMOUNT" : 50,
+  "OBJ_EXP_MAX_AMOUNT" : 100,
+  "OBJ_EXP_RANGE_WITH_OTHERS" : 10,
+
+  "OBJ_SKILL_MIN_COUNT" : 700,
+  "OBJ_SKILL_RADIUS" : 30,
+  "OBJ_SKILL_RANGE_WITH_OTHERS" : 10
 }
 
 },{}],8:[function(require,module,exports){
@@ -1887,6 +1911,7 @@ function drawGame(){
   drawScreen();
   drawGrid();
   drawObstacles();
+  drawObjs();
   drawUsers();
   drawEffect();
   drawProjectile();
@@ -1902,10 +1927,12 @@ function setupSocket(){
   });
 
   //change state game on
-  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas){
+  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas){
     Manager.setUsers(userDatas, skillDatas);
     Manager.setUsersSkills(skillDatas);
     Manager.setProjectiles(projectileDatas);
+    Manager.setObjs(objDatas);
+
     Manager.synchronizeUser(gameConfig.userID);
     Manager.start();
     console.log(Manager.users);
@@ -1959,11 +1986,14 @@ function setupSocket(){
     }else{
       Manager.makeProjectile(projectileData);
     }
-  })
+  });
+  socket.on('deleteOBJ', function(objID){
+    console.log(objID + ' collide');
+  });
   socket.on('updateUser', function(userData){
     console.log('in updateUser')
     console.log(userData);
-  })
+  });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });
@@ -1998,6 +2028,14 @@ function drawObstacles(){
     ctx.stroke();
     ctx.closePath();
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
+  }
+};
+function drawObjs(){
+  ctx.fillStyle = "#0000ff";
+  for(var i=0; i<Manager.objExps.length; i++){
+    ctx.beginPath();
+    ctx.fillRect(Manager.objExps[i].position.x, Manager.objExps[i].position.y, Manager.objExps[i].radius * 2, Manager.objExps[i].radius * 2);
+    ctx.closePath();
   }
 }
 function drawUsers(){

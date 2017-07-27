@@ -59,6 +59,9 @@ io.on('connection', function(socket){
     var projectileData = GM.updateProjectileDataSetting(projectile);
     io.sockets.emit('setProjectile', projectileData);
   };
+  GM.onNeedInformDeleteObj = function(objID){
+    io.sockets.emit('deleteOBJ', objID)
+  };
 
   socket.on('reqStartGame', function(){
 
@@ -79,9 +82,10 @@ io.on('connection', function(socket){
     console.log(userDatas);
     var skillDatas = GM.updateSkillsDataSettings();
     var projectileDatas = GM.updateProjectilesDataSettings();
+    var objDatas = GM.updateOBJDataSettings();
 
     socket.emit('setSyncUser', userData);
-    socket.emit('resStartGame', userDatas, skillDatas, projectileDatas);
+    socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas);
   });
 
   socket.on('reqMove', function(targetPosition, localOffset){
