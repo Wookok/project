@@ -1,6 +1,7 @@
 var Obstacle = require('./Obstacle.js');
 var config = require('../../config.json');
 var gameConfig = require('../public/gameConfig.json');
+var serverConfig = require('./serverConfig.json');
 var util = require('../public/util.js');
 var SUtil = require('./ServerUtil.js');
 
@@ -23,8 +24,10 @@ var userEles = [];
 //skill
 var colliderEles = [];
 
+// for collection exp, gold, skill objs
 var collectionTree;
 var collectionEles = [];
+
 var deleteCollectionEle = [];
 var addCollectionEle = [];
 //obstacles...like tree, rock
@@ -39,6 +42,8 @@ function GameManager(){
 
   this.objExps = [];
   this.objSkills = [];
+  this.objExpsCount = serverConfig.OBJ_EXP_MIN_COUNT;
+  this.objSkillsCount = serverConfig.OBJ_SKILL_MIN_COUNT;
 
   this.updateInteval = false;
   this.staticInterval = false;
@@ -48,6 +53,7 @@ function GameManager(){
   this.onNeedInformToAll = new Function();
   this.onNeedProjectileSkillInformToAll = new Function();
 
+  this.onNeedInformCreateObjs = new Function();
   this.onNeedInformDeleteObj = new Function();
 };
 
@@ -72,9 +78,9 @@ GameManager.prototype.start = function(){
   this.updateGame();
 };
 GameManager.prototype.mapSetting = function(){
-  this.createObstacles();
-  this.createOBJExps();
-  this.createOBJSkills();
+  this.setObstacles();
+  this.setOBJExps();
+  this.setOBJSkills();
 };
 GameManager.prototype.updateGame = function(){
   if(this.updateInteval === false){
@@ -89,7 +95,7 @@ GameManager.prototype.updateGame = function(){
 };
 
 //create obstacles and static tree setup
-GameManager.prototype.createObstacles = function(){
+GameManager.prototype.setObstacles = function(){
   for(var index in map.Trees){
     var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
 
@@ -98,57 +104,92 @@ GameManager.prototype.createObstacles = function(){
   }
   staticTree.pushAll(staticEles);
 };
-GameManager.prototype.createOBJExps = function(){
-  for(var i=0; i<gameConfig.OBJ_EXP_MIN_COUNT; i++){
-    var randomID = SUtil.generateRandomUniqueID(this.objExps, 'EXP');
+GameManager.prototype.setOBJExps = function(){
+  for(var i=0; i<this.objExpsCount; i++){
+    var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
     var objExp = new OBJExp(randomID);
-    var expAmount = SUtil.getRandomNum(gameConfig.OBJ_EXP_MIN_AMOUNT, gameConfig.OBJ_EXP_MAX_AMOUNT);
+    var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
     var radius = SUtil.expToRadius(expAmount);
     var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
-                                      radius, gameConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID);
+                                      radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
 
     objExp.initOBJExp(randomPos, radius, expAmount);
-    objExp.setColliderEle();
+    objExp.setCollectionEle();
     // this.staticTree.push(food.staticEle);
     this.objExps.push(objExp);
-    collectionEles.push(objExp.colliderEle);
-    collectionTree.push(objExp.colliderEle);
+    collectionEles.push(objExp.collectionEle);
+    collectionTree.push(objExp.collectionEle);
   }
 };
-GameManager.prototype.createOBJSkills = function(){
-  // for(var i=0; i<gameConfig.OBJ_SKILL_MIN_COUNT; i++){
-  //   //make Foods
-  //   var randomID = SUtil.generateRandomUniqueID('EXP', this.objSkills);
-  //   var objSkill = new OBJSkill(randomID);
-  //   var expAmount = SUtil.getRandomNum(gameConfig.OBJ_SKILL_MIN_AMOUNT, gameConfig.OBJ_SKILL_MAX_AMOUNT);
-  //   var radius = SUtil.expToRadius(expAmount);
-  //   var randomPos = SUtil.generateRandomPos(this.staticTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
-  //                                     radius, gameConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID);
-  //
-  //   objSkill.initOBJSkill(randomPos, radius, expAmount);
-  //   objSkill.setStaticEle();
-  //   // this.staticTree.push(food.staticEle);
-  //   this.objSkills.push(objSkill);
-  //   this.staticTree.push(objSkill.staticEle);
-  // }
+GameManager.prototype.setOBJSkills = function(){
+  for(var i=0; i<this.objSkillsCount; i++){
+    var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
+    var objSkill = new OBJSkill(randomID);
+    var skillIndex = 10;
+    var radius = gameConfig.OBJ_SKILL_RADIUS;
+    var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
+                                      radius, serverConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID, staticTree);
+
+    objSkill.initOBJSkill(randomPos, radius, skillIndex);
+    objSkill.setCollectionEle();
+    // this.staticTree.push(food.staticEle);
+    this.objSkills.push(objSkill);
+    collectionEles.push(objSkill.collectionEle);
+    collectionTree.push(objSkill.collectionEle);
+  }
 };
-GameManager.prototype.deleteExpObj = function(expObjID){
-  if(expObjID.substr(0,3) === 'EXP'){
-    for(var i=0; i<collectionEles.length; i++){
-      if(collectionEles[i].id === expObjID){
-        deleteCollectionEle.push(collectionEles[i]);
-        collectionEles.splice(i, 1);
-        this.onNeedInformDeleteObj(expObjID);
+GameManager.prototype.createOBJs = function(count, type){
+  var createdObjs =[];
+  if(type === gameConfig.PREFIX_OBJECT_EXP){
+    for(var i=0; i<count; i++){
+      var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
+      var objExp = new OBJExp(randomID);
+      var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
+      var radius = SUtil.expToRadius(expAmount);
+      var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
+                                        radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
+
+      objExp.initOBJExp(randomPos, radius, expAmount);
+      objExp.setCollectionEle();
+      this.objExps.push(objExp);
+
+      createdObjs.push(objExp);
+    }
+  }else if(type === gameConfig.PREFIX_OBJECT_SKILL){
+    for(var i=0; i<count; i++){
+      var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
+      var objSkill = new OBJSkill(randomID);
+      var skillIndex = 10;
+      var radius = gameConfig.OBJ_SKILL_RADIUS;
+      var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
+                                        radius, serverConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID, staticTree);
+
+      objSkill.initOBJSkill(randomPos, radius, skillIndex);
+      objSkill.setCollectionEle();
+      // this.staticTree.push(food.staticEle);
+      this.objSkills.push(objSkill);
+
+      createdObjs.push(objSkill);
+    }
+  }
+  this.onNeedInformCreateObjs(createdObjs);
+};
+
+GameManager.prototype.deleteObj = function(objID){
+  if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
+    for(var i=0; i<Object.keys(this.objExps).length; i++){
+      if(this.objExps[i].objectID === objID){
+        this.objExps.splice(i, 1);
+        this.onNeedInformDeleteObj(objID);
         return;
       }
     }
-  }else if(expObjID.substr(0,3) === 'SKL'){
-    for(var i=0; i<this.objExps.length; i++){
-      if(this.objExps[i].objectID === expObjID){
-        this.objExps.splice(i, 1);
-        collectionEles.splice(i, 1);
-        this.onNeedInformDeleteObj(expObjID);
-        break;
+  }else if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
+    for(var i=0; i<Object.keys(this.objSkills).length; i++){
+      if(this.objSkills[i].objectID === objID){
+        this.objSkills.splice(i, 1);
+        this.onNeedInformDeleteObj(objID);
+        return;
       }
     }
   }
@@ -224,7 +265,7 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
         user.addBuffs(skillInstance.buffsToSelf);
         user.addDebuffs(skillInstance.debuffsToSelf);
         //create projectile object and push to projectiles
-        var randomID = SUtil.generateRandomUniqueID(this.projectiles, 'P');
+        var randomID = SUtil.generateRandomUniqueID(this.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
         var projectile = skillInstance.makeProjectile(user, randomID, true);
         projectile.onExplosion = onProjectileFireOrExplode;
         projectiles.push(projectile);
@@ -269,7 +310,7 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
         user.addBuffs(skillInstance.buffsToSelf);
         user.addDebuffs(skillInstance.debuffsToSelf);
         //create projectile object and push to projectiles
-        var randomID = SUtil.generateRandomUniqueID(this.projectiles, 'P');
+        var randomID = SUtil.generateRandomUniqueID(this.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
         var projectile = skillInstance.makeProjectile(user, randomID, false);
         projectile.onExplosion = onProjectileFireOrExplode;
         projectiles.push(projectile);
@@ -292,6 +333,7 @@ GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
   this.users[user.objectID].onMove = onMoveCalcCompelPos.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
+  this.objExpsCount += gameConfig.OBJ_EXP_ADD_PER_USER;
   console.log(this.users);
   console.log(user.objectID + ' join in GameManager');
 };
@@ -300,6 +342,7 @@ GameManager.prototype.kickUser = function(user){
     console.log("can`t find user`s ID. something is wrong");
   }else{
     delete this.users[user.objectID];
+    this.objExpsCount -= gameConfig.OBJ_EXP_ADD_PER_USER;
   }
 };
 GameManager.prototype.updateUser = function(user){
@@ -313,7 +356,7 @@ GameManager.prototype.updateUser = function(user){
 //user initialize
 GameManager.prototype.initializeUser = function(user){
   // check ID is unique
-  var randomID = SUtil.generateRandomUniqueID(this.users, 'U');
+  var randomID = SUtil.generateRandomUniqueID(this.users, gameConfig.PREFIX_USER);
   //initialize variables;
   user.assignID(randomID);
 
@@ -439,6 +482,13 @@ GameManager.prototype.updateProjectilesDataSettings = function(){
   }
   return projectileDatas;
 };
+GameManager.prototype.updateOBJDataSetting = function(data){
+  return {
+    objectID : data.objectID,
+    position : data.position,
+    radius : data.size.width/2
+  };
+};
 GameManager.prototype.updateOBJDataSettings = function(){
   var objDatas = [];
   for(var i=0; i<this.objExps.length; i++){
@@ -451,12 +501,15 @@ GameManager.prototype.updateOBJDataSettings = function(){
   }
   for(var i=0; i<this.objSkills.length; i++){
     var objSkill = {
-
+      objectID : this.objSkills[i].objectID,
+      position : this.objSkills[i].position,
+      radius : this.objSkills[i].size.width/2
     }
     objDatas.push(objSkill);
   }
   return objDatas;
-}
+};
+
 GameManager.prototype.checkStateIsAttack = function(user){
   if(user.currentState === gameConfig.OBJECT_STATE_ATTACK){
     return true;
@@ -466,6 +519,7 @@ GameManager.prototype.checkStateIsAttack = function(user){
 };
 
 function updateIntervalHandler(){
+  //check collision user with skill
   //colliderEle : skill, collisionObj : userTree
   for(var i=0; i<colliderEles.length; i++){
     //tempCollider == skill
@@ -494,39 +548,58 @@ function updateIntervalHandler(){
       }
     }
   }
+  //check collision user with object(exp, skill, etc)
   //userEle : user, collisionObj : objExp, objSkill
   for(var i=0; i<userEles.length; i++){
     var tempUser = userEles[i];
     //collisionObj : exp or skill object
     var collisionObjs = util.checkCircleCollision(collectionTree, tempUser.x, tempUser.y, tempUser.width/2, tempUser.id);
     for(var j=0; j<collisionObjs.length;j++){
-      if(collisionObjs[j].id.substr(0,3) === "EXP"){
+      if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
         //case objExp
         affectedEles.push({type : 'getExpObj',user : tempUser.id, colObj : collisionObjs[j].id, addExp : collisionObjs[j].exp});
-      }else if(collisionObjs[j].id.substr(0,3) === "SKL"){
+      }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
         //case objSkill
+        affectedEles.push({type : 'getSkillObj',user : tempUser.id, colObj : collisionObjs[j].id, skillIndex : collisionObjs[j].skillIndex});
       }else{
-        // console.log('check id' + collisionObjs[j].id);
+        console.log('check id' + collisionObjs[j].id);
       }
     }
   }
+
   //clear tree and treeArray
   for(var i=0; i<userEles.length; i++){
     entityTree.remove(userEles[i]);
   }
-  for(var i=deleteCollectionEle.length-1; i>=0; i--){
-    collectionTree.remove(deleteCollectionEle[i]);
-    deleteCollectionEle.splice(i, 1);
+  for(var i=0; i<collectionEles.length; i++){
+    collectionTree.remove(collectionEles[i]);
   }
 
   userEles = [];
   colliderEles = [];
+  collectionEles = [];
 
   //updateUserArray
   for(var index in this.users){
     this.users[index].setEntityEle();
     userEles.push(this.users[index].entityTreeEle);
   }
+  //update collectable objects array
+  var addExpCounts = this.objExpsCount - Object.keys(this.objExps).length;
+  var addSkillCounts = this.objSkillsCount - Object.keys(this.objSkills).length;
+  if(addExpCounts > 0){
+    this.createOBJs(addExpCounts, gameConfig.PREFIX_OBJECT_EXP);
+  }
+  if(addSkillCounts > 0){
+    this.createOBJs(addSkillCounts, gameConfig.PREFIX_OBJECT_SKILL);
+  }
+  for(var i=0; i<Object.keys(this.objExps).length; i++){
+    collectionEles.push(this.objExps[i].collectionEle);
+  }
+  for(var i=0; i<Object.keys(this.objSkills).length; i++){
+    collectionEles.push(this.objSkills[i].collectionEle);
+  }
+
   //update projectiles array
   var i = this.projectiles.length;
   while(i--){
@@ -543,10 +616,7 @@ function updateIntervalHandler(){
 
   //put users data to tree
   entityTree.pushAll(userEles);
-
-  for(var i=0; addCollectionEle.length; i++){
-    collectionTree.push(addCollectionEle[i]);
-  }
+  collectionTree.pushAll(collectionEles);
 };
 function staticIntervalHandler(){
   //explode when projectile collide with obstacle
@@ -587,10 +657,14 @@ function affectIntervalHandler(){
     }else if(affectedEles[i].type === 'getExpObj'){
       if(affectedEles[i].user in this.users){
         this.users[affectedEles[i].user].getExp(affectedEles[i].addExp);
-        this.deleteExpObj(affectedEles[i].colObj);
+        this.deleteObj(affectedEles[i].colObj);
+      }
+    }else if(affectedEles[i].type === 'getSkillObj'){
+      if(affectedEles[i].user in this.users){
+        this.users[affectedEles[i].user].getSkill(affectedEles[i].skillIndex);
+        this.deleteObj(affectedEles[i].colObj);
       }
     }
-
     affectedEles.splice(i, 1);
   }
 };

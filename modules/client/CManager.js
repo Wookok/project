@@ -123,24 +123,41 @@ CManager.prototype = {
 	},
 	setObjs : function(objDatas){
 		for(var i=0; i<Object.keys(objDatas).length; i++){
-			if(objDatas[i].objectID.substr(0, 3) === 'EXP'){
+			if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_EXP){
 				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
 				this.objExps.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
-			}else if(objDatas[i].objectID.substr(0, 3) === 'SKL'){
-
+			}else if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_SKILL){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objSkills.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
+			}
+		}
+	},
+	createOBJs : function(objDatas){
+		for(var i=0; i<Object.keys(objDatas).length; i++){
+			if(objDatas[i].objectID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_EXP){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objExps.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
+			}else if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_SKILL){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objSkills.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
 			}
 		}
 	},
 	deleteOBJ : function(objID){
-		if(objID.substr(0,3) === 'EXP'){
+		if(objID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_EXP){
 			for(var i=0; i<this.objExps.length; i++){
 				if(this.objExps[i].objectID === objID){
 					this.objExps.splice(i, 1);
 					return;
 				}
 			}
-		}else if(objID.substr(0,3) === 'SKL'){
-
+		}else if(objID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_SKILL){
+			for(var i=0; i<this.objSkills.length; i++){
+				if(this.objSkills[i].objectID === objID){
+					this.objSkills.splice(i, 1);
+					return;
+				}
+			}
 		}
 	},
 	kickUser : function(objID){

@@ -21,7 +21,7 @@ function generateRandomID(prefix){
   return output;
 };
 
-exports.generateRandomPos = function(checkTree, minX, minY, maxX, maxY, radius, diffRangeWithOthers, objID){
+exports.generateRandomPos = function(checkTree, minX, minY, maxX, maxY, radius, diffRangeWithOthers, objID, checkTree2){
   var isCollision = true;
   while(isCollision){
     isCollision = false;
@@ -32,6 +32,11 @@ exports.generateRandomPos = function(checkTree, minX, minY, maxX, maxY, radius, 
     var collisionObjs = util.checkCircleCollision(checkTree, pos.x, pos.y, radius + diffRangeWithOthers, objID);
     if(collisionObjs.length > 0){
       isCollision = true;
+    }else if(checkTree2){
+      var collisionObjs = util.checkCircleCollision(checkTree2, pos.x, pos.y, radius + diffRangeWithOthers, objID);
+      if(collisionObjs.length >0){
+        isCollision = true;
+      }
     }
   }
   return pos;

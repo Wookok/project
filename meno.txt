@@ -1,3 +1,0 @@
-상수 사용?			사거리	폭발 범위				충돌 범위
-id	type	totalTime	fireTime	range	explosionRadius	direction	lifeTime		radius	maxSpeed		effect		aniTime	aniClipCount
-attack

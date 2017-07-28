@@ -6,7 +6,7 @@ function OBJSkill(objectID){
 
   this.skillIndex;
 
-  this.colliderEle = {};
+  this.collectionEle = {};
 };
 OBJSkill.prototype = Object.create(GameObject.prototype);
 OBJSkill.prototype.constructor = OBJSkill;
@@ -16,8 +16,8 @@ OBJSkill.prototype.initOBJSkill = function(position, radius, skillIndex){
   this.setPosition(position.x, position.y);
   this.skillIndex = skillIndex;
 };
-OBJSkill.prototype.setColliderEle = function(){
-  this.colliderEle = {
+OBJSkill.prototype.setCollectionEle = function(){
+  this.collectionEle = {
     id : this.objectID,
     x : this.position.x,
     y : this.position.y,

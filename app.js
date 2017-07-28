@@ -59,6 +59,13 @@ io.on('connection', function(socket){
     var projectileData = GM.updateProjectileDataSetting(projectile);
     io.sockets.emit('setProjectile', projectileData);
   };
+  GM.onNeedInformCreateObjs = function(objs){
+    var objDatas = [];
+    for(var i=0; i<Object.keys(objs).length; i++){
+      objDatas.push(GM.updateOBJDataSetting(objs[i]));
+    }
+    io.sockets.emit('createOBJs', objDatas);
+  }
   GM.onNeedInformDeleteObj = function(objID){
     console.log('onNeedInformDeleteObj : ' + objID);
     io.sockets.emit('deleteOBJ', objID)

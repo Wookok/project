@@ -260,6 +260,9 @@ function setupSocket(){
       Manager.makeProjectile(projectileData);
     }
   });
+  socket.on('createOBJs', function(objDatas){
+    Manager.createOBJs(objDatas);
+  });
   socket.on('deleteOBJ', function(objID){
     Manager.deleteOBJ(objID);
   });
@@ -308,6 +311,12 @@ function drawObjs(){
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
     ctx.fillRect(Manager.objExps[i].position.x, Manager.objExps[i].position.y, Manager.objExps[i].radius * 2, Manager.objExps[i].radius * 2);
+    ctx.closePath();
+  }
+  ctx.fillStyle = "#ff0000";
+  for(var i=0; i<Manager.objSkills.length; i++){
+    ctx.beginPath();
+    ctx.fillRect(Manager.objSkills[i].position.x, Manager.objSkills[i].position.y, Manager.objSkills[i].radius * 2, Manager.objSkills[i].radius * 2);
     ctx.closePath();
   }
 }

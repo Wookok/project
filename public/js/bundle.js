@@ -124,24 +124,41 @@ CManager.prototype = {
 	},
 	setObjs : function(objDatas){
 		for(var i=0; i<Object.keys(objDatas).length; i++){
-			if(objDatas[i].objectID.substr(0, 3) === 'EXP'){
+			if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_EXP){
 				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
 				this.objExps.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
-			}else if(objDatas[i].objectID.substr(0, 3) === 'SKL'){
-
+			}else if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_SKILL){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objSkills.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
+			}
+		}
+	},
+	createOBJs : function(objDatas){
+		for(var i=0; i<Object.keys(objDatas).length; i++){
+			if(objDatas[i].objectID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_EXP){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objExps.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
+			}else if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_SKILL){
+				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
+				this.objSkills.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
 			}
 		}
 	},
 	deleteOBJ : function(objID){
-		if(objID.substr(0,3) === 'EXP'){
+		if(objID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_EXP){
 			for(var i=0; i<this.objExps.length; i++){
 				if(this.objExps[i].objectID === objID){
 					this.objExps.splice(i, 1);
 					return;
 				}
 			}
-		}else if(objID.substr(0,3) === 'SKL'){
-
+		}else if(objID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_SKILL){
+			for(var i=0; i<this.objSkills.length; i++){
+				if(this.objSkills[i].objectID === objID){
+					this.objSkills.splice(i, 1);
+					return;
+				}
+			}
 		}
 	},
 	kickUser : function(objID){
@@ -1350,6 +1367,14 @@ module.exports={
   "GAME_STATE_GAME_ON" : 3,
   "GAME_STATE_GAME_END" : 4,
 
+  "PREFIX_USER" : "USR",
+  "PREFIX_SKILL" : "SKL",
+  "PREFIX_SKILL_PROJECTILE" : "SKP",
+  "PREFIX_OBSTACLE_TREE" : "OTT",
+  "PREFIX_OBSTACLE_ROCK" : "OTR",
+  "PREFIX_OBJECT_EXP" : "OXP",
+  "PREFIX_OBJECT_SKILL" : "OSK",
+
   "USER_CONDITION_IMMORTAL" : 0,
   "USER_CONDITION_FREEZE" : 1,
   "USER_CONDITION_FROZEN" : 2,
@@ -1365,15 +1390,7 @@ module.exports={
   "SKILL_TYPE_TELEPORT" : 5,
   "SKILL_TYPE_PROJECTILE_TICK" : 6,
 
-  "OBJ_EXP_MIN_COUNT" : 500,
-  "OBJ_EXP_ADD_PER_USER" : 5,
-  "OBJ_EXP_MIN_AMOUNT" : 50,
-  "OBJ_EXP_MAX_AMOUNT" : 100,
-  "OBJ_EXP_RANGE_WITH_OTHERS" : 10,
-
-  "OBJ_SKILL_MIN_COUNT" : 700,
-  "OBJ_SKILL_RADIUS" : 30,
-  "OBJ_SKILL_RANGE_WITH_OTHERS" : 10
+  "OBJ_SKILL_RADIUS" : 30
 }
 
 },{}],8:[function(require,module,exports){
@@ -2025,6 +2042,9 @@ function setupSocket(){
       Manager.makeProjectile(projectileData);
     }
   });
+  socket.on('createOBJs', function(objDatas){
+    Manager.createOBJs(objDatas);
+  });
   socket.on('deleteOBJ', function(objID){
     Manager.deleteOBJ(objID);
   });
@@ -2073,6 +2093,12 @@ function drawObjs(){
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
     ctx.fillRect(Manager.objExps[i].position.x, Manager.objExps[i].position.y, Manager.objExps[i].radius * 2, Manager.objExps[i].radius * 2);
+    ctx.closePath();
+  }
+  ctx.fillStyle = "#ff0000";
+  for(var i=0; i<Manager.objSkills.length; i++){
+    ctx.beginPath();
+    ctx.fillRect(Manager.objSkills[i].position.x, Manager.objSkills[i].position.y, Manager.objSkills[i].radius * 2, Manager.objSkills[i].radius * 2);
     ctx.closePath();
   }
 }

@@ -156,6 +156,9 @@ User.prototype.levelUp = function(){
   this.updateUserBaseStat();
   this.getExp(0);
 };
+User.prototype.getSkill = function(index){
+  console.log('get skill : ' + index);
+};
 //execute when level up or down
 User.prototype.updateUserBaseStat = function(){
   var userLevelData = util.findData(userBaseTable, 'level', this.level);
