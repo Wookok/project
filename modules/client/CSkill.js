@@ -101,10 +101,10 @@ var ProjectileSkill = function(projectileData, offset){
 };
 
 ProjectileSkill.prototype = {
-  move : function(){
+  move : function(offset){
     this.position.x += this.speed.x;
     this.position.y += this.speed.y;
-    if(this.currentOffset == offset){
+    if(this.currentOffset !== offset){
       this.revision(offset);
     }
   },

@@ -2,7 +2,7 @@
   "INTERVAL" : 20,
 
   "CANVAS_MAX_SIZE" : {"width" : 5600 , "height" : 3360},
-  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
+  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 800, "height" : 500},
 
   "OBJECT_STATE_IDLE" : 0,
   "OBJECT_STATE_MOVE" : 1,

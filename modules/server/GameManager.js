@@ -519,6 +519,7 @@ GameManager.prototype.checkStateIsAttack = function(user){
 };
 
 function updateIntervalHandler(){
+  var startTime = Date.now();
   //check collision user with skill
   //colliderEle : skill, collisionObj : userTree
   for(var i=0; i<colliderEles.length; i++){
@@ -617,6 +618,7 @@ function updateIntervalHandler(){
   //put users data to tree
   entityTree.pushAll(userEles);
   collectionTree.pushAll(collectionEles);
+  console.log(Date.now() - startTime);
 };
 function staticIntervalHandler(){
   //explode when projectile collide with obstacle

@@ -69,6 +69,7 @@ CManager.prototype = {
 
 		for(var index in this.obstacles){
 			var localPos = util.worldToLocalPosition(this.obstacles[index].position, this.gameConfig.userOffset);
+
 			this.obstacles[index].staticEle.x = localPos.x
 			this.obstacles[index].staticEle.y = localPos.y
 
@@ -444,29 +445,29 @@ CManager.prototype = {
 			console.log('if print me. Something is wrong');
 		}
 	},
-	findUserAsWorldPosition : function(userID, offset){
-		for(var index in this.users){
-			if(this.users[index].objectID === userID){
-				var returnVal = {
-					position : util.localToWorldPosition(this.users[index].position, offset),
-					size : this.users[index].size
-				};
-				return returnVal;
-			}
-		}
-	},
+	// findUserAsWorldPosition : function(userID, offset){
+	// 	for(var index in this.users){
+	// 		if(this.users[index].objectID === userID){
+	// 			var returnVal = {
+	// 				position : util.localToWorldPosition(this.users[index].position, offset),
+	// 				size : this.users[index].size
+	// 			};
+	// 			return returnVal;
+	// 		}
+	// 	}
+	// },
 	//if canvas size changed re calculate all object local position
-	reCalcLocalPosition : function(beforeOffset, afterOffset){
-		for(var index in this.users){
-			// before local position transform world position[position, targetPosition, center]
-			var worldPosition = util.localToWorldPosition(this.users[index].position, beforeOffset);
-			var worldTargetPosition = util.localToWorldPosition(this.users[index].targetPosition, beforeOffset);
-
-			this.users[index].position = util.worldToLocalPosition(worldPosition, afterOffset);
-			this.users[index].targetPosition = util.worldToLocalPosition(worldTargetPosition, afterOffset);
-			this.users[index].setCenter();
-		}
-	}
+	// reCalcLocalPosition : function(beforeOffset, afterOffset){
+	// 	for(var index in this.users){
+	// 		// before local position transform world position[position, targetPosition, center]
+	// 		var worldPosition = util.localToWorldPosition(this.users[index].position, beforeOffset);
+	// 		var worldTargetPosition = util.localToWorldPosition(this.users[index].targetPosition, beforeOffset);
+	//
+	// 		this.users[index].position = util.worldToLocalPosition(worldPosition, afterOffset);
+	// 		this.users[index].targetPosition = util.worldToLocalPosition(worldTargetPosition, afterOffset);
+	// 		this.users[index].setCenter();
+	// 	}
+	// }
 };
 
 function staticIntervalHandler(){
