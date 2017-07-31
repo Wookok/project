@@ -129,7 +129,7 @@ exports.moveOffset = function(){
 
 //must use with bind or call method
 //setup when click canvas for move
-exports.setSpeed = function(){
+exports.setSpeed = function(scaleFactor){
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
 

@@ -41,40 +41,70 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var io = socketio.listen(server);
 
+GM.onNeedUserInform = function(userID){
+  var userData = GM.updateDataSetting(GM.users[userID]);
+  socket.emit('updateUser', userData);
+};
+GM.onNeedUserInformToAll = function(userID){
+  var userData = GM.updateDataSetting(GM.users[userID]);
+  io.sockets.emit('updateUser', userData);
+};
+GM.onNeedProjectileSkillInformToAll = function(projectile){
+  var projectileData = GM.updateProjectileDataSetting(projectile);
+  io.sockets.emit('setProjectile', projectileData);
+};
+GM.onNeedInformCreateObjs = function(objs){
+  var objDatas = [];
+  for(var i=0; i<Object.keys(objs).length; i++){
+    objDatas.push(GM.updateOBJDataSetting(objs[i]));
+  }
+  io.sockets.emit('createOBJs', objDatas);
+  console.log('createObjs executed');
+}
+GM.onNeedInformDeleteObj = function(objID){
+  console.log('onNeedInformDeleteObj : ' + objID);
+  io.sockets.emit('deleteOBJ', objID)
+};
+GM.onNeedInformSkillData = function(socketID, possessSkills){
+  io.to(socketID).emit('updateSkillPossessions', possessSkills);
+  // socket.emit('updateSkillPossessions', possessSkills);
+};
+
 io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
 
   var user = new User(socket.id, userBaseTable[0], 0);
   var updateUserInterval = false;
-
-  GM.onNeedUserInform = function(userID){
-    var userData = GM.updateDataSetting(GM.users[userID]);
-    socket.emit('updateUser', userData);
-  };
-  GM.onNeedUserInformToAll = function(userID){
-    var userData = GM.updateDataSetting(GM.users[userID]);
-    io.sockets.emit('updateUser', userData);
-  };
-  GM.onNeedProjectileSkillInformToAll = function(projectile){
-    var projectileData = GM.updateProjectileDataSetting(projectile);
-    io.sockets.emit('setProjectile', projectileData);
-  };
-  GM.onNeedInformCreateObjs = function(objs){
-    var objDatas = [];
-    for(var i=0; i<Object.keys(objs).length; i++){
-      objDatas.push(GM.updateOBJDataSetting(objs[i]));
-    }
-    io.sockets.emit('createOBJs', objDatas);
-  }
-  GM.onNeedInformDeleteObj = function(objID){
-    console.log('onNeedInformDeleteObj : ' + objID);
-    io.sockets.emit('deleteOBJ', objID)
-  };
-  GM.onNeedInformSkillData = function(userID, possessSkills){
-    if(user.objectID === userID){
-      socket.emit('updateSkillPossessions', possessSkills);
-    }
-  }
+  //
+  // GM.onNeedUserInform = function(userID){
+  //   var userData = GM.updateDataSetting(GM.users[userID]);
+  //   socket.emit('updateUser', userData);
+  // };
+  // GM.onNeedUserInformToAll = function(userID){
+  //   var userData = GM.updateDataSetting(GM.users[userID]);
+  //   io.sockets.emit('updateUser', userData);
+  // };
+  // GM.onNeedProjectileSkillInformToAll = function(projectile){
+  //   var projectileData = GM.updateProjectileDataSetting(projectile);
+  //   io.sockets.emit('setProjectile', projectileData);
+  // };
+  // GM.onNeedInformCreateObjs = function(objs){
+  //   var objDatas = [];
+  //   for(var i=0; i<Object.keys(objs).length; i++){
+  //     objDatas.push(GM.updateOBJDataSetting(objs[i]));
+  //   }
+  //   io.sockets.emit('createOBJs', objDatas);
+  //   console.log('createObjs executed');
+  // }
+  // GM.onNeedInformDeleteObj = function(objID){
+  //   console.log('onNeedInformDeleteObj : ' + objID);
+  //   io.sockets.emit('deleteOBJ', objID)
+  // };
+  // GM.onNeedInformSkillData = function(userID, possessSkills){
+  //   if(user.objectID === userID){
+  //     socket.emit('updateSkillPossessions', possessSkills);
+  //   }
+  // }
 
   socket.on('reqStartGame', function(){
 

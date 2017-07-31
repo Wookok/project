@@ -195,7 +195,7 @@ GameManager.prototype.getObj = function(work){
         if(work.user in this.users){
           var possessSkills = this.users[work.user].getSkill(work.skillIndex);
           if(possessSkills){
-            this.onNeedInformSkillData(work.user, possessSkills);
+            this.onNeedInformSkillData(this.users[work.user].socketID, possessSkills);
           }
         }
         this.onNeedInformDeleteObj(work.colObj);

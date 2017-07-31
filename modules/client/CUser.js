@@ -93,7 +93,7 @@ User.prototype = {
     util.setTargetDirection.call(this);
   },
   setSpeed : function(){
-    util.setSpeed.call(this);
+    util.setSpeed.call(this, this.gameConfig.scaleFactor);
   },
   moveOffset : function(){
     util.moveOffset.call(this);

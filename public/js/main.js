@@ -299,7 +299,7 @@ function drawObstacles(){
 
   for(var index in Manager.obstacles){
     ctx.beginPath();
-    ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleX, (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleY,
+    ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2), (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2),
             resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2*Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
@@ -313,13 +313,13 @@ function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objExps[i].position.x) * gameConfig.scaleX, (Manager.objExps[i].position.y) * gameConfig.scaleY, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
+    ctx.fillRect((Manager.objExps[i].position.x), (Manager.objExps[i].position.y), Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
   ctx.fillStyle = "#ff0000";
   for(var i=0; i<Manager.objSkills.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objSkills[i].position.x) * gameConfig.scaleX, (Manager.objSkills[i].position.y) * gameConfig.scaleY, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
+    ctx.fillRect((Manager.objSkills[i].position.x), (Manager.objSkills[i].position.y), Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
 }
@@ -329,12 +329,12 @@ function drawUsers(){
 
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-
+    // console.log('user positionX : ' + (Manager.users[index].position.x  * gameConfig.scaleFactor));
     if(Manager.users[index].objectID === gameConfig.userID){
-      ctx.translate(Manager.users[index].position.x  * gameConfig.scaleX + Manager.users[index].size.width/2 * gameConfig.scaleFactor, Manager.users[index].position.y * gameConfig.scaleY + Manager.users[index].size.height/2 * gameConfig.scaleFactor);
+      ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
       // ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
     }else{
-      ctx.translate((Manager.users[index].center.x) * gameConfig.scaleX, (Manager.users[index].center.y)* gameConfig.scaleY);
+      ctx.translate((Manager.users[index].center.x), (Manager.users[index].center.y));
     }
     ctx.rotate(radian);
     ctx.fillStyle = 'yellow';
@@ -347,7 +347,7 @@ function drawUsers(){
     if(Manager.users[index].skillEffectPlay){
       ctx.fillStyle ="#00ff00";
       ctx.beginPath();
-      ctx.arc(-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 100, 0, 2 * Math.PI);
+      ctx.arc(-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 100, 0, 2 * Math.PI);
       ctx.fill();
       ctx.closePath();
     }
@@ -361,11 +361,11 @@ function drawEffect(){
     ctx.fillStyle ="#ff0000";
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
-    var centerX = (Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius) * gameConfig.scaleX;
-    var centerY = (Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius) * gameConfig.scaleY;
+    var centerX = (Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius) * gameConfig.scaleFactor;
+    var centerY = (Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius) * gameConfig.scaleFactor;
     ctx.translate(centerX, centerY);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].explosionRadius * gameConfig.scaleX, -Manager.effects[index].explosionRadius * gameConfig.scaleY,
+    ctx.fillRect(-Manager.effects[index].explosionRadius * gameConfig.scaleFactor, -Manager.effects[index].explosionRadius * gameConfig.scaleFactor,
                  Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor, Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
@@ -376,8 +376,8 @@ function drawProjectile(){
   for(var index in Manager.projectiles){
     ctx.fillStyle ="#ff0000";
     ctx.beginPath();
-    ctx.arc((Manager.projectiles[index].position.x + Manager.projectiles[index].radius) * gameConfig.scaleX,
-            (Manager.projectiles[index].position.y + Manager.projectiles[index].radius) * gameConfig.scaleY, 50, 0, 2 * Math.PI);
+    ctx.arc((Manager.projectiles[index].position.x + Manager.projectiles[index].radius) * gameConfig.scaleFactor,
+            (Manager.projectiles[index].position.y + Manager.projectiles[index].radius) * gameConfig.scaleFactor, 50, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
   }
@@ -388,10 +388,10 @@ function drawGrid(){
   //draw grid
   for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
     if(util.isDrawX(i, gameConfig)){
-      var x = util.worldXCoordToLocalX(i * gameConfig.scaleX, gameConfig.userOffset.x);
+      var x = util.worldXCoordToLocalX(i * gameConfig.scaleFactor, gameConfig.userOffset.x);
       for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
         if(util.isDrawY(j, gameConfig)){
-          var y = util.worldYCoordToLocalY(j * gameConfig.scaleY, gameConfig.userOffset.y);
+          var y = util.worldYCoordToLocalY(j * gameConfig.scaleFactor, gameConfig.userOffset.y);
           ctx.drawImage(grid, 0, 0, 48, 48, x, y, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
         }
       }
@@ -402,10 +402,11 @@ function drawGrid(){
 function canvasAddEvent(){
   canvas.addEventListener('click', function(e){
     var targetPosition ={
-      x : e.clientX/gameConfig.scaleX,
-      y : e.clientY/gameConfig.scaleY
+      x : e.clientX,
+      y : e.clientY
     }
     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
+    console.log(targetPosition);
     socket.emit('reqMove', worldTargetPosition);
   }, false);
 }
