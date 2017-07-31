@@ -7,8 +7,11 @@ var csvJson = require('../public/csvjson');
 var dataJson = require('../public/data.json');
 var userBaseTable = csvJson.toObject(dataJson.userBaseData, {delimiter : ',', quote : '"'});
 // var userLevelDataTable = csvJson.toObject(dataJson.userLevelData, {delimiter : ',', quote : '"'});
-
 var gameConfig = require('../public/gameConfig.json');
+var serverConfig = require('./serverConfig.json');
+
+var csvJson = require('../public/csvjson.js');
+var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
@@ -46,6 +49,9 @@ function User(id, userBaseData, Exp){
   this.addDamageAmount;
   this.addDamageRate;
 
+  this.equipSkills = [];
+  this.possessSkills = [];
+
   this.socketID = id;
 
   this.currentSkill = undefined;
@@ -62,6 +68,84 @@ User.prototype = Object.create(LivingEntity.prototype);
 User.prototype.constructor = User;
 
 //Instantiate base attack
+User.prototype.initEquipSkills = function(skillIndexList){
+  if(skillIndexList){
+    this.equipSkills = skillIndexList;
+  }else {
+    this.equipSkills = serverConfig.INITSKILLLIST;
+  }
+};
+User.prototype.changeEquipSkills = function(newSkillList){
+  var skillList = [];
+  //validate skill
+  for(var i=0; i<newSkillList.length; i++){
+    for(var j=0; j<possessSkills.length; j++){
+      if(newSkillList[i] === possessSkills[j]){
+        skillList.push(newSkillList[i]);
+      }
+    }
+  }
+  this.equipSkills = skillList;
+};
+User.prototype.getSkill = function(index){
+  //check skill possession
+  var skillData = util.findData(skillTable, 'index', index);
+  var possessSkill = false;
+  for(var i=0; i<this.possessSkills.length; i++){
+    var tempSkillData = util.findData(skillTable, 'index', this.possessSkills[i]);
+    if(skillData.groupIndex === tempSkillData.groupIndex){
+      possessSkill = tempSkillData;
+      break;
+    }
+  }
+  //check possible levelup
+  if(!possessSkill){
+    this.possessSkills.push(skillData.index);
+    console.log('getSkill' + skillData.index);
+    console.log('currentPossessSkills');
+    console.log(this.possessSkills);
+    return this.possessSkills;
+  }else{
+    if(possessSkill.nextSkillIndex !== -1){
+      var changeSkillIndex = this.possessSkills.indexOf(possessSkill.index);
+      if(changeSkillIndex === -1){
+        console.log('cant find skill index at possess skill array');
+        return this.possessSkills;
+      }else{
+        this.possessSkills[changeSkillIndex] = possessSkill.nextSkillIndex;
+        console.log('level up skill' + possessSkill.index);
+        console.log('currentPossessSkills');
+        console.log(this.possessSkills);
+        return this.possessSkills;
+      }
+    }else{
+      //do nothing
+      console.log('skill reach max level');
+    }
+  }
+};
+// User.prototype.levelUpSkill = function(beforeSkillData, skillData){
+//   var changeSkillIndex = this.possessSkills.indexOf(beforeSkillData);
+//   if(changeSkillIndex === -1){
+//     console.log('cant find skill index at possess skill array');
+//     return null;
+//   }else{
+//     this.possessSkills[changeSkillIndex] = skillData.index;
+//     return {
+//       beforeIndex : changeSkillIndex,
+//       newIndex : skillData.index
+//     }
+//   }
+// };
+// User.prototype.checkSkillPossession = function(skillData){
+//   for(var i=0; i<this.possessSkills.length; i++){
+//     var tempSkillData = util.findData(skillTable, 'index', this.possessSkills[i].index);
+//     if(skillData.groupIndex === tempSkillData.groupIndex){
+//       return tempSkillData;
+//     }
+//   }
+//   return false;
+// };
 User.prototype.makeSkillInstance = function(skillData, clickPosition){
   var skillInstance = new Skill(this, skillData);
   skillInstance.setDirection(this.center, this.direction, clickPosition);
@@ -156,9 +240,7 @@ User.prototype.levelUp = function(){
   this.updateUserBaseStat();
   this.getExp(0);
 };
-User.prototype.getSkill = function(index){
-  console.log('get skill : ' + index);
-};
+
 //execute when level up or down
 User.prototype.updateUserBaseStat = function(){
   var userLevelData = util.findData(userBaseTable, 'level', this.level);

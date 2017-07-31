@@ -292,6 +292,9 @@ CManager.prototype = {
 		}
 		this.users[userID].setSkill(skillInstance);
 	},
+	updateSkillPossessions : function(userID, possessSkills){
+		this.users[userID].updateSkillPossessions(possessSkills);
+	},
 	makeProjectile : function(projetileData){
 		var projectile = Skill.prototype.makeProjectile(projetileData, this.gameConfig.userOffset);
 		this.projectiles.push(projectile);

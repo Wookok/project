@@ -46,6 +46,9 @@ var Skill = function(user, skillData){
   this.onTimeOver = new Function();
 }
 Skill.prototype = {
+  levelUpSkill : function(skillData){
+
+  },
   executeSkill : function(){
     this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), this.fireTime);
     this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);

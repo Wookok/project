@@ -70,6 +70,11 @@ io.on('connection', function(socket){
     console.log('onNeedInformDeleteObj : ' + objID);
     io.sockets.emit('deleteOBJ', objID)
   };
+  GM.onNeedInformSkillData = function(userID, possessSkills){
+    if(user.objectID === userID){
+      socket.emit('updateSkillPossessions', possessSkills);
+    }
+  }
 
   socket.on('reqStartGame', function(){
 
@@ -107,7 +112,7 @@ io.on('connection', function(socket){
   socket.on('reqSkill', function(skillIndex, clickPosition){
     //find skill by index
     var skillData = util.findData(skillTable, 'index', skillIndex);
-    if(parseInt(skillData.type) !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
+    if(skillData.type !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
       if(!clickPosition){
         clickPosition = user.center;
       }
@@ -125,6 +130,22 @@ io.on('connection', function(socket){
       io.sockets.emit('resSkill', userData, skillInstanceData);
     }
   });
+  // socket.on('reqGetSkill', function(skillIndex){
+  //   var skillData = util.findData(skillTable, 'index', skillIndex);
+  //   //check skill possession
+  //   var beforeSkillData = GM.checkSkillPossession(user, skillData);
+  //   //check skill level up is possible
+  //   if(beforeSkillData){
+  //     if(skillData.nextSkillIndex !== -1){
+  //       var newSkillIndex = skillData.nextSkillIndex;
+  //       var newSkillData = util.findData(skillTable, 'index', newSkillIndex);
+  //       var levelUpData = GM.levelUpSkill(user, beforeSkillData, newSkillData);
+  //       socket.emit('resLevelUpSkill')
+  //   }else{
+  //     var newSkillIndex = GM.getSkill(user, newSkillData);
+  //     socket.emit('resGetSkill');
+  //   }
+  // });
   socket.on('disconnect', function(){
     if(user){
       io.sockets.emit('userLeave', user.objectID);

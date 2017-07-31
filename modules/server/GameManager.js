@@ -55,6 +55,8 @@ function GameManager(){
 
   this.onNeedInformCreateObjs = new Function();
   this.onNeedInformDeleteObj = new Function();
+
+  this.onNeedInformSkillData = new Function();
 };
 
 GameManager.prototype.start = function(){
@@ -125,7 +127,7 @@ GameManager.prototype.setOBJSkills = function(){
   for(var i=0; i<this.objSkillsCount; i++){
     var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
     var objSkill = new OBJSkill(randomID);
-    var skillIndex = 10;
+    var skillIndex = 21;
     var radius = gameConfig.OBJ_SKILL_RADIUS;
     var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
                                       radius, serverConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID, staticTree);
@@ -159,7 +161,7 @@ GameManager.prototype.createOBJs = function(count, type){
     for(var i=0; i<count; i++){
       var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
       var objSkill = new OBJSkill(randomID);
-      var skillIndex = 10;
+      var skillIndex = 21;
       var radius = gameConfig.OBJ_SKILL_RADIUS;
       var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
                                         radius, serverConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID, staticTree);
@@ -174,12 +176,40 @@ GameManager.prototype.createOBJs = function(count, type){
   }
   this.onNeedInformCreateObjs(createdObjs);
 };
-
+GameManager.prototype.getObj = function(work){
+  if(work.type === 'getExpObj'){
+    for(var i=0; i<Object.keys(this.objExps).length; i++){
+      if(this.objExps[i].objectID === work.colObj){
+        this.objExps.splice(i, 1);
+        if(work.user in this.users){
+          this.users[work.user].getExp(work.addExp);
+        }
+        this.onNeedInformDeleteObj(work.colObj);
+        return;
+      }
+    }
+  }else if(work.type === 'getSkillObj'){
+    for(var i=0; i<Object.keys(this.objSkills).length; i++){
+      if(this.objSkills[i].objectID === work.colObj){
+        this.objSkills.splice(i, 1);
+        if(work.user in this.users){
+          var possessSkills = this.users[work.user].getSkill(work.skillIndex);
+          if(possessSkills){
+            this.onNeedInformSkillData(work.user, possessSkills);
+          }
+        }
+        this.onNeedInformDeleteObj(work.colObj);
+        return;
+      }
+    }
+  }
+};
 GameManager.prototype.deleteObj = function(objID){
   if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
     for(var i=0; i<Object.keys(this.objExps).length; i++){
       if(this.objExps[i].objectID === objID){
         this.objExps.splice(i, 1);
+
         this.onNeedInformDeleteObj(objID);
         return;
       }
@@ -327,7 +357,12 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
   user.setSkill(skillInstance);
   return skillInstance;
 };
-
+// GameManager.prototype.checkSkillPossession = function(user, skillData){
+//   return user.checkSkillPossession(skillData);
+// };
+// GameManager.prototype.levelUpSkill = function(user, beforeSkillData, skillData){
+//   return user.levelUpSkill(beforeSkillData, skillData);
+// };
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
@@ -618,7 +653,7 @@ function updateIntervalHandler(){
   //put users data to tree
   entityTree.pushAll(userEles);
   collectionTree.pushAll(collectionEles);
-  console.log(Date.now() - startTime);
+  // console.log(Date.now() - startTime);
 };
 function staticIntervalHandler(){
   //explode when projectile collide with obstacle
@@ -656,17 +691,21 @@ function affectIntervalHandler(){
           // this.users.debuffList.push(affectedEles[i].debuffsToTarget[j]);
         }
       }
-    }else if(affectedEles[i].type === 'getExpObj'){
-      if(affectedEles[i].user in this.users){
-        this.users[affectedEles[i].user].getExp(affectedEles[i].addExp);
-        this.deleteObj(affectedEles[i].colObj);
-      }
-    }else if(affectedEles[i].type === 'getSkillObj'){
-      if(affectedEles[i].user in this.users){
-        this.users[affectedEles[i].user].getSkill(affectedEles[i].skillIndex);
-        this.deleteObj(affectedEles[i].colObj);
-      }
+    }else{
+      this.getObj(affectedEles[i]);
     }
+    // else if(affectedEles[i].type === 'getExpObj'){
+    //   if(affectedEles[i].user in this.users){
+    //     this.users[affectedEles[i].user].getExp(affectedEles[i].addExp);
+    //     this.deleteObj(affectedEles[i].colObj);
+    //   }
+    // }else if(affectedEles[i].type === 'getSkillObj'){
+    //   if(affectedEles[i].user in this.users){
+    //     var possessSkills = this.users[affectedEles[i].user].getSkill(affectedEles[i].skillIndex);
+    //     this.deleteObj(affectedEles[i].colObj);
+    //     this.onNeedInformSkillData(affectedEles[i].user, possessSkills);
+    //   }
+    // }
     affectedEles.splice(i, 1);
   }
 };

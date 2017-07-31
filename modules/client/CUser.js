@@ -27,6 +27,9 @@ var User = function(userData, gameConfig){
   this.speed = {x : 0, y : 0};
   this.targetDirection = 0;
 
+  this.equipSkills = [];
+  this.possessSkills = [];
+
   this.setCenter();
   this.setSpeed();
   this.setTargetDirection();
@@ -144,6 +147,11 @@ User.prototype = {
       this.isExecutedSkill = true;
       this.currentSkill.executeSkill();
     }
+  },
+  updateSkillPossessions : function(possessSkills){
+    this.possessSkills = possessSkills;
+    console.log('updateSkillPossessions');
+    console.log(this.possessSkills);
   }
 };
 function onTimeOverHandler(skillInstance){

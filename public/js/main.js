@@ -270,6 +270,9 @@ function setupSocket(){
     console.log('in updateUser')
     console.log(userData);
   });
+  socket.on('updateSkillPossessions', function(possessSkills){
+    Manager.updateSkillPossessions(gameConfig.userID, possessSkills);
+  })
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });

@@ -4,7 +4,7 @@ function OBJSkill(objectID){
   GameObject.call(this);
   this.objectID = objectID;
 
-  this.skillIndex;
+  this.skillIndex = 11;
 
   this.collectionEle = {};
 };
