@@ -76,6 +76,9 @@ function OBJChest(objectID){
   this.onCreateExp = new Function();
   this.onCreateSkill = new Function();
 };
+OBJChest.prototype = Object.create(GameObject.prototype);
+OBJChest.prototype.constructor = OBJChest;
+
 OBJChest.prototype.initOBJChest = function(position, radius, chestData){
   this.setSize(radius * 2, radius * 2);
   this.setPosition(position.x, position.y);
@@ -85,24 +88,26 @@ OBJChest.prototype.initOBJChest = function(position, radius, chestData){
   this.setSkills(chestData);
 };
 OBJChest.prototype.setExps = function(chestData){
-  var expCount = Math.floor(Math.random() * (chestData.maxExpCount - chestData.minExpCount) + chestData.minExpCount + 1);
+  var expCount = Math.floor(Math.random() * (chestData.maxExpCount - chestData.minExpCount + 1) + chestData.minExpCount);
   for(var i=0; i<expCount; i++){
-    var expAmount = Math.floor(Math.random() * (chestData.maxExpAmount - chestData.minExpAmount) + chestData.minExpAmount + 1);
+    var expAmount = Math.floor(Math.random() * (chestData.maxExpAmount - chestData.minExpAmount + 1) + chestData.minExpAmount);
     this.exps.push(expAmount);
   }
+  console.log(this.exps);
 };
 OBJChest.prototype.setSkills = function(chestData){
+  var totalRate = 0;
   for(var i=0; i<20; i++){
-    var totalRate = cheatData[skillDropRate + (i + 1)];
+    totalRate += chestData['SkillDropRate' + (i + 1)];
   }
-  var skillCount = Math.floor(Math.random() * (chestData.maxSkillCount - chestData.minSkillCount) + chestData.minSkillCount + 1);
+  var skillCount = Math.floor(Math.random() * (chestData.maxSkillCount - chestData.minSkillCount + 1) + chestData.minSkillCount);
   for(var i=0; i<skillCount; i++){
-    var randVal = Math.floor(Math.random() * totalRate + 1);
+    var randVal = Math.floor(Math.random() * totalRate);
     var sumOfRate = 0;
     for(var i=0; i<20; i++){
-      sumOfRate += cheatData[skillDropRate + (i + 1)];
-      if(sumOfRate < randVal){
-        var skillIndex = cheatData[skillIndex + (i + 1)];
+      sumOfRate += chestData['SkillDropRate' + (i + 1)];
+      if(sumOfRate > randVal){
+        var skillIndex = chestData['SkillIndex' + (i + 1)];
         break;
       }
     }
@@ -120,3 +125,4 @@ OBJChest.prototype.setEntityEle = function(){
 
   };
 };
+module.exports.OBJChest = OBJChest;

@@ -837,7 +837,6 @@ User.prototype = {
     this.setCenter();
   },
   stop : function(){
-    console.log('stop');
     if(this.updateInterval){
       clearInterval(this.updateInterval);
       this.updateInterval = false;
@@ -1416,7 +1415,7 @@ module.exports={
   "Chests" : [
     {"id" : "CH1", "gradeMin" : 2, "gradeMax" : 3, "posX" : 350, "posY" : 50},
     {"id" : "CH2", "gradeMin" : 1, "gradeMax" : 2, "posX" : 50, "posY" : 350}
-  ],
+  ]
 }
 
 },{}],9:[function(require,module,exports){
@@ -1958,7 +1957,7 @@ function setCanvasSize(){
       position : util.localToWorldPosition(Manager.user.position,gameConfig.userOffset),
       size : Manager.user.size
     };
-    gameConfig.userOffset = util.calculateOffset(worldPosUser, gameConfig.canvasSize);
+    gameConfig.userOffset = util.calculateOffset(worldPosUser, {width : gameConfig.canvasSize.width/gameConfig.scaleFactor, height : gameConfig.canvasSize.height/gameConfig.scaleFactor});
 
     var revisionX = oldOffsetX - gameConfig.userOffset.x;
     var revisionY = oldOffsetY - gameConfig.userOffset.y;
@@ -2102,7 +2101,7 @@ function drawObstacles(){
 
   for(var index in Manager.obstacles){
     ctx.beginPath();
-    ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2), (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2),
+    ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor, (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor,
             resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2*Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
@@ -2116,13 +2115,13 @@ function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objExps[i].position.x), (Manager.objExps[i].position.y), Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
+    ctx.fillRect((Manager.objExps[i].position.x) * gameConfig.scaleFactor, (Manager.objExps[i].position.y) * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
   ctx.fillStyle = "#ff0000";
   for(var i=0; i<Manager.objSkills.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objSkills[i].position.x), (Manager.objSkills[i].position.y), Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
+    ctx.fillRect((Manager.objSkills[i].position.x) * gameConfig.scaleFactor, (Manager.objSkills[i].position.y) * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
 }
@@ -2134,10 +2133,10 @@ function drawUsers(){
     ctx.setTransform(1,0,0,1,0,0);
     // console.log('user positionX : ' + (Manager.users[index].position.x  * gameConfig.scaleFactor));
     if(Manager.users[index].objectID === gameConfig.userID){
-      ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
+      ctx.translate(Manager.users[index].center.x * gameConfig.scaleFactor, Manager.users[index].center.y * gameConfig.scaleFactor);
       // ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
     }else{
-      ctx.translate((Manager.users[index].center.x), (Manager.users[index].center.y));
+      ctx.translate((Manager.users[index].center.x) * gameConfig.scaleFactor, (Manager.users[index].center.y) * gameConfig.scaleFactor);
     }
     ctx.rotate(radian);
     ctx.fillStyle = 'yellow';
@@ -2150,7 +2149,7 @@ function drawUsers(){
     if(Manager.users[index].skillEffectPlay){
       ctx.fillStyle ="#00ff00";
       ctx.beginPath();
-      ctx.arc(-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 100, 0, 2 * Math.PI);
+      ctx.arc(-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 100, 0, 2 * Math.PI);
       ctx.fill();
       ctx.closePath();
     }
@@ -2187,15 +2186,14 @@ function drawProjectile(){
 };
 function drawGrid(){
   //draw boundary
-  console.log(gameConfig.scaleFactor);
   //draw grid
   for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
     if(util.isDrawX(i, gameConfig)){
-      var x = util.worldXCoordToLocalX(i * gameConfig.scaleFactor, gameConfig.userOffset.x);
+      var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
       for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
         if(util.isDrawY(j, gameConfig)){
-          var y = util.worldYCoordToLocalY(j * gameConfig.scaleFactor, gameConfig.userOffset.y);
-          ctx.drawImage(grid, 0, 0, 48, 48, x, y, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
+          var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
+          ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
         }
       }
     }
@@ -2208,8 +2206,9 @@ function canvasAddEvent(){
       x : e.clientX,
       y : e.clientY
     }
-    var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
     console.log(targetPosition);
+    var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
+    console.log(worldTargetPosition);
     socket.emit('reqMove', worldTargetPosition);
   }, false);
 }

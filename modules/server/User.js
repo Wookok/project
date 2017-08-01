@@ -6,12 +6,11 @@ var csvJson = require('../public/csvjson');
 
 var dataJson = require('../public/data.json');
 var userBaseTable = csvJson.toObject(dataJson.userBaseData, {delimiter : ',', quote : '"'});
+var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
+
 // var userLevelDataTable = csvJson.toObject(dataJson.userLevelData, {delimiter : ',', quote : '"'});
 var gameConfig = require('../public/gameConfig.json');
 var serverConfig = require('./serverConfig.json');
-
-var csvJson = require('../public/csvjson.js');
-var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 

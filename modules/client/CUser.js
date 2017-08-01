@@ -111,7 +111,6 @@ User.prototype = {
     this.setCenter();
   },
   stop : function(){
-    console.log('stop');
     if(this.updateInterval){
       clearInterval(this.updateInterval);
       this.updateInterval = false;

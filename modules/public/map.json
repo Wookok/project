@@ -6,5 +6,5 @@
   "Chests" : [
     {"id" : "CH1", "gradeMin" : 2, "gradeMax" : 3, "posX" : 350, "posY" : 50},
     {"id" : "CH2", "gradeMin" : 1, "gradeMax" : 2, "posX" : 50, "posY" : 350}
-  ],
+  ]
 }

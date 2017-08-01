@@ -4,7 +4,7 @@ var gameConfig = require('../public/gameConfig.json');
 var serverConfig = require('./serverConfig.json');
 var util = require('../public/util.js');
 var SUtil = require('./ServerUtil.js');
-var csvJson = require('../public/scvjson.js');
+var csvJson = require('../public/csvjson.js');
 
 var dataJson = require('../public/data.json');
 
@@ -17,7 +17,7 @@ var Skill = require('./Skill.js');
 var OBJs = require('./OBJs.js');
 var OBJExp = OBJs.OBJExp;
 var OBJSkill = OBJs.OBJSkill;
-var OBJChest = OBJs.
+var OBJChest = OBJs.OBJChest;
 
 var QuadTree = require('quadtree-lib');
 
@@ -97,7 +97,7 @@ GameManager.prototype.mapSetting = function(){
 };
 GameManager.prototype.updateGame = function(){
   if(this.chestInterval === false){
-    this.chestInterval = setInterval(chestIntervalHandler.bind(this), 10000);
+    this.chestInterval = setInterval(chestIntervalHandler.bind(this), INTERVAL_TIMER);
   }
   if(this.updateInteval === false){
     this.updateInteval = setInterval(updateIntervalHandler.bind(this), INTERVAL_TIMER);
@@ -119,12 +119,13 @@ GameManager.prototype.setObstacles = function(){
     staticEles.push(tempObstacle.staticEle);
   }
 };
-GameManger.prototype.setChestsLocation = function(){
-  for(var =0; i<map.Chests.length; i++){
-    var tempObj = new Obstacle(map.Chests[i].posX, map.Chests[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
+GameManager.prototype.setChestsLocation = function(){
+  for(var i=0; i<map.Chests.length; i++){
+    var tempObj = new Obstacle(map.Chests[i].posX, map.Chests[i].posY,
+      resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id);
 
     this.chestLocations.push(tempObj);
-    staticEles.push(chestLocations.staticEle);
+    staticEles.push(tempObj.staticEle);
   }
 };
 GameManager.prototype.setStaticTreeEle = function(){
@@ -136,7 +137,7 @@ GameManager.prototype.setOBJExps = function(){
     var objExp = new OBJExp(randomID);
     var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
     var radius = SUtil.expToRadius(expAmount);
-    var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
+    var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
                                       radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
 
     objExp.initOBJExp(randomPos, radius, expAmount);
@@ -153,7 +154,7 @@ GameManager.prototype.setOBJSkills = function(){
     var objSkill = new OBJSkill(randomID);
     var skillIndex = 21;
     var radius = gameConfig.OBJ_SKILL_RADIUS;
-    var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
+    var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
                                       radius, serverConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID, staticTree);
 
     objSkill.initOBJSkill(randomPos, radius, skillIndex);
@@ -173,14 +174,14 @@ GameManager.prototype.makeChest = function(chestLocationID){
   }
   //set grade of Chest
   if(chestResourceData){
-    var chestGrade = Math.floor(Math.random() * (chestResourceData.gradeMax - chestResourceData.gradeMin) + chestResourceData.gradeMin + 1);
+    var chestGrade = Math.floor(Math.random() * (chestResourceData.gradeMax - chestResourceData.gradeMin + 1) + chestResourceData.gradeMin);
     console.log('chest grade : ' + chestGrade);
     var chestData = util.findData(chestTable, 'grade', chestGrade);
     var position = {x : chestResourceData.posX, y : chestResourceData.posY};
     var radius = resources.OBJ_CHEST_SIZE;
 
-    var chest = new Chest(gameConfig.PREFIX_CHEST);
-    chest.initOBJChest(chestData);
+    var chest = new OBJChest(gameConfig.PREFIX_CHEST);
+    chest.initOBJChest(position, radius, chestData);
     this.chests.push(chest);
   }
 };
@@ -192,7 +193,7 @@ GameManager.prototype.createOBJs = function(count, type){
       var objExp = new OBJExp(randomID);
       var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
       var radius = SUtil.expToRadius(expAmount);
-      var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
+      var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
                                         radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
 
       objExp.initOBJExp(randomPos, radius, expAmount);
@@ -207,7 +208,7 @@ GameManager.prototype.createOBJs = function(count, type){
       var objSkill = new OBJSkill(randomID);
       var skillIndex = 21;
       var radius = gameConfig.OBJ_SKILL_RADIUS;
-      var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width, gameConfig.CANVAS_MAX_SIZE.height,
+      var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
                                         radius, serverConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID, staticTree);
 
       objSkill.initOBJSkill(randomPos, radius, skillIndex);
@@ -605,7 +606,7 @@ GameManager.prototype.isMakeChest = function(){
 }
 function chestIntervalHandler(){
   if(this.isMakeChest()){
-    this.makeChest(CH1);
+    this.makeChest('CH1');
   }
 };
 function updateIntervalHandler(){
