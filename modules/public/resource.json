@@ -8,5 +8,8 @@
   "GRID_IMG_SIZE" : 58,
 
   "OBJ_TREE_SRC" : "",
-  "OBJ_TREE_SIZE" : 100
+  "OBJ_TREE_SIZE" : 100,
+
+  "OBJ_CHEST_SRC" : "",
+  "OBJ_CHEST_SIZE" : 50
 }

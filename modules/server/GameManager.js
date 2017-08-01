@@ -4,21 +4,27 @@ var gameConfig = require('../public/gameConfig.json');
 var serverConfig = require('./serverConfig.json');
 var util = require('../public/util.js');
 var SUtil = require('./ServerUtil.js');
+var csvJson = require('../public/scvjson.js');
 
+var dataJson = require('../public/data.json');
+
+var chestTable = csvJson.toObject(dataJson.chestData, {delimiter : ',', quote : '"'});
 var resources = require('../public/resource.json');
 var map = require('../public/map.json');
 
 var Skill = require('./Skill.js');
 
-var OBJExp = require('./OBJExp.js');
-var OBJSkill = require('./OBJSkill.js');
+var OBJs = require('./OBJs.js');
+var OBJExp = OBJs.OBJExp;
+var OBJSkill = OBJs.OBJSkill;
+var OBJChest = OBJs.
 
 var QuadTree = require('quadtree-lib');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 //quadTree var
-//user
+//user and chest
 var entityTree;
 var userEles = [];
 //skill
@@ -38,6 +44,8 @@ var affectedEles = [];
 function GameManager(){
   this.users = [];
   this.obstacles = [];
+  this.chestLocations = [];
+  this.chests = [];
   this.projectiles = [];
 
   this.objExps = [];
@@ -45,6 +53,7 @@ function GameManager(){
   this.objExpsCount = serverConfig.OBJ_EXP_MIN_COUNT;
   this.objSkillsCount = serverConfig.OBJ_SKILL_MIN_COUNT;
 
+  this.chestInterval = false;
   this.updateInteval = false;
   this.staticInterval = false;
   this.affectInterval = false;
@@ -81,10 +90,15 @@ GameManager.prototype.start = function(){
 };
 GameManager.prototype.mapSetting = function(){
   this.setObstacles();
+  this.setChestsLocation();
+  this.setStaticTreeEle();
   this.setOBJExps();
   this.setOBJSkills();
 };
 GameManager.prototype.updateGame = function(){
+  if(this.chestInterval === false){
+    this.chestInterval = setInterval(chestIntervalHandler.bind(this), 10000);
+  }
   if(this.updateInteval === false){
     this.updateInteval = setInterval(updateIntervalHandler.bind(this), INTERVAL_TIMER);
   }
@@ -99,11 +113,21 @@ GameManager.prototype.updateGame = function(){
 //create obstacles and static tree setup
 GameManager.prototype.setObstacles = function(){
   for(var index in map.Trees){
-    var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
+    var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
 
     this.obstacles.push(tempObstacle);
     staticEles.push(tempObstacle.staticEle);
   }
+};
+GameManger.prototype.setChestsLocation = function(){
+  for(var =0; i<map.Chests.length; i++){
+    var tempObj = new Obstacle(map.Chests[i].posX, map.Chests[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
+
+    this.chestLocations.push(tempObj);
+    staticEles.push(chestLocations.staticEle);
+  }
+};
+GameManager.prototype.setStaticTreeEle = function(){
   staticTree.pushAll(staticEles);
 };
 GameManager.prototype.setOBJExps = function(){
@@ -138,6 +162,26 @@ GameManager.prototype.setOBJSkills = function(){
     this.objSkills.push(objSkill);
     collectionEles.push(objSkill.collectionEle);
     collectionTree.push(objSkill.collectionEle);
+  }
+};
+GameManager.prototype.makeChest = function(chestLocationID){
+  //find chest data
+  for(var i=0; i<Object.keys(map.Chests).length; i++){
+    if(map.Chests[i].id === chestLocationID){
+      var chestResourceData = map.Chests[i]
+    }
+  }
+  //set grade of Chest
+  if(chestResourceData){
+    var chestGrade = Math.floor(Math.random() * (chestResourceData.gradeMax - chestResourceData.gradeMin) + chestResourceData.gradeMin + 1);
+    console.log('chest grade : ' + chestGrade);
+    var chestData = util.findData(chestTable, 'grade', chestGrade);
+    var position = {x : chestResourceData.posX, y : chestResourceData.posY};
+    var radius = resources.OBJ_CHEST_SIZE;
+
+    var chest = new Chest(gameConfig.PREFIX_CHEST);
+    chest.initOBJChest(chestData);
+    this.chests.push(chest);
   }
 };
 GameManager.prototype.createOBJs = function(count, type){
@@ -552,7 +596,18 @@ GameManager.prototype.checkStateIsAttack = function(user){
     return false;
   }
 };
-
+GameManager.prototype.isMakeChest = function(){
+  if(this.chests.length === 0){
+    return true;
+  }else{
+    return false;
+  }
+}
+function chestIntervalHandler(){
+  if(this.isMakeChest()){
+    this.makeChest(CH1);
+  }
+};
 function updateIntervalHandler(){
   var startTime = Date.now();
   //check collision user with skill
