@@ -23,6 +23,7 @@ var CManager = function(gameConfig){
 	this.user = null;
 	//all users
 	this.users = [];
+	this.chests = [];
 	this.obstacles = [];
 	this.effects = [];
 	this.projectiles = [];
@@ -59,32 +60,59 @@ CManager.prototype = {
 	  }
 	},
 	createObstacles : function(){
-		for(var index in map.Trees){
-			var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
+		for(var i=0; i<map.Trees.length; i++){
+			var tempObstacle = new Obstacle(map.Trees[i].posX, map.Trees[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[i].id, resources.OBJ_TREE_SRC);
 			this.obstacles.push(tempObstacle);
+		}
+		for(var i=0; i<map.Chests.length; i++){
+			var chestBase = new Obstacle(map.Chests[i].posX, map.Chests[i].posY, resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id, resources.OBJ_CHEST_SRC);
+			this.obstacles.push(chestBase);
 		}
 	},
 	updateObstacleEles : function(){
 		staticEles = [];
 
-		for(var index in this.obstacles){
-			var localPos = util.worldToLocalPosition(this.obstacles[index].position, this.gameConfig.userOffset);
+		for(var i=0; i<this.obstacles.length; i++){
+			var localPos = util.worldToLocalPosition(this.obstacles[i].position, this.gameConfig.userOffset);
 
-			this.obstacles[index].staticEle.x = localPos.x
-			this.obstacles[index].staticEle.y = localPos.y
+			this.obstacles[i].staticEle.x = localPos.x
+			this.obstacles[i].staticEle.y = localPos.y
 
 			//will add filtering method
 
-			staticEles.push(this.obstacles[index].staticEle);
+			staticEles.push(this.obstacles[i].staticEle);
 		}
 
 	  staticTree.pushAll(staticEles);
 	},
 	setObstaclesLocalPos : function(){
-		for(var index in this.obstacles){
-			var localPos = util.worldToLocalPosition(this.obstacles[index].position, this.gameConfig.userOffset);
-			this.obstacles[index].localPosition.x = localPos.x
-			this.obstacles[index].localPosition.y = localPos.y
+		for(var i=0; i<this.obstacles.length; i++){
+			var localPos = util.worldToLocalPosition(this.obstacles[i].position, this.gameConfig.userOffset);
+			this.obstacles[i].localPosition.x = localPos.x
+			this.obstacles[i].localPosition.y = localPos.y
+		}
+	},
+	setChests : function(chestDatas){
+		for(var i=0; i<chestDatas.length; i++){
+			this.createChest(chestDatas[i]);
+		}
+	},
+	createChest : function(chestData){
+		//find chest location
+		for(var i=0; i<map.Chests.length; i++){
+			if(map.Chests[i].id === chestData.locationID){
+				var chestPosition = {x : map.Chests[i].posX, y : map.Chests[i].posY};
+				break;
+			}
+		}
+		if(chestPosition){
+			this.chests.push({
+				objectID : chestData.objectID,
+				grade : chestData.grade,
+				position : chestPosition,
+				localPosition : util.worldToLocalPosition(chestPosition, this.gameConfig.userOffset),
+				size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
+			});
 		}
 	},
 	// updateProjectile : function(){
@@ -366,12 +394,20 @@ CManager.prototype = {
 			this.objSkills[i].position.x -= this.user.speed.x;
 			this.objSkills[i].position.y -= this.user.speed.y;
 		}
+		for(var i=0; i<this.chests.length; i++){
+			this.chests[i].localPosition.x -= this.user.speed.x;
+			this.chests[i].localPosition.y -= this.user.speed.y;
+		}
 		if(addPos){
 			for(var i=0; i<Object.keys(this.obstacles).length; i++){
 				this.obstacles[i].localPosition.x -= addPos.x;
 				this.obstacles[i].localPosition.y -= addPos.y;
 				// this.obstacles[index].staticEle.x -= addPos.x;
 				// this.obstacles[index].staticEle.y -= addPos.y;
+			}
+			for(var i=0; i<this.chests.length; i++){
+				this.chests[i].localPosition.x -= addPos.x;
+				this.chests[i].localPosition.y -= addPos.y;
 			}
 			for(var i=0; i<Object.keys(this.projectiles).length; i++){
 				this.projectiles[i].position.x -= addPos.x;
@@ -408,6 +444,10 @@ CManager.prototype = {
 			this.obstacles[index].localPosition.x += revisionX;
 			this.obstacles[index].localPosition.y += revisionY;
 		}
+		for(var i=0; i<this.chests.length; i++){
+			this.chests[i].localPosition.x += revisionX;
+			this.chests[i].localPosition.y += revisionY;
+		}
 		for(var i=0; i<this.objExps.length; i++){
 			this.objExps[i].position.x += revisionX;
 			this.objExps[i].position.y += revisionY;
@@ -426,6 +466,10 @@ CManager.prototype = {
 		for(var index in this.obstacles){
 			this.obstacles[index].localPosition.x += revisionX;
 			this.obstacles[index].localPosition.y += revisionY;
+		}
+		for(var i=0; i<this.chests.length; i++){
+			this.chests[i].localPosition.x += revisionX;
+			this.chests[i].localPosition.y += revisionY;
 		}
 		for(var i=0; i<this.objExps.length; i++){
 			this.objExps[i].position.x += revisionX;
@@ -447,30 +491,7 @@ CManager.prototype = {
 		if(this.user === null){
 			console.log('if print me. Something is wrong');
 		}
-	},
-	// findUserAsWorldPosition : function(userID, offset){
-	// 	for(var index in this.users){
-	// 		if(this.users[index].objectID === userID){
-	// 			var returnVal = {
-	// 				position : util.localToWorldPosition(this.users[index].position, offset),
-	// 				size : this.users[index].size
-	// 			};
-	// 			return returnVal;
-	// 		}
-	// 	}
-	// },
-	//if canvas size changed re calculate all object local position
-	// reCalcLocalPosition : function(beforeOffset, afterOffset){
-	// 	for(var index in this.users){
-	// 		// before local position transform world position[position, targetPosition, center]
-	// 		var worldPosition = util.localToWorldPosition(this.users[index].position, beforeOffset);
-	// 		var worldTargetPosition = util.localToWorldPosition(this.users[index].targetPosition, beforeOffset);
-	//
-	// 		this.users[index].position = util.worldToLocalPosition(worldPosition, afterOffset);
-	// 		this.users[index].targetPosition = util.worldToLocalPosition(worldTargetPosition, afterOffset);
-	// 		this.users[index].setCenter();
-	// 	}
-	// }
+	}
 };
 
 function staticIntervalHandler(){

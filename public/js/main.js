@@ -184,6 +184,7 @@ function drawGame(){
   drawScreen();
   drawGrid();
   drawObstacles();
+  drawChests();
   drawObjs();
   drawUsers();
   drawEffect();
@@ -200,11 +201,12 @@ function setupSocket(){
   });
 
   //change state game on
-  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas){
+  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas, chestDatas){
     Manager.setUsers(userDatas, skillDatas);
     Manager.setUsersSkills(skillDatas);
     Manager.setProjectiles(projectileDatas);
     Manager.setObjs(objDatas);
+    Manager.setChests(chestDatas);
 
     Manager.synchronizeUser(gameConfig.userID);
     Manager.start();
@@ -234,13 +236,18 @@ function setupSocket(){
       revisionUserPos(userData);
     }
     var skillData = util.findData(skillTable, 'index', resSkillData.index);
-
-    skillData.targetPosition = util.worldToLocalPosition(resSkillData.targetPosition, gameConfig.userOffset);
+    // console.log(userData.position);
+    console.log(resSkillData.targetPosition);
+    // console.log((userData.position.x - resSkillData.targetPosition.x) + ' : ' + (userData.position.y - resSkillData.targetPosition.y));
+    skillData.targetPosition = resSkillData.targetPosition;
     skillData.direction = resSkillData.direction;
     skillData.totalTime = resSkillData.totalTime;
     skillData.fireTime = resSkillData.fireTime;
 
     Manager.updateUserData(userData);
+    // console.log(Manager.users[gameConfig.userID].position);
+    // console.log(skillData.targetPosition);
+    // console.log((Manager.users[gameConfig.userID].position.x - skillData.targetPosition.x) + ' : ' + (Manager.users[gameConfig.userID].position.y - skillData.targetPosition.y))
     Manager.useSkill(userData.objectID, skillData);
 
     //create user castingEffect
@@ -265,6 +272,10 @@ function setupSocket(){
   });
   socket.on('deleteOBJ', function(objID){
     Manager.deleteOBJ(objID);
+  });
+  socket.on('createChest', function(chestData){
+    console.log(chestData);
+    Manager.createChest(chestData);
   });
   socket.on('updateUser', function(userData){
     console.log('in updateUser')
@@ -300,7 +311,7 @@ function drawObstacles(){
   for(var index in Manager.obstacles){
     ctx.beginPath();
     ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor, (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor,
-            resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2*Math.PI);
+            resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
     ctx.strokeStyle = '#003300';
@@ -309,6 +320,15 @@ function drawObstacles(){
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
   }
 };
+function drawChests(){
+  ctx.fillStyle = "#00ff00";
+  for(var i=0; i<Manager.chests.length; i++){
+    ctx.beginPath();
+    ctx.fillRect((Manager.chests[i].localPosition.x) * gameConfig.scaleFactor, Manager.chests[i].localPosition.y * gameConfig.scaleFactor,
+                  Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
+    ctx.closePath();
+  }
+}
 function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){

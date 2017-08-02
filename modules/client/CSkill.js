@@ -5,7 +5,6 @@ function CSkill(skillData, userAniStartTime, offset){
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
 
-
   this.index = skillData.index;
   this.type = skillData.type;
   this.name = skillData.name;

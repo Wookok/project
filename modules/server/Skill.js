@@ -92,15 +92,18 @@ Skill.prototype = {
     }
   },
   setTargetPosition : function(userCenterPosition, userDirection, clickPosition){
+    console.log(this);
     switch (this.type) {
       case gameConfig.SKILL_TYPE_BASIC :
         var addPosX = this.range * Math.cos(userDirection * radianFactor);
         var addPosY = this.range * Math.sin(userDirection * radianFactor);
-
+        console.log(userDirection);
+        console.log(addPosX + ' : ' + addPosY);
         this.targetPosition = {
           x : userCenterPosition.x + addPosX,
           y : userCenterPosition.y + addPosY
         }
+        console.log(this.targetPosition);
         this.colliderEle.x = this.targetPosition.x;
         this.colliderEle.y = this.targetPosition.y;
         break;

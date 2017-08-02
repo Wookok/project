@@ -60,29 +60,42 @@ OBJExp.prototype.setCollectionEle = function(){
 
 module.exports.OBJExp = OBJExp;
 
-function OBJChest(objectID){
+function OBJChest(objectID, locationID){
   GameObject.call(this);
   this.objectID = objectID;
+  this.locationID = locationID;
 
   this.HP = 0;
+  this.currentHP = 0;
 
   this.grade = 0;
   this.exps = [];
   this.skills = [];
 
   this.entityTreeEle = {}
-  this.staticEle = {};
 
+  this.onDestroy = new Function();
   this.onCreateExp = new Function();
   this.onCreateSkill = new Function();
 };
 OBJChest.prototype = Object.create(GameObject.prototype);
 OBJChest.prototype.constructor = OBJChest;
 
+OBJChest.prototype.takeDamage = function(attackUser, damage){
+  console.log(this.objectID + ' is hit by ' + attackUser);
+  this.currentHP -= damage;
+  if(this.currentHP <= 0){
+    this.destroy();
+  }
+};
+OBJChest.prototype.destroy = function(){
+  this.onDestroy(this);
+};
 OBJChest.prototype.initOBJChest = function(position, radius, chestData){
   this.setSize(radius * 2, radius * 2);
   this.setPosition(position.x, position.y);
   this.HP = chestData.HP;
+  this.currentHP = this.HP;
   this.grade = chestData.grade;
   this.setExps(chestData);
   this.setSkills(chestData);
@@ -115,14 +128,13 @@ OBJChest.prototype.setSkills = function(chestData){
   }
   console.log(this.skills);
 };
-OBJChest.prototype.setStaticEle = function(){
-  this.staticEle = {
-
-  };
-};
 OBJChest.prototype.setEntityEle = function(){
   this.entityTreeEle = {
-
+    x : this.position.x,
+    y : this.position.y,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
   };
 };
 module.exports.OBJChest = OBJChest;

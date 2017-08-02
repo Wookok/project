@@ -41,6 +41,12 @@ exports.generateRandomPos = function(checkTree, minX, minY, maxX, maxY, radius, 
   }
   return pos;
 };
+exports.generateNearPos = function(position, range){
+  var addPosX = (Math.random() < 0.5 ? -1 : 1) * Math.floor(Math.random()*range);
+  var addPosY = (Math.random() < 0.5 ? -1 : 1) * Math.floor(Math.random()*range);
+
+  return {x : position.x + addPosX, y : position.y + addPosY};
+};
 exports.getRandomNum = function(minVal, maxVal){
   return Math.floor(Math.random()*(maxVal - minVal) + minVal);
 };

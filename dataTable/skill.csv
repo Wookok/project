@@ -1,9 +1,9 @@
 index,name,level,type,groupIndex,nextSkillIndex,totalTime,fireTime,coolDown,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n
-11,RedSkillBase1,1,0,10,12,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,10\n
-12,RedSkillBase2,2,0,10,13,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n
-13,RedSkillBase3,3,0,10,14,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n
-14,RedSkillBase4,4,0,10,15,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n
-15,RedSkillBase5,5,0,10,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n
+11,RedSkillBase1,1,1,10,12,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,10\n
+12,RedSkillBase2,2,1,10,13,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n
+13,RedSkillBase3,3,1,10,14,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n
+14,RedSkillBase4,4,1,10,15,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n
+15,RedSkillBase5,5,1,10,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n
 21,RedSkillProjectileWeak1,1,2,20,22,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n
 22,RedSkillProjectileWeak2,2,2,20,23,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n
 23,RedSkillProjectileWeak3,3,2,20,24,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n

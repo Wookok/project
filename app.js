@@ -69,42 +69,16 @@ GM.onNeedInformSkillData = function(socketID, possessSkills){
   io.to(socketID).emit('updateSkillPossessions', possessSkills);
   // socket.emit('updateSkillPossessions', possessSkills);
 };
+GM.onNeedInformCreateChest = function(chest){
+  var chestData = GM.updateChestDataSetting(chest);
+  io.sockets.emit('createChest', chestData);
+};
 
 io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
 
   var user = new User(socket.id, userBaseTable[0], 0);
   var updateUserInterval = false;
-  //
-  // GM.onNeedUserInform = function(userID){
-  //   var userData = GM.updateDataSetting(GM.users[userID]);
-  //   socket.emit('updateUser', userData);
-  // };
-  // GM.onNeedUserInformToAll = function(userID){
-  //   var userData = GM.updateDataSetting(GM.users[userID]);
-  //   io.sockets.emit('updateUser', userData);
-  // };
-  // GM.onNeedProjectileSkillInformToAll = function(projectile){
-  //   var projectileData = GM.updateProjectileDataSetting(projectile);
-  //   io.sockets.emit('setProjectile', projectileData);
-  // };
-  // GM.onNeedInformCreateObjs = function(objs){
-  //   var objDatas = [];
-  //   for(var i=0; i<Object.keys(objs).length; i++){
-  //     objDatas.push(GM.updateOBJDataSetting(objs[i]));
-  //   }
-  //   io.sockets.emit('createOBJs', objDatas);
-  //   console.log('createObjs executed');
-  // }
-  // GM.onNeedInformDeleteObj = function(objID){
-  //   console.log('onNeedInformDeleteObj : ' + objID);
-  //   io.sockets.emit('deleteOBJ', objID)
-  // };
-  // GM.onNeedInformSkillData = function(userID, possessSkills){
-  //   if(user.objectID === userID){
-  //     socket.emit('updateSkillPossessions', possessSkills);
-  //   }
-  // }
 
   socket.on('reqStartGame', function(){
 
@@ -126,9 +100,10 @@ io.on('connection', function(socket){
     var skillDatas = GM.updateSkillsDataSettings();
     var projectileDatas = GM.updateProjectilesDataSettings();
     var objDatas = GM.updateOBJDataSettings();
+    var chestDatas = GM.updateChestDataSettings();
 
     socket.emit('setSyncUser', userData);
-    socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas);
+    socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas, chestDatas);
   });
 
   socket.on('reqMove', function(targetPosition, localOffset){

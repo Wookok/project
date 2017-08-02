@@ -24,6 +24,7 @@ var CManager = function(gameConfig){
 	this.user = null;
 	//all users
 	this.users = [];
+	this.chests = [];
 	this.obstacles = [];
 	this.effects = [];
 	this.projectiles = [];
@@ -60,32 +61,59 @@ CManager.prototype = {
 	  }
 	},
 	createObstacles : function(){
-		for(var index in map.Trees){
-			var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id, resources.OBJ_TREE_SRC);
+		for(var i=0; i<map.Trees.length; i++){
+			var tempObstacle = new Obstacle(map.Trees[i].posX, map.Trees[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[i].id, resources.OBJ_TREE_SRC);
 			this.obstacles.push(tempObstacle);
+		}
+		for(var i=0; i<map.Chests.length; i++){
+			var chestBase = new Obstacle(map.Chests[i].posX, map.Chests[i].posY, resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id, resources.OBJ_CHEST_SRC);
+			this.obstacles.push(chestBase);
 		}
 	},
 	updateObstacleEles : function(){
 		staticEles = [];
 
-		for(var index in this.obstacles){
-			var localPos = util.worldToLocalPosition(this.obstacles[index].position, this.gameConfig.userOffset);
+		for(var i=0; i<this.obstacles.length; i++){
+			var localPos = util.worldToLocalPosition(this.obstacles[i].position, this.gameConfig.userOffset);
 
-			this.obstacles[index].staticEle.x = localPos.x
-			this.obstacles[index].staticEle.y = localPos.y
+			this.obstacles[i].staticEle.x = localPos.x
+			this.obstacles[i].staticEle.y = localPos.y
 
 			//will add filtering method
 
-			staticEles.push(this.obstacles[index].staticEle);
+			staticEles.push(this.obstacles[i].staticEle);
 		}
 
 	  staticTree.pushAll(staticEles);
 	},
 	setObstaclesLocalPos : function(){
-		for(var index in this.obstacles){
-			var localPos = util.worldToLocalPosition(this.obstacles[index].position, this.gameConfig.userOffset);
-			this.obstacles[index].localPosition.x = localPos.x
-			this.obstacles[index].localPosition.y = localPos.y
+		for(var i=0; i<this.obstacles.length; i++){
+			var localPos = util.worldToLocalPosition(this.obstacles[i].position, this.gameConfig.userOffset);
+			this.obstacles[i].localPosition.x = localPos.x
+			this.obstacles[i].localPosition.y = localPos.y
+		}
+	},
+	setChests : function(chestDatas){
+		for(var i=0; i<chestDatas.length; i++){
+			this.createChest(chestDatas[i]);
+		}
+	},
+	createChest : function(chestData){
+		//find chest location
+		for(var i=0; i<map.Chests.length; i++){
+			if(map.Chests[i].id === chestData.locationID){
+				var chestPosition = {x : map.Chests[i].posX, y : map.Chests[i].posY};
+				break;
+			}
+		}
+		if(chestPosition){
+			this.chests.push({
+				objectID : chestData.objectID,
+				grade : chestData.grade,
+				position : chestPosition,
+				localPosition : util.worldToLocalPosition(chestPosition, this.gameConfig.userOffset),
+				size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
+			});
 		}
 	},
 	// updateProjectile : function(){
@@ -367,12 +395,20 @@ CManager.prototype = {
 			this.objSkills[i].position.x -= this.user.speed.x;
 			this.objSkills[i].position.y -= this.user.speed.y;
 		}
+		for(var i=0; i<this.chests.length; i++){
+			this.chests[i].localPosition.x -= this.user.speed.x;
+			this.chests[i].localPosition.y -= this.user.speed.y;
+		}
 		if(addPos){
 			for(var i=0; i<Object.keys(this.obstacles).length; i++){
 				this.obstacles[i].localPosition.x -= addPos.x;
 				this.obstacles[i].localPosition.y -= addPos.y;
 				// this.obstacles[index].staticEle.x -= addPos.x;
 				// this.obstacles[index].staticEle.y -= addPos.y;
+			}
+			for(var i=0; i<this.chests.length; i++){
+				this.chests[i].localPosition.x -= addPos.x;
+				this.chests[i].localPosition.y -= addPos.y;
 			}
 			for(var i=0; i<Object.keys(this.projectiles).length; i++){
 				this.projectiles[i].position.x -= addPos.x;
@@ -409,6 +445,10 @@ CManager.prototype = {
 			this.obstacles[index].localPosition.x += revisionX;
 			this.obstacles[index].localPosition.y += revisionY;
 		}
+		for(var i=0; i<this.chests.length; i++){
+			this.chests[i].localPosition.x += revisionX;
+			this.chests[i].localPosition.y += revisionY;
+		}
 		for(var i=0; i<this.objExps.length; i++){
 			this.objExps[i].position.x += revisionX;
 			this.objExps[i].position.y += revisionY;
@@ -427,6 +467,10 @@ CManager.prototype = {
 		for(var index in this.obstacles){
 			this.obstacles[index].localPosition.x += revisionX;
 			this.obstacles[index].localPosition.y += revisionY;
+		}
+		for(var i=0; i<this.chests.length; i++){
+			this.chests[i].localPosition.x += revisionX;
+			this.chests[i].localPosition.y += revisionY;
 		}
 		for(var i=0; i<this.objExps.length; i++){
 			this.objExps[i].position.x += revisionX;
@@ -448,30 +492,7 @@ CManager.prototype = {
 		if(this.user === null){
 			console.log('if print me. Something is wrong');
 		}
-	},
-	// findUserAsWorldPosition : function(userID, offset){
-	// 	for(var index in this.users){
-	// 		if(this.users[index].objectID === userID){
-	// 			var returnVal = {
-	// 				position : util.localToWorldPosition(this.users[index].position, offset),
-	// 				size : this.users[index].size
-	// 			};
-	// 			return returnVal;
-	// 		}
-	// 	}
-	// },
-	//if canvas size changed re calculate all object local position
-	// reCalcLocalPosition : function(beforeOffset, afterOffset){
-	// 	for(var index in this.users){
-	// 		// before local position transform world position[position, targetPosition, center]
-	// 		var worldPosition = util.localToWorldPosition(this.users[index].position, beforeOffset);
-	// 		var worldTargetPosition = util.localToWorldPosition(this.users[index].targetPosition, beforeOffset);
-	//
-	// 		this.users[index].position = util.worldToLocalPosition(worldPosition, afterOffset);
-	// 		this.users[index].targetPosition = util.worldToLocalPosition(worldTargetPosition, afterOffset);
-	// 		this.users[index].setCenter();
-	// 	}
-	// }
+	}
 };
 
 function staticIntervalHandler(){
@@ -597,7 +618,6 @@ function CSkill(skillData, userAniStartTime, offset){
 
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
-
 
   this.index = skillData.index;
   this.type = skillData.type;
@@ -1350,7 +1370,7 @@ function _csvToArray(text, delimit, quote) {
 },{}],6:[function(require,module,exports){
 module.exports={
   "userBaseData" : "level,needExp,baseHP,baseMP,baseMaxSpeed,baseRotateSpeed,baseHPRegen,baseMPRegen,baseCastSpeed,baseDamage,baseDamageRate\n1,100,100,1000,10,15,0.5,5,1,0,1\n2,150,100,1000,10,15,0.5,5,1,0,1\n3,250,100,1000,10,15,0.5,5,1,0,1\n4,400,100,1000,10,15,0.5,5,1,0,1\n5,600,100,1000,10,15,0.5,5,1,0,1\n6,850,100,1000,10,15,0.5,5,1,0,1\n7,1150,100,1000,10,15,0.5,5,1,0,1\n8,1500,100,1000,10,15,0.5,5,1,0,1\n9,1900,100,1000,10,15,0.5,5,1,0,1\n10,2350,100,1000,10,15,0.5,5,1,0,1\n11,2850,100,1000,10,15,0.5,5,1,0,1\n12,3400,100,1000,10,15,0.5,5,1,0,1\n13,4000,100,1000,10,15,0.5,5,1,0,1\n14,4650,100,1000,10,15,0.5,5,1,0,1\n15,5350,100,1000,10,15,0.5,5,1,0,1\n16,6100,100,1000,10,15,0.5,5,1,0,1\n17,6900,100,1000,10,15,0.5,5,1,0,1\n18,7750,100,1000,10,15,0.5,5,1,0,1\n19,8650,100,1000,10,15,0.5,5,1,0,1\n20,-1,100,1000,10,15,0.5,5,1,0,1\n",
-  "skillData" : "index,name,level,type,groupIndex,nextSkillIndex,totalTime,fireTime,coolDown,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n11,RedSkillBase1,1,0,10,12,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,10\n12,RedSkillBase2,2,0,10,13,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n13,RedSkillBase3,3,0,10,14,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n14,RedSkillBase4,4,0,10,15,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n15,RedSkillBase5,5,0,10,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n21,RedSkillProjectileWeak1,1,2,20,22,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n22,RedSkillProjectileWeak2,2,2,20,23,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n23,RedSkillProjectileWeak3,3,2,20,24,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n24,RedSkillProjectileWeak4,4,2,20,25,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n25,RedSkillProjectileWeak5,5,2,20,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n31,RedSkillProjectileStrong1,1,2,30,32,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n32,RedSkillProjectileStrong2,2,2,30,33,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n33,RedSkillProjectileStrong3,3,2,30,34,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n34,RedSkillProjectileStrong4,4,2,30,35,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n35,RedSkillProjectileStrong5,5,2,30,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n41,RedSkillRange1,1,1,40,42,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n42,RedSkillRange2,2,1,40,43,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n43,RedSkillRange3,3,1,40,44,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n44,RedSkillRange4,4,1,40,45,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n45,RedSkillRange5,5,1,40,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n51,RedSkillSelfRange1,1,3,50,52,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n52,RedSkillSelfRange2,2,3,50,53,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n53,RedSkillSelfRange3,3,3,50,54,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n54,RedSkillSelfRange4,4,3,50,55,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n55,RedSkillSelfRange5,5,3,50,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n111,BlueSkillBase1,1,0,110,112,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n112,BlueSkillBase2,2,0,110,113,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n113,BlueSkillBase3,3,0,110,114,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n114,BlueSkillBase4,4,0,110,115,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n115,BlueSkillBase5,5,0,110,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n121,BlueSkillProjectileWeak1,1,2,120,122,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n122,BlueSkillProjectileWeak2,2,2,120,123,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n123,BlueSkillProjectileWeak3,3,2,120,124,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n124,BlueSkillProjectileWeak4,4,2,120,125,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n125,BlueSkillProjectileWeak5,5,2,120,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n131,BlueSkillProjectileStrong1,1,2,130,132,2000,1200,,0,150,200,30,,,,,,,,,,,frozen1,,30,10,3000,100\n132,BlueSkillProjectileStrong2,2,2,130,133,2000,1200,,0,150,200,35,,,,,,,,,,,frozen2,,30,10,3000,100\n133,BlueSkillProjectileStrong3,3,2,130,134,2000,1200,,0,150,200,40,,,,,,,,,,,frozen3,,30,10,3000,100\n134,BlueSkillProjectileStrong4,4,2,130,135,2000,1200,,0,150,200,45,,,,,,,,,,,frozen4,,30,10,3000,100\n135,BlueSkillProjectileStrong5,5,2,130,-1,2000,1200,,0,150,200,50,,,,,,,,,,,frozen5,,30,10,3000,100\n141,BlueSkillRange1,1,1,140,142,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n142,BlueSkillRange2,2,1,140,143,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n143,BlueSkillRange3,3,1,140,144,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n144,BlueSkillRange4,4,1,140,145,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n145,BlueSkillRange5,5,1,140,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n151,BlueSkillRangeTick1,1,3,150,152,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n152,BlueSkillRangeTick2,2,3,150,153,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n153,BlueSkillRangeTick3,3,3,150,154,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n154,BlueSkillRangeTick4,4,3,150,155,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n155,BlueSkillRangeTick5,5,3,150,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n211,YellowSkillBase1,1,0,210,212,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n212,YellowSkillBase2,2,0,210,213,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n213,YellowSkillBase3,3,0,210,214,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n214,YellowSkillBase4,4,0,210,215,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n215,YellowSkillBase5,5,0,210,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n221,YellowSkillProjectileWeak1,1,2,220,222,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n222,YellowSkillProjectileWeak2,2,2,220,223,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n223,YellowSkillProjectileWeak3,3,2,220,224,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n224,YellowSkillProjectileWeak4,4,2,220,225,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n225,YellowSkillProjectileWeak5,5,2,220,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n231,YellowSkillProjectileStrong1,1,2,230,232,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n232,YellowSkillProjectileStrong2,2,2,230,233,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n233,YellowSkillProjectileStrong3,3,2,230,234,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n234,YellowSkillProjectileStrong4,4,2,230,235,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n235,YellowSkillProjectileStrong5,5,2,230,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n241,YellowSkillRange1,1,1,240,242,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n242,YellowSkillRange2,2,1,240,243,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n243,YellowSkillRange3,3,1,240,244,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n244,YellowSkillRange4,4,1,240,245,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n245,YellowSkillRange5,5,1,240,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n251,YellowSkillProjectileVStrong1,1,3,250,252,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n252,YellowSkillProjectileVStrong2,2,3,250,253,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n253,YellowSkillProjectileVStrong3,3,3,250,254,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n254,YellowSkillProjectileVStrong4,4,3,250,255,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n255,YellowSkillProjectileVStrong5,5,3,250,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n301,BPurpleSkillTeleportShort1,1,SKILL_TYPE_TELEPORT,300,302,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n302,BPurpleSkillTeleportShort2,2,SKILL_TYPE_TELEPORT,300,303,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n303,BPurpleSkillTeleportShort3,3,SKILL_TYPE_TELEPORT,300,304,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n304,BPurpleSkillTeleportShort4,4,SKILL_TYPE_TELEPORT,300,305,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n305,BPurpleSkillTeleportShort5,5,SKILL_TYPE_TELEPORT,300,-1,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n311,BPurpleSkillTeleportLong1,1,SKILL_TYPE_TELEPORT,310,312,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n312,BPurpleSkillTeleportLong2,2,SKILL_TYPE_TELEPORT,310,313,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n313,BPurpleSkillTeleportLong3,3,SKILL_TYPE_TELEPORT,310,314,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n314,BPurpleSkillTeleportLong4,4,SKILL_TYPE_TELEPORT,310,315,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n315,BPurpleSkillTeleportLong5,5,SKILL_TYPE_TELEPORT,310,-1,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n",
+  "skillData" : "index,name,level,type,groupIndex,nextSkillIndex,totalTime,fireTime,coolDown,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n11,RedSkillBase1,1,1,10,12,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,10\n12,RedSkillBase2,2,1,10,13,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n13,RedSkillBase3,3,1,10,14,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n14,RedSkillBase4,4,1,10,15,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n15,RedSkillBase5,5,1,10,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n21,RedSkillProjectileWeak1,1,2,20,22,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n22,RedSkillProjectileWeak2,2,2,20,23,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n23,RedSkillProjectileWeak3,3,2,20,24,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n24,RedSkillProjectileWeak4,4,2,20,25,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n25,RedSkillProjectileWeak5,5,2,20,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n31,RedSkillProjectileStrong1,1,2,30,32,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n32,RedSkillProjectileStrong2,2,2,30,33,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n33,RedSkillProjectileStrong3,3,2,30,34,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n34,RedSkillProjectileStrong4,4,2,30,35,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n35,RedSkillProjectileStrong5,5,2,30,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n41,RedSkillRange1,1,1,40,42,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n42,RedSkillRange2,2,1,40,43,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n43,RedSkillRange3,3,1,40,44,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n44,RedSkillRange4,4,1,40,45,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n45,RedSkillRange5,5,1,40,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n51,RedSkillSelfRange1,1,3,50,52,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n52,RedSkillSelfRange2,2,3,50,53,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n53,RedSkillSelfRange3,3,3,50,54,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n54,RedSkillSelfRange4,4,3,50,55,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n55,RedSkillSelfRange5,5,3,50,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n111,BlueSkillBase1,1,0,110,112,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n112,BlueSkillBase2,2,0,110,113,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n113,BlueSkillBase3,3,0,110,114,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n114,BlueSkillBase4,4,0,110,115,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n115,BlueSkillBase5,5,0,110,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n121,BlueSkillProjectileWeak1,1,2,120,122,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n122,BlueSkillProjectileWeak2,2,2,120,123,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n123,BlueSkillProjectileWeak3,3,2,120,124,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n124,BlueSkillProjectileWeak4,4,2,120,125,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n125,BlueSkillProjectileWeak5,5,2,120,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n131,BlueSkillProjectileStrong1,1,2,130,132,2000,1200,,0,150,200,30,,,,,,,,,,,frozen1,,30,10,3000,100\n132,BlueSkillProjectileStrong2,2,2,130,133,2000,1200,,0,150,200,35,,,,,,,,,,,frozen2,,30,10,3000,100\n133,BlueSkillProjectileStrong3,3,2,130,134,2000,1200,,0,150,200,40,,,,,,,,,,,frozen3,,30,10,3000,100\n134,BlueSkillProjectileStrong4,4,2,130,135,2000,1200,,0,150,200,45,,,,,,,,,,,frozen4,,30,10,3000,100\n135,BlueSkillProjectileStrong5,5,2,130,-1,2000,1200,,0,150,200,50,,,,,,,,,,,frozen5,,30,10,3000,100\n141,BlueSkillRange1,1,1,140,142,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n142,BlueSkillRange2,2,1,140,143,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n143,BlueSkillRange3,3,1,140,144,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n144,BlueSkillRange4,4,1,140,145,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n145,BlueSkillRange5,5,1,140,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n151,BlueSkillRangeTick1,1,3,150,152,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n152,BlueSkillRangeTick2,2,3,150,153,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n153,BlueSkillRangeTick3,3,3,150,154,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n154,BlueSkillRangeTick4,4,3,150,155,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n155,BlueSkillRangeTick5,5,3,150,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n211,YellowSkillBase1,1,0,210,212,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n212,YellowSkillBase2,2,0,210,213,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n213,YellowSkillBase3,3,0,210,214,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n214,YellowSkillBase4,4,0,210,215,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n215,YellowSkillBase5,5,0,210,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n221,YellowSkillProjectileWeak1,1,2,220,222,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n222,YellowSkillProjectileWeak2,2,2,220,223,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n223,YellowSkillProjectileWeak3,3,2,220,224,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n224,YellowSkillProjectileWeak4,4,2,220,225,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n225,YellowSkillProjectileWeak5,5,2,220,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n231,YellowSkillProjectileStrong1,1,2,230,232,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n232,YellowSkillProjectileStrong2,2,2,230,233,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n233,YellowSkillProjectileStrong3,3,2,230,234,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n234,YellowSkillProjectileStrong4,4,2,230,235,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n235,YellowSkillProjectileStrong5,5,2,230,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n241,YellowSkillRange1,1,1,240,242,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n242,YellowSkillRange2,2,1,240,243,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n243,YellowSkillRange3,3,1,240,244,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n244,YellowSkillRange4,4,1,240,245,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n245,YellowSkillRange5,5,1,240,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n251,YellowSkillProjectileVStrong1,1,3,250,252,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n252,YellowSkillProjectileVStrong2,2,3,250,253,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n253,YellowSkillProjectileVStrong3,3,3,250,254,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n254,YellowSkillProjectileVStrong4,4,3,250,255,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n255,YellowSkillProjectileVStrong5,5,3,250,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n301,BPurpleSkillTeleportShort1,1,SKILL_TYPE_TELEPORT,300,302,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n302,BPurpleSkillTeleportShort2,2,SKILL_TYPE_TELEPORT,300,303,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n303,BPurpleSkillTeleportShort3,3,SKILL_TYPE_TELEPORT,300,304,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n304,BPurpleSkillTeleportShort4,4,SKILL_TYPE_TELEPORT,300,305,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n305,BPurpleSkillTeleportShort5,5,SKILL_TYPE_TELEPORT,300,-1,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n311,BPurpleSkillTeleportLong1,1,SKILL_TYPE_TELEPORT,310,312,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n312,BPurpleSkillTeleportLong2,2,SKILL_TYPE_TELEPORT,310,313,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n313,BPurpleSkillTeleportLong3,3,SKILL_TYPE_TELEPORT,310,314,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n314,BPurpleSkillTeleportLong4,4,SKILL_TYPE_TELEPORT,310,315,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n315,BPurpleSkillTeleportLong5,5,SKILL_TYPE_TELEPORT,310,-1,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n",
   "buffData" : "index,name,isPermanent,timeDuration,buffType,buffTickTime,buffAmount,buffApplyRate\n1,damageUP1,0,60000,BUFF_TICK_DAMAGE,,20,1\n2,damageUP2,0,60000,baseDamage,,30,1\n3,damageUP3,1,0,baseDamageRate,,0.1,1\n4,Heal1,0,60000,currentHP,,10,1\n5,Heal2,0,60000,currentHP,,20,1\n6,Heal3,0,60000,currentHP,,-30,0.2\n",
   "chestData" : "index,grade,HP,minExpCount,maxExpCount,minExpAmount,maxExpAmount,minSkillCount,maxSkillCount,SkillIndex1,SkillDropRate1,SkillIndex2,SkillDropRate2,SkillIndex3,SkillDropRate3,SkillIndex4,SkillDropRate4,SkillIndex5,SkillDropRate5,SkillIndex6,SkillDropRate6,SkillIndex7,SkillDropRate7,SkillIndex7,SkillDropRate7,SkillIndex8,SkillDropRate8,SkillIndex9,SkillDropRate9,SkillIndex10,SkillDropRate10,SkillIndex11,SkillDropRate11,SkillIndex12,SkillDropRate12,SkillIndex13,SkillDropRate13,SkillIndex14,SkillDropRate14,SkillIndex15,SkillDropRate15,SkillIndex16,SkillDropRate16,SkillIndex17,SkillDropRate17,SkillIndex18,SkillDropRate18,SkillIndex19,SkillDropRate19,SkillIndex20,SkillDropRate20\n1,1,100,3,5,30,50,1,1,11,35,21,25,31,20,41,15,51,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n2,2,200,4,6,50,75,1,2,111,35,121,25,131,20,141,15,151,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n3,3,300,5,7,75,100,1,3,211,35,221,25,231,20,241,15,251,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n"
 }
@@ -1362,10 +1382,10 @@ module.exports={
   "CANVAS_MAX_SIZE" : {"width" : 5600 , "height" : 3360},
   "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
 
-  "OBJECT_STATE_IDLE" : 0,
-  "OBJECT_STATE_MOVE" : 1,
-  "OBJECT_STATE_ATTACK" : 2,
-  "OBJECT_STATE_CAST" : 3,
+  "OBJECT_STATE_IDLE" : 1,
+  "OBJECT_STATE_MOVE" : 2,
+  "OBJECT_STATE_ATTACK" : 3,
+  "OBJECT_STATE_CAST" : 4,
 
   "FPS" : 60,
   "PLUS_SIZE_WIDTH" : 500,
@@ -1373,11 +1393,11 @@ module.exports={
 
   "OBJECT_STATE_MOVE_OFFSET" : 99,
 
-  "GAME_STATE_LOAD" : 0,
-  "GAME_STATE_START_SCENE" : 1,
-  "GAME_STATE_GAME_START" : 2,
-  "GAME_STATE_GAME_ON" : 3,
-  "GAME_STATE_GAME_END" : 4,
+  "GAME_STATE_LOAD" : 1,
+  "GAME_STATE_START_SCENE" : 2,
+  "GAME_STATE_GAME_START" : 3,
+  "GAME_STATE_GAME_ON" : 4,
+  "GAME_STATE_GAME_END" : 5,
 
   "PREFIX_USER" : "USR",
   "PREFIX_SKILL" : "SKL",
@@ -1388,20 +1408,20 @@ module.exports={
   "PREFIX_OBJECT_EXP" : "OXP",
   "PREFIX_OBJECT_SKILL" : "OSK",
 
-  "USER_CONDITION_IMMORTAL" : 0,
-  "USER_CONDITION_FREEZE" : 1,
-  "USER_CONDITION_FROZEN" : 2,
-  "USER_CONDITION_STUN" : 3,
-  "USER_CONDITION_SILENCE" : 4,
-  "USER_CONDITION_ANTIMAGIC" : 5,
+  "USER_CONDITION_IMMORTAL" : 1,
+  "USER_CONDITION_FREEZE" : 2,
+  "USER_CONDITION_FROZEN" : 3,
+  "USER_CONDITION_STUN" : 4,
+  "USER_CONDITION_SILENCE" : 5,
+  "USER_CONDITION_ANTIMAGIC" : 6,
 
-  "SKILL_TYPE_BASIC" : 0,
-  "SKILL_TYPE_INSTANT" : 1,
-  "SKILL_TYPE_PROJECTILE" : 2,
-  "SKILL_TYPE_SELF" : 3,
-  "SKILL_TYPE_SELF_EXPLOSION" : 4,
-  "SKILL_TYPE_TELEPORT" : 5,
-  "SKILL_TYPE_PROJECTILE_TICK" : 6,
+  "SKILL_TYPE_BASIC" : 1,
+  "SKILL_TYPE_INSTANT" : 2,
+  "SKILL_TYPE_PROJECTILE" : 3,
+  "SKILL_TYPE_SELF" : 4,
+  "SKILL_TYPE_SELF_EXPLOSION" : 5,
+  "SKILL_TYPE_TELEPORT" : 6,
+  "SKILL_TYPE_PROJECTILE_TICK" : 7,
 
   "OBJ_SKILL_RADIUS" : 30
 }
@@ -1986,6 +2006,7 @@ function drawGame(){
   drawScreen();
   drawGrid();
   drawObstacles();
+  drawChests();
   drawObjs();
   drawUsers();
   drawEffect();
@@ -2002,11 +2023,12 @@ function setupSocket(){
   });
 
   //change state game on
-  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas){
+  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas, chestDatas){
     Manager.setUsers(userDatas, skillDatas);
     Manager.setUsersSkills(skillDatas);
     Manager.setProjectiles(projectileDatas);
     Manager.setObjs(objDatas);
+    Manager.setChests(chestDatas);
 
     Manager.synchronizeUser(gameConfig.userID);
     Manager.start();
@@ -2036,13 +2058,18 @@ function setupSocket(){
       revisionUserPos(userData);
     }
     var skillData = util.findData(skillTable, 'index', resSkillData.index);
-
-    skillData.targetPosition = util.worldToLocalPosition(resSkillData.targetPosition, gameConfig.userOffset);
+    // console.log(userData.position);
+    console.log(resSkillData.targetPosition);
+    // console.log((userData.position.x - resSkillData.targetPosition.x) + ' : ' + (userData.position.y - resSkillData.targetPosition.y));
+    skillData.targetPosition = resSkillData.targetPosition;
     skillData.direction = resSkillData.direction;
     skillData.totalTime = resSkillData.totalTime;
     skillData.fireTime = resSkillData.fireTime;
 
     Manager.updateUserData(userData);
+    // console.log(Manager.users[gameConfig.userID].position);
+    // console.log(skillData.targetPosition);
+    // console.log((Manager.users[gameConfig.userID].position.x - skillData.targetPosition.x) + ' : ' + (Manager.users[gameConfig.userID].position.y - skillData.targetPosition.y))
     Manager.useSkill(userData.objectID, skillData);
 
     //create user castingEffect
@@ -2067,6 +2094,10 @@ function setupSocket(){
   });
   socket.on('deleteOBJ', function(objID){
     Manager.deleteOBJ(objID);
+  });
+  socket.on('createChest', function(chestData){
+    console.log(chestData);
+    Manager.createChest(chestData);
   });
   socket.on('updateUser', function(userData){
     console.log('in updateUser')
@@ -2102,7 +2133,7 @@ function drawObstacles(){
   for(var index in Manager.obstacles){
     ctx.beginPath();
     ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor, (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor,
-            resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2*Math.PI);
+            resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
     ctx.strokeStyle = '#003300';
@@ -2111,6 +2142,15 @@ function drawObstacles(){
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
   }
 };
+function drawChests(){
+  ctx.fillStyle = "#00ff00";
+  for(var i=0; i<Manager.chests.length; i++){
+    ctx.beginPath();
+    ctx.fillRect((Manager.chests[i].localPosition.x) * gameConfig.scaleFactor, Manager.chests[i].localPosition.y * gameConfig.scaleFactor,
+                  Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
+    ctx.closePath();
+  }
+}
 function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){
@@ -2203,8 +2243,8 @@ function drawGrid(){
 function canvasAddEvent(){
   canvas.addEventListener('click', function(e){
     var targetPosition ={
-      x : e.clientX,
-      y : e.clientY
+      x : e.clientX/gameConfig.scaleFactor,
+      y : e.clientY/gameConfig.scaleFactor
     }
     console.log(targetPosition);
     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);

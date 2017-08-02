@@ -8,5 +8,7 @@
     "OBJ_SKILL_MIN_COUNT" : 150,
     "OBJ_SKILL_RANGE_WITH_OTHERS" : 10,
 
+    "CHEST_NEAR_RANGE" : 100,
+    
     "INITSKILLLIST" : [10, 20, 30]
 }
