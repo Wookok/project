@@ -187,6 +187,7 @@ User.prototype.stop = function(){
 };
 User.prototype.takeDamage = function(attackUserID, dmg){
   this.currentHP -= dmg;
+  console.log(this.objectID + ' : ' + this.currentHP);
   if(this.currentHP <= 0){
     this.death(attackUserID);
   }

@@ -92,7 +92,6 @@ Skill.prototype = {
     }
   },
   setTargetPosition : function(userCenterPosition, userDirection, clickPosition){
-    console.log(this);
     switch (this.type) {
       case gameConfig.SKILL_TYPE_BASIC :
         var addPosX = this.range * Math.cos(userDirection * radianFactor);

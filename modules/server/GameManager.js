@@ -185,18 +185,26 @@ GameManager.prototype.createChest = function(chestLocationID){
 
     var chest = new OBJChest(chestID, chestLocationID);
     chest.initOBJChest(position, radius, chestData);
+    chest.setEntityEle();
     this.chests.push(chest);
     this.onNeedInformCreateChest(chest);
-    chest.onDestroy = function(cht){
-      for(var i=0; i<cht.exps.length; i++){
-        this.createOBjs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], this.position);
-      }
-      for(var i=0; i<cht.skills.length; i++){
-        this.createOBjs(1, gameConfig.PREFIX_OBJECT_SKILL, cht.skills[i], this.position);
-      }
-    }
+
+    chest.onDestroy = onChestDestroyHandler.bind(this);
   }
 };
+var onChestDestroyHandler = function(cht){
+  for(var i=0; i<cht.exps.length; i++){
+    this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
+  }
+  for(var i=0; i<cht.skills.length; i++){
+    this.createOBJs(1, gameConfig.PREFIX_OBJECT_SKILL, cht.skills[i], cht.position);
+  }
+  for(var i=0; i<this.chests.length; i++){
+    if(this.chests[i].objectID === cht.objectID){
+      this.chests.splice(i, 1);
+    }
+  }
+}
 GameManager.prototype.createOBJs = function(count, type, expOrSkill, nearPosition){
   var createdObjs =[];
   if(type === gameConfig.PREFIX_OBJECT_EXP){
@@ -652,6 +660,7 @@ GameManager.prototype.isCreateChest = function(){
 function chestIntervalHandler(){
   if(this.isCreateChest()){
     this.createChest('CH1');
+    // this.createChest.call(this,'CH1');
   }
 };
 function updateIntervalHandler(){
@@ -708,11 +717,15 @@ function updateIntervalHandler(){
   for(var i=0; i<userEles.length; i++){
     entityTree.remove(userEles[i]);
   }
+  for(var i=0; i<chestEles.length; i++){
+    entityTree.remove(chestEles[i]);
+  }
   for(var i=0; i<collectionEles.length; i++){
     collectionTree.remove(collectionEles[i]);
   }
 
   userEles = [];
+  chestEles = [];
   colliderEles = [];
   collectionEles = [];
 
@@ -720,6 +733,9 @@ function updateIntervalHandler(){
   for(var index in this.users){
     this.users[index].setEntityEle();
     userEles.push(this.users[index].entityTreeEle);
+  }
+  for(var i=0; i<this.chests.length; i++){
+    chestEles.push(this.chests[i].entityTreeEle);
   }
   //update collectable objects array
   var addExpCounts = this.objExpsCount - Object.keys(this.objExps).length;
@@ -736,7 +752,6 @@ function updateIntervalHandler(){
   for(var i=0; i<Object.keys(this.objSkills).length; i++){
     collectionEles.push(this.objSkills[i].collectionEle);
   }
-
   //update projectiles array
   var i = this.projectiles.length;
   while(i--){
@@ -753,6 +768,7 @@ function updateIntervalHandler(){
 
   //put users data to tree
   entityTree.pushAll(userEles);
+  entityTree.pushAll(chestEles);
   collectionTree.pushAll(collectionEles);
   // console.log(Date.now() - startTime);
 };
@@ -780,8 +796,8 @@ function affectIntervalHandler(){
   var i = affectedEles.length;
   while(i--){
     if(affectedEles[i].type === 'hitObj'){
-      if(affectedEles[i].hitObj in this.users){
-        if(affectedEles[i].hitObj.splice(0, 3) === gameConfig.PREFIX_USER){
+      if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_USER){
+        if(affectedEles[i].hitObj in this.users){
           //case hit user
           this.users[affectedEles[i].hitObj].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
           //buff and debuff apply
@@ -791,9 +807,14 @@ function affectIntervalHandler(){
           for(var j=0; j<affectedEles[i].debuffsToTarget.length; j++){
             this.users.addDebuff(affectedEles[i].debuffsToTarget[j]);
           }
-        }else if(affectedEles[i].hitObj.splice(0, 3) === gameConfig.PREFIX_CHEST){
-          //case hit chest
-          console.log(affectedEles[i]);
+        }
+      }else if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_CHEST){
+        //case hit chest
+        for(var i=0; i<this.chests.length; i++){
+          if(this.chests[i].objectID === affectedEles[i].hitObj){
+            this.chests[i].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
+            break;
+          }
         }
       }
     }else{
