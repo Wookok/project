@@ -2092,7 +2092,7 @@ function setupSocket(){
   socket.on('userDataUpdateAndUseSkill', function(userData){
     Manager.updateUserData(userData);
     var skillData = util.findData(skillTable, 'index', userData.skillIndex);
-    skillData.targetPosition = userData.skillTargetPosition;
+    skillData.targetPosition = util.worldToLocalPosition(userData.skillTargetPosition, gameConfig.userOffset);
     Manager.useSkill(userData.objectID, skillData);
   });
   // socket.on('resMove', function(userData){
@@ -2307,7 +2307,7 @@ function canvasAddEvent(){
     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
     var userData = Manager.settingUserData();
     userData.targetPosition = worldTargetPosition;
-    socket.emit('userMove', userData);
+    socket.emit('userMoveStart', userData);
   }, false);
 };
 // function canvasAddEvent(){
@@ -2326,34 +2326,35 @@ function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
     var tempPos = {x : 0, y : 0};
+    var localTempPos = util.worldToLocalPosition(tempPos, gameConfig.userOffset);
     var skillIndex = 0;
     if(keyCode === 69 || keyCode === 32){
       var skillData = util.findData(skillTable, 'index', 11);
-      skillData.targetPosition = tempPos;
+      skillData.targetPosition = localTempPos;
       skillIndex = 11;
-      Manager.useSkill(skillData);
+      Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 49){
       skillData = util.findData(skillTable, 'index', 21);
-      skillData.targetPosition = tempPos;
+      skillData.targetPosition = localTempPos;
       skillIndex = 21;
-      Manager.useSkill(skillData);
+      Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 50){
       skillData = util.findData(skillTable, 'index', 31);
-      skillData.targetPosition = tempPos;
+      skillData.targetPosition = localTempPos;
       skillIndex = 31;
-      Manager.useSkill(skillData);
+      Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 51){
       skillData = util.findData(skillTable, 'index', 41);
-      skillData.targetPosition = tempPos;
+      skillData.targetPosition = localTempPos;
       skillIndex = 41;
-      Manager.useSkill(skillData);
+      Manager.useSkill(gameConfig.userID, skillData);
     }
 
     var userData = Manager.settingUserData();
     userData.skillIndex = skillIndex;
-    userData.skillTargetPosition = util.localToWorldPosition(tempPos, gameConfig.userOffset);
+    userData.skillTargetPosition = tempPos;
 
-    socket.emit('userSkill', userData);
+    socket.emit('userUseSkill', userData);
   }, false);
 };
 

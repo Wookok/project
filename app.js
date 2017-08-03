@@ -109,18 +109,18 @@ io.on('connection', function(socket){
   socket.on('userDataUpdate', function(userData){
     GM.updateUserData(userData);
   });
-  socket.on('userMove', function(userData){
+  socket.on('userMoveStart', function(userData){
     GM.updateUserData(userData);
 
     var userData = GM.settingUserData(user);
     socket.broadcast.emit('userDataUpdate', userData);
     // io.sockets.emit('userDataUpdate', userData);
   });
-  socket.on('userSkill', function(userData){
-    GM.updateUserData(userData);
-    var skillTargetPosition = userData.skillTargetPosition;
+  socket.on('userUseSkill', function(userAndSkillData){
+    GM.updateUserData(userAndSkillData);
     var userData = GM.settingUserData(user);
-    userData.skillTargetPosition = skillTargetPosition;
+    userData.skillIndex = userAndSkillData.skillIndex;
+    userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
     socket.broadcast.emit('userDataUpdateAndUseSkill', userData);
   })
   // socket.on('reqMove', function(targetPosition, localOffset){

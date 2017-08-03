@@ -229,7 +229,7 @@ CManager.prototype = {
 		var thisUser = this.users[userID];
 		var thisEffects = this.effects;
 
-		switch (parseInt(skillData.type)) {
+		switch (skillData.type) {
 			case this.gameConfig.SKILL_TYPE_BASIC:
 	      // skillInstance = this.users[userID].makeSkillInstance(skillData);
 	      skillInstance.onFire = function(){
