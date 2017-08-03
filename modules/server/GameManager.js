@@ -488,12 +488,39 @@ GameManager.prototype.stopUser = function(user){
   user.stop();
 };
 
+GameManager.prototype.updateUserData = function(userData){
+  if(userData.objectID in this.users){
+    this.users[userData.objectID].currentState = userData.currentState;
+    this.users[userData.objectID].position = userData.position;
+    this.users[userData.objectID].direction = userData.direction;
+    if(userData.latency){
+      this.users[userData.objectID].latency = userData.latency;
+    }
+    if(userData.targetPosition){
+      this.users[userData.objectID].targetPosition = userData.targetPosition;
+    }
+    if(userData.skillIndex){
+      this.users[userData.objectID].currentSkill = userData.skillIndex;
+    }
+  }
+};
+GameManager.prototype.settingUserData = function(user){
+  return {
+    objectID : user.objectID,
+    currentState : user.currentState,
+    position : user.position,
+    targetPosition : user.targetPosition,
+    maxSpeed : user.maxSpeed,
+    direction : user.direction,
+    rotateSpeed : user.rotateSpeed
+  };
+};
 // data setting for send to client
 GameManager.prototype.updateDataSettings = function(){
   var userData = [];
 
   for(var index in this.users){
-    var tempUser = {
+    userData.push({
       objectID : index,
 
       currentState : this.users[index].currentState,
@@ -509,8 +536,7 @@ GameManager.prototype.updateDataSettings = function(){
       // targetDirection : this.users[index].targetDirection,
 
       size : this.users[index].size
-    };
-    userData.push(tempUser);
+    });
   };
 
   return userData;

@@ -122,7 +122,7 @@ CManager.prototype = {
 	// 	}
 	// },
 	setUser : function(userData){
-		if(!this.checkUserAtUsers(userData)){
+		if(!(userData.objectID in this.users)){
 			var tempUser = new User(userData, this.gameConfig);
 			this.users[userData.objectID] = tempUser;
 			this.users[userData.objectID].onMove = onMoveCalcCompelPos.bind(this);
@@ -205,18 +205,26 @@ CManager.prototype = {
 		}
 	},
 	//will be merge to updateUser function
-	moveUser : function(userData){
-		if(this.checkUserAtUsers(userData)){
-			if(this.user.objectID == userData.objectID){
-				//offset targetPosition change >> targetPosition == position
-				this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
-			}else{
-				this.users[userData.objectID].changeState(userData.currentState);
-			}
-		}else{
-  		console.log('can`t find user data');
-		}
+	moveUser : function(targetPosition){
+		this.user.targetPosition = targetPosition;
+		this.user.setCenter();
+		this.user.setTargetDirection();
+		this.user.setSpeed();
+
+		this.user.changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
 	},
+	// moveUser : function(userData){
+	// 	if(this.checkUserAtUsers(userData)){
+	// 		if(this.user.objectID == userData.objectID){
+	// 			//offset targetPosition change >> targetPosition == position
+	// 			this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
+	// 		}else{
+	// 			this.users[userData.objectID].changeState(userData.currentState);
+	// 		}
+	// 	}else{
+  // 		console.log('can`t find user data');
+	// 	}
+	// },
 	useSkill : function(userID, skillData){
 		var skillInstance = this.users[userID].makeSkillInstance(skillData);
 		var thisUser = this.users[userID];
@@ -347,24 +355,41 @@ CManager.prototype = {
 		}, effectLastTime);
 	},
 	updateUserData : function(userData){
-		if(this.checkUserAtUsers(userData)){
+		if(userData.objectID in this.users){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
-			// this.users[userData.objectID].speed.x = userData.speed.x;
-			// this.users[userData.objectID].speed.y = userData.speed.y;
-
 			this.users[userData.objectID].direction = userData.direction;
 			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
-			// this.users[userData.objectID].targetDirection = userData.targetDirection;
 
 			this.users[userData.objectID].setCenter();
 			this.users[userData.objectID].setTargetDirection();
 			this.users[userData.objectID].setSpeed();
+
+			this.users[userData.objectID].changeState(userData.currentState);
 		}else{
-  		console.log('can`t find user data');
+			console.log('can`t find user data');
 		}
 	},
+	// updateUserData : function(userData){
+	// 	if(this.checkUserAtUsers(userData)){
+	// 		this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
+	// 		this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
+	//
+	// 		// this.users[userData.objectID].speed.x = userData.speed.x;
+	// 		// this.users[userData.objectID].speed.y = userData.speed.y;
+	//
+	// 		this.users[userData.objectID].direction = userData.direction;
+	// 		this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+	// 		// this.users[userData.objectID].targetDirection = userData.targetDirection;
+	//
+	// 		this.users[userData.objectID].setCenter();
+	// 		this.users[userData.objectID].setTargetDirection();
+	// 		this.users[userData.objectID].setSpeed();
+	// 	}else{
+  // 		console.log('can`t find user data');
+	// 	}
+	// },
 	//execute every frame this client user move
 	moveUsersOffset : function(addPos){
 		for(var index in this.users){
@@ -491,6 +516,14 @@ CManager.prototype = {
 		}
 		if(this.user === null){
 			console.log('if print me. Something is wrong');
+		}
+	},
+	settingUserData : function(){
+		return {
+			objectID : this.user.objectID,
+			currentState : this.user.currentState === this.gameConfig.OBJECT_STATE_MOVE_OFFSET ? this.gameConfig.OBJECT_STATE_MOVE : this.user.currentState,
+			position : util.localToWorldPosition(this.user.position, this.gameConfig.userOffset),
+			direction : this.user.direction,
 		}
 	}
 };
@@ -1855,6 +1888,7 @@ var gameState = gameConfig.GAME_STATE_LOAD;
 var gameSetupFunc = load;
 var gameUpdateFunc = null;
 
+var latency = 0;
 var drawInterval = null;
 
 //state changer
@@ -2011,10 +2045,16 @@ function drawGame(){
   drawUsers();
   drawEffect();
   drawProjectile();
+  console.log(latency);
 };
+
 // socket connect and server response configs
 function setupSocket(){
   socket = io();
+
+  socket.on('pong', function(laty){
+    latency = laty;
+  });
 
   socket.on('setSyncUser', function(user){
     gameConfig.userID = user.objectID;
@@ -2038,48 +2078,58 @@ function setupSocket(){
     documentAddEvent();
 
     changeState(gameConfig.GAME_STATE_GAME_ON);
+    setInterval(updateUserDataHandler, 1000/30);
   });
 
   socket.on('userJoined', function(data){
     Manager.setUser(data);
     console.log('user joined ' + data.objectID);
   });
-
-  socket.on('resMove', function(userData){
-    if(userData.objectID === gameConfig.userID){
-      revisionUserPos(userData);
-    }
-    console.log(userData.objectID + ' move start');
+  socket.on('userDataUpdate', function(userData){
+    console.log(userData);
     Manager.updateUserData(userData);
-    Manager.moveUser(userData);
   });
-  socket.on('resSkill', function(userData, resSkillData){
-    if(userData.objectID === gameConfig.userID){
-      revisionUserPos(userData);
-    }
-    var skillData = util.findData(skillTable, 'index', resSkillData.index);
-    // console.log(userData.position);
-    console.log(resSkillData.targetPosition);
-    // console.log((userData.position.x - resSkillData.targetPosition.x) + ' : ' + (userData.position.y - resSkillData.targetPosition.y));
-    skillData.targetPosition = resSkillData.targetPosition;
-    skillData.direction = resSkillData.direction;
-    skillData.totalTime = resSkillData.totalTime;
-    skillData.fireTime = resSkillData.fireTime;
-
+  socket.on('userDataUpdateAndUseSkill', function(userData){
     Manager.updateUserData(userData);
-    // console.log(Manager.users[gameConfig.userID].position);
-    // console.log(skillData.targetPosition);
-    // console.log((Manager.users[gameConfig.userID].position.x - skillData.targetPosition.x) + ' : ' + (Manager.users[gameConfig.userID].position.y - skillData.targetPosition.y))
+    var skillData = util.findData(skillTable, 'index', userData.skillIndex);
+    skillData.targetPosition = userData.skillTargetPosition;
     Manager.useSkill(userData.objectID, skillData);
-
-    //create user castingEffect
-    // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
-
-    // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
-    // setInterval(animator.startAnimation, fps * 2);
-    // user state change
-    // animation start
   });
+  // socket.on('resMove', function(userData){
+  //   if(userData.objectID === gameConfig.userID){
+  //     revisionUserPos(userData);
+  //   }
+  //   console.log(userData.objectID + ' move start');
+  //   Manager.updateUserData(userData);
+  //   Manager.moveUser(userData);
+  // });
+  // socket.on('resSkill', function(userData, resSkillData){
+  //   if(userData.objectID === gameConfig.userID){
+  //     revisionUserPos(userData);
+  //   }
+  //   var skillData = util.findData(skillTable, 'index', resSkillData.index);
+  //   // console.log(userData.position);
+  //   console.log(resSkillData.targetPosition);
+  //   // console.log((userData.position.x - resSkillData.targetPosition.x) + ' : ' + (userData.position.y - resSkillData.targetPosition.y));
+  //   skillData.targetPosition = resSkillData.targetPosition;
+  //   skillData.direction = resSkillData.direction;
+  //   skillData.totalTime = resSkillData.totalTime;
+  //   skillData.fireTime = resSkillData.fireTime;
+  //
+  //   Manager.updateUserData(userData);
+  //   // console.log(Manager.users[gameConfig.userID].position);
+  //   // console.log(skillData.targetPosition);
+  //   // console.log((Manager.users[gameConfig.userID].position.x - skillData.targetPosition.x) + ' : ' + (Manager.users[gameConfig.userID].position.y - skillData.targetPosition.y))
+  //   Manager.useSkill(userData.objectID, skillData);
+  //
+  //   //create user castingEffect
+  //   // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
+  //
+  //   // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
+  //   // setInterval(animator.startAnimation, fps * 2);
+  //   // user state change
+  //   // animation start
+  // });
   socket.on('setProjectile', function(projectileData){
     console.log(projectileData);
     if(projectileData.explode){
@@ -2182,6 +2232,7 @@ function drawUsers(){
     ctx.fillStyle = 'yellow';
     ctx.arc(0, 0, 64 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
+    ctx.closePath();
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
@@ -2240,33 +2291,87 @@ function drawGrid(){
   }
 };
 
+function updateUserDataHandler(){
+  var userData = Manager.settingUserData();
+  userData.latency = latency;
+  socket.emit('userDataUpdate', userData);
+};
 function canvasAddEvent(){
   canvas.addEventListener('click', function(e){
     var targetPosition ={
       x : e.clientX/gameConfig.scaleFactor,
       y : e.clientY/gameConfig.scaleFactor
     }
-    console.log(targetPosition);
+    Manager.moveUser(targetPosition);
+
     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-    console.log(worldTargetPosition);
-    socket.emit('reqMove', worldTargetPosition);
+    var userData = Manager.settingUserData();
+    userData.targetPosition = worldTargetPosition;
+    socket.emit('userMove', userData);
   }, false);
-}
+};
+// function canvasAddEvent(){
+//   canvas.addEventListener('click', function(e){
+//     var targetPosition ={
+//       x : e.clientX/gameConfig.scaleFactor,
+//       y : e.clientY/gameConfig.scaleFactor
+//     }
+//     console.log(targetPosition);
+//     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
+//     console.log(worldTargetPosition);
+//     socket.emit('reqMove', worldTargetPosition);
+//   }, false);
+// };
 function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
-    var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
+    var tempPos = {x : 0, y : 0};
+    var skillIndex = 0;
     if(keyCode === 69 || keyCode === 32){
-      socket.emit('reqSkill', 11);
+      var skillData = util.findData(skillTable, 'index', 11);
+      skillData.targetPosition = tempPos;
+      skillIndex = 11;
+      Manager.useSkill(skillData);
     }else if(keyCode === 49){
-      socket.emit('reqSkill', 21, tempPos);
+      skillData = util.findData(skillTable, 'index', 21);
+      skillData.targetPosition = tempPos;
+      skillIndex = 21;
+      Manager.useSkill(skillData);
     }else if(keyCode === 50){
-      socket.emit('reqSkill', 41, tempPos);
+      skillData = util.findData(skillTable, 'index', 31);
+      skillData.targetPosition = tempPos;
+      skillIndex = 31;
+      Manager.useSkill(skillData);
     }else if(keyCode === 51){
-      socket.emit('reqSkill', 51);
+      skillData = util.findData(skillTable, 'index', 41);
+      skillData.targetPosition = tempPos;
+      skillIndex = 41;
+      Manager.useSkill(skillData);
     }
+
+    var userData = Manager.settingUserData();
+    userData.skillIndex = skillIndex;
+    userData.skillTargetPosition = util.localToWorldPosition(tempPos, gameConfig.userOffset);
+
+    socket.emit('userSkill', userData);
   }, false);
-}
+};
+
+// function documentAddEvent(){
+//   document.addEventListener('keydown', function(e){
+//     var keyCode = e.keyCode;
+//     var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
+//     if(keyCode === 69 || keyCode === 32){
+//       socket.emit('reqSkill', 11);
+//     }else if(keyCode === 49){
+//       socket.emit('reqSkill', 21, tempPos);
+//     }else if(keyCode === 50){
+//       socket.emit('reqSkill', 41, tempPos);
+//     }else if(keyCode === 51){
+//       socket.emit('reqSkill', 51);
+//     }
+//   }, false);
+// };
 update();
 
 function setCanvasScale(gameConfig){
@@ -2285,6 +2390,6 @@ function setCanvasScale(gameConfig){
   }else{
     gameConfig.scaleFactor = gameConfig.scaleY;
   }
-}
+};
 
 },{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/csvjson.js":5,"../../modules/public/data.json":6,"../../modules/public/gameConfig.json":7,"../../modules/public/resource.json":10,"../../modules/public/util.js":11}]},{},[12]);

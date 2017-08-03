@@ -106,35 +106,53 @@ io.on('connection', function(socket){
     socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas, chestDatas);
   });
 
-  socket.on('reqMove', function(targetPosition, localOffset){
-    // var newTargetPosition = util.localToWorldPosition(targetPosition, localOffset);
-    GM.setUserTargetAndMove(user, targetPosition);
-
-    var data = GM.updateDataSetting(user);
-    io.sockets.emit('resMove', data);
+  socket.on('userDataUpdate', function(userData){
+    GM.updateUserData(userData);
   });
+  socket.on('userMove', function(userData){
+    GM.updateUserData(userData);
 
-  socket.on('reqSkill', function(skillIndex, clickPosition){
-    //find skill by index
-    var skillData = util.findData(skillTable, 'index', skillIndex);
-    if(skillData.type !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
-      if(!clickPosition){
-        clickPosition = user.center;
-      }
-      //find and set buffData, debuffData
-      skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3);
-      skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3);
-
-      skillData.debuffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'debuffToSelf', 3);
-      skillData.debuffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'debuffToTarget', 3);
-
-      var skillInstance = GM.useSkill(user, skillData, clickPosition);
-
-      var userData = GM.updateDataSetting(user);
-      var skillInstanceData = GM.updateSkillDataSetting(skillInstance);
-      io.sockets.emit('resSkill', userData, skillInstanceData);
-    }
+    var userData = GM.settingUserData(user);
+    socket.broadcast.emit('userDataUpdate', userData);
+    // io.sockets.emit('userDataUpdate', userData);
   });
+  socket.on('userSkill', function(userData){
+    GM.updateUserData(userData);
+    var skillTargetPosition = userData.skillTargetPosition;
+    var userData = GM.settingUserData(user);
+    userData.skillTargetPosition = skillTargetPosition;
+    socket.broadcast.emit('userDataUpdateAndUseSkill', userData);
+  })
+  // socket.on('reqMove', function(targetPosition, localOffset){
+  //   GM.setUserTargetAndMove(user, targetPosition);
+  //
+  //   var data = GM.updateDataSetting(user);
+  //   io.sockets.emit('resMove', data);
+  // });
+  //
+
+  // socket.on('reqSkill', function(skillIndex, clickPosition){
+  //   //find skill by index
+  //   var skillData = util.findData(skillTable, 'index', skillIndex);
+  //   if(skillData.type !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
+  //     if(!clickPosition){
+  //       clickPosition = user.center;
+  //     }
+  //     //find and set buffData, debuffData
+  //     skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3);
+  //     skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3);
+  //
+  //     skillData.debuffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'debuffToSelf', 3);
+  //     skillData.debuffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'debuffToTarget', 3);
+  //
+  //     var skillInstance = GM.useSkill(user, skillData, clickPosition);
+  //
+  //     var userData = GM.updateDataSetting(user);
+  //     var skillInstanceData = GM.updateSkillDataSetting(skillInstance);
+  //     io.sockets.emit('resSkill', userData, skillInstanceData);
+  //   }
+  // });
+
   // socket.on('reqGetSkill', function(skillIndex){
   //   var skillData = util.findData(skillTable, 'index', skillIndex);
   //   //check skill possession

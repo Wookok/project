@@ -121,7 +121,7 @@ CManager.prototype = {
 	// 	}
 	// },
 	setUser : function(userData){
-		if(!this.checkUserAtUsers(userData)){
+		if(!(userData.objectID in this.users)){
 			var tempUser = new User(userData, this.gameConfig);
 			this.users[userData.objectID] = tempUser;
 			this.users[userData.objectID].onMove = onMoveCalcCompelPos.bind(this);
@@ -204,18 +204,26 @@ CManager.prototype = {
 		}
 	},
 	//will be merge to updateUser function
-	moveUser : function(userData){
-		if(this.checkUserAtUsers(userData)){
-			if(this.user.objectID == userData.objectID){
-				//offset targetPosition change >> targetPosition == position
-				this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
-			}else{
-				this.users[userData.objectID].changeState(userData.currentState);
-			}
-		}else{
-  		console.log('can`t find user data');
-		}
+	moveUser : function(targetPosition){
+		this.user.targetPosition = targetPosition;
+		this.user.setCenter();
+		this.user.setTargetDirection();
+		this.user.setSpeed();
+
+		this.user.changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
 	},
+	// moveUser : function(userData){
+	// 	if(this.checkUserAtUsers(userData)){
+	// 		if(this.user.objectID == userData.objectID){
+	// 			//offset targetPosition change >> targetPosition == position
+	// 			this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
+	// 		}else{
+	// 			this.users[userData.objectID].changeState(userData.currentState);
+	// 		}
+	// 	}else{
+  // 		console.log('can`t find user data');
+	// 	}
+	// },
 	useSkill : function(userID, skillData){
 		var skillInstance = this.users[userID].makeSkillInstance(skillData);
 		var thisUser = this.users[userID];
@@ -346,24 +354,41 @@ CManager.prototype = {
 		}, effectLastTime);
 	},
 	updateUserData : function(userData){
-		if(this.checkUserAtUsers(userData)){
+		if(userData.objectID in this.users){
 			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
 			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
 
-			// this.users[userData.objectID].speed.x = userData.speed.x;
-			// this.users[userData.objectID].speed.y = userData.speed.y;
-
 			this.users[userData.objectID].direction = userData.direction;
 			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
-			// this.users[userData.objectID].targetDirection = userData.targetDirection;
 
 			this.users[userData.objectID].setCenter();
 			this.users[userData.objectID].setTargetDirection();
 			this.users[userData.objectID].setSpeed();
+
+			this.users[userData.objectID].changeState(userData.currentState);
 		}else{
-  		console.log('can`t find user data');
+			console.log('can`t find user data');
 		}
 	},
+	// updateUserData : function(userData){
+	// 	if(this.checkUserAtUsers(userData)){
+	// 		this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
+	// 		this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
+	//
+	// 		// this.users[userData.objectID].speed.x = userData.speed.x;
+	// 		// this.users[userData.objectID].speed.y = userData.speed.y;
+	//
+	// 		this.users[userData.objectID].direction = userData.direction;
+	// 		this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+	// 		// this.users[userData.objectID].targetDirection = userData.targetDirection;
+	//
+	// 		this.users[userData.objectID].setCenter();
+	// 		this.users[userData.objectID].setTargetDirection();
+	// 		this.users[userData.objectID].setSpeed();
+	// 	}else{
+  // 		console.log('can`t find user data');
+	// 	}
+	// },
 	//execute every frame this client user move
 	moveUsersOffset : function(addPos){
 		for(var index in this.users){
@@ -490,6 +515,14 @@ CManager.prototype = {
 		}
 		if(this.user === null){
 			console.log('if print me. Something is wrong');
+		}
+	},
+	settingUserData : function(){
+		return {
+			objectID : this.user.objectID,
+			currentState : this.user.currentState === this.gameConfig.OBJECT_STATE_MOVE_OFFSET ? this.gameConfig.OBJECT_STATE_MOVE : this.user.currentState,
+			position : util.localToWorldPosition(this.user.position, this.gameConfig.userOffset),
+			direction : this.user.direction,
 		}
 	}
 };
