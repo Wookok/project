@@ -122,7 +122,18 @@ io.on('connection', function(socket){
     userData.skillIndex = userAndSkillData.skillIndex;
     userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
     socket.broadcast.emit('userDataUpdateAndUseSkill', userData);
-  })
+  });
+  socket.on('skillFired', function(data){
+    var skillData = util.findData(skillTable, 'index', data.skillIndex);
+    skillData.targetPosition = data.skillTargetPosition;
+
+    skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3);
+    skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3);
+    skillData.debuffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'debuffToSelf', 3);
+    skillData.debuffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'debuffToTarget', 3);
+
+    GM.applySkill(data.userID, skillData);
+  });
   // socket.on('reqMove', function(targetPosition, localOffset){
   //   GM.setUserTargetAndMove(user, targetPosition);
   //

@@ -31,6 +31,9 @@ var CManager = function(gameConfig){
 	this.objExps = [];
 	this.objSkills = [];
 
+	this.onSkillFire = new Function();
+	this.onProjectileSkillFire = new Function();
+
 	this.staticInterval = null;
 	this.affectInterval = null;
 };
@@ -227,14 +230,20 @@ CManager.prototype = {
 	// },
 	useSkill : function(userID, skillData){
 		var skillInstance = this.users[userID].makeSkillInstance(skillData);
-		var thisUser = this.users[userID];
+		var thisUser = this.user;
+		var targetUser = this.users[userID];
 		var thisEffects = this.effects;
+		var thisOnSkillFire = this.onSkillFire;
+		var thisOnProjectileSkillFire = this.onProjectileSkillFire;
 
-		switch (parseInt(skillData.type)) {
+		switch (skillData.type) {
 			case this.gameConfig.SKILL_TYPE_BASIC:
 	      // skillInstance = this.users[userID].makeSkillInstance(skillData);
 	      skillInstance.onFire = function(){
-					thisUser.skillEffectPlay = false;
+					if(thisUser === targetUser){
+						thisOnSkillFire(skillData)
+					}
+					targetUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
 					setTimeout(function(){
 						var index = thisEffects.indexOf(skillInstance);
@@ -249,7 +258,10 @@ CManager.prototype = {
 	      break;
 	    case this.gameConfig.SKILL_TYPE_INSTANT:
 	      skillInstance.onFire = function(){
-					thisUser.skillEffectPlay = false;
+					if(thisUser === targetUser){
+						thisOnSkillFire(skillData)
+					}
+					targetUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
 					setTimeout(function(){
 						var index = thisEffects.indexOf(skillInstance);
@@ -264,7 +276,10 @@ CManager.prototype = {
 	      break;
 	    case this.gameConfig.SKILL_TYPE_PROJECTILE:
 	      skillInstance.onFire = function(){
-					thisUser.skillEffectPlay = false;
+					if(thisUser === targetUser){
+						thisOnProjectileSkillFire(skillData)
+					}
+					targetUser.skillEffectPlay = false;
 	      };
 				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
 				skillInstance.direction = this.users[userID].targetDirection;
@@ -272,7 +287,10 @@ CManager.prototype = {
 	      break;
 	    case this.gameConfig.SKILL_TYPE_SELF:
 	      skillInstance.onFire = function(){
-					thisUser.skillEffectPlay = false;
+					if(thisUser === targetUser){
+						thisOnSkillFire(skillData)
+					}
+					targetUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
 					setTimeout(function(){
 						var index = thisEffects.indexOf(skillInstance);
@@ -286,8 +304,11 @@ CManager.prototype = {
 	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 	      break;
 			case this.gameConfig.SKILL_TYPE_SELF_EXPLOSION:
+				if(thisUser === targetUser){
+					thisOnSkillFire(skillData)
+				}
 				skillInstance.onFire = function(){
-					thisUser.skillEffectPlay = false;
+					targetUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
 					setTimeout(function(){
 						var index = thisEffects.indexOf(skillInstance);
@@ -301,8 +322,11 @@ CManager.prototype = {
 				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 				break;
 			case this.gameConfig.SKILL_TYPE_TELEPORT:
+				if(thisUser === targetUser){
+					thisOnSkillFire(skillData)
+				}
 				skillInstance.onFire = function(){
-					thisUser.skillEffectPlay = false;
+					targetUser.skillEffectPlay = false;
 					thisEffects.push(skillInstance);
 					setTimeout(function(){
 						var index = thisEffects.indexOf(skillInstance);
@@ -316,8 +340,11 @@ CManager.prototype = {
 				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
 				break;
 			case this.gameConfig.SKILL_TYPE_PROJECTILE_TICK:
+				if(thisUser === targetUser){
+					thisOnProjectileSkillFire(skillData)
+				}
 				skillInstance.onFire = function(){
-					thisUser.skillEffectPlay = false;
+					targetUser.skillEffectPlay = false;
 				};
 				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
 				skillInstance.direction = this.users[userID].targetDirection;
@@ -525,6 +552,13 @@ CManager.prototype = {
 			position : util.localToWorldPosition(this.user.position, this.gameConfig.userOffset),
 			direction : this.user.direction,
 		}
+	},
+	settingSkillData : function(userID, skillData){
+		return {
+			userID : userID,
+			skillIndex : skillData.index,
+			skillTargetPosition : util.localToWorldPosition(skillData.targetPosition, this.gameConfig.userOffset)
+		};
 	}
 };
 
@@ -647,7 +681,7 @@ module.exports = CObstacle;
 },{}],3:[function(require,module,exports){
 var util = require('../public/util.js');
 
-function CSkill(skillData, userAniStartTime, offset){
+function CSkill(skillData, userAniStartTime){
 
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
@@ -665,7 +699,7 @@ function CSkill(skillData, userAniStartTime, offset){
   this.lifeTime = skillData.lifeTime;
 
   this.direction = skillData.direction;
-  this.targetPosition = util.worldToLocalPosition(skillData.targetPosition, offset);
+  this.targetPosition = skillData.targetPosition;
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -707,12 +741,11 @@ CSkill.prototype = {
     return projectile;
   },
   makeProjectileEffect : function(projectileData, offset){
-    var returnVal = {
+    return {
       targetPosition : util.worldToLocalPosition(projectileData.position, offset),
       explosionRadius : projectileData.explosionRadius,
       direction : 0
-    }
-    return returnVal;
+    };
   }
 };
 
@@ -911,7 +944,7 @@ User.prototype = {
     };
   },
   makeSkillInstance : function(skillData){
-    var skillInstance = new Skill(skillData, skillData.fireTime - 100, this.gameConfig.userOffset);
+    var skillInstance = new Skill(skillData, skillData.fireTime - 100);
     skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
     skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
     return skillInstance;
@@ -1981,7 +2014,7 @@ function setBaseSetting(){
   gameConfig = require('../../modules/public/gameConfig.json');
 
   Manager = new CManager(gameConfig);
-
+  Manager.onSkillFire = onSkillFireHandler
   // resource 관련
   resources = require('../../modules/public/resource.json');
 
@@ -1992,7 +2025,10 @@ function setBaseSetting(){
   userHand.src = resources.USER_HAND_SRC;
   grid.src = resources.GRID_SRC;
 };
-
+function onSkillFireHandler(skillData){
+  var skillData = Manager.settingSkillData(gameConfig.userID, skillData);
+  socket.emit('skillFired', skillData);
+};
 function setCanvasSize(){
 
   canvas.width = window.innerWidth;
@@ -2326,26 +2362,29 @@ function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
     var tempPos = {x : 0, y : 0};
-    var localTempPos = util.worldToLocalPosition(tempPos, gameConfig.userOffset);
+
+    //calculate targetPosition
+    var localPos = util.worldToLocalPosition(tempPos, gameConfig.userOffset);
+
     var skillIndex = 0;
     if(keyCode === 69 || keyCode === 32){
       var skillData = util.findData(skillTable, 'index', 11);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 11;
       Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 49){
       skillData = util.findData(skillTable, 'index', 21);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 21;
       Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 50){
       skillData = util.findData(skillTable, 'index', 31);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 31;
       Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 51){
       skillData = util.findData(skillTable, 'index', 41);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 41;
       Manager.useSkill(gameConfig.userID, skillData);
     }

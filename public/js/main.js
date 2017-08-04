@@ -126,7 +126,7 @@ function setBaseSetting(){
   gameConfig = require('../../modules/public/gameConfig.json');
 
   Manager = new CManager(gameConfig);
-
+  Manager.onSkillFire = onSkillFireHandler
   // resource 관련
   resources = require('../../modules/public/resource.json');
 
@@ -137,7 +137,10 @@ function setBaseSetting(){
   userHand.src = resources.USER_HAND_SRC;
   grid.src = resources.GRID_SRC;
 };
-
+function onSkillFireHandler(skillData){
+  var skillData = Manager.settingSkillData(gameConfig.userID, skillData);
+  socket.emit('skillFired', skillData);
+};
 function setCanvasSize(){
 
   canvas.width = window.innerWidth;
@@ -471,26 +474,29 @@ function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
     var tempPos = {x : 0, y : 0};
-    var localTempPos = util.worldToLocalPosition(tempPos, gameConfig.userOffset);
+
+    //calculate targetPosition
+    var localPos = util.worldToLocalPosition(tempPos, gameConfig.userOffset);
+
     var skillIndex = 0;
     if(keyCode === 69 || keyCode === 32){
       var skillData = util.findData(skillTable, 'index', 11);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 11;
       Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 49){
       skillData = util.findData(skillTable, 'index', 21);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 21;
       Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 50){
       skillData = util.findData(skillTable, 'index', 31);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 31;
       Manager.useSkill(gameConfig.userID, skillData);
     }else if(keyCode === 51){
       skillData = util.findData(skillTable, 'index', 41);
-      skillData.targetPosition = localTempPos;
+      skillData.targetPosition = localPos;
       skillIndex = 41;
       Manager.useSkill(gameConfig.userID, skillData);
     }

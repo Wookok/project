@@ -1,5 +1,7 @@
 var util = require('../public/util.js');
-var Skill = require('./CSkill.js');
+var Skills = require('./CSkill.js');
+var Skill = Skills.Skill;
+var ProjectileSkill = Skills.ProjectileSkill;
 
 var User = function(userData, gameConfig){
   this.gameConfig = gameConfig;
@@ -8,7 +10,7 @@ var User = function(userData, gameConfig){
 
   this.currentState = null;
   this.currentSkill = undefined;
-
+  this.projectiles = [];
   //use for execute skill only once.
   this.isExecutedSkill = false;
   //Effect around user skill effect, when cast skill. skill onFire set false.
@@ -132,7 +134,7 @@ User.prototype = {
     };
   },
   makeSkillInstance : function(skillData){
-    var skillInstance = new Skill(skillData, skillData.fireTime - 100, this.gameConfig.userOffset);
+    var skillInstance = new Skill(skillData, skillData.fireTime - 100);
     skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
     skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
     return skillInstance;
@@ -151,6 +153,10 @@ User.prototype = {
     this.possessSkills = possessSkills;
     console.log('updateSkillPossessions');
     console.log(this.possessSkills);
+  },
+  makeProjectile : function(projectileID, skillData){
+    var projectile = new ProjectileSkill(projectileID, skillData);
+    this.projectiles.push(projectile);
   }
 };
 function onTimeOverHandler(skillInstance){

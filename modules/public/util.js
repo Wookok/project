@@ -356,3 +356,23 @@ exports.findAndSetBuffs = function(skillData, buffTable, columnName, length){
   }
   return returnVal;
 }
+exports.generateRandomUniqueID = function(uniqueCheckArray, prefix){
+  var IDisUnique = false;
+  while(!IDisUnique){
+    var randomID = generateRandomID(prefix);
+    IDisUnique = true;
+    for(var index in uniqueCheckArray){
+      if(randomID == uniqueCheckArray[index].objectID){
+        IDisUnique = false;
+      }
+    }
+  }
+  return randomID;
+};
+function generateRandomID(prefix){
+  var output = prefix;
+  for(var i=0; i<6; i++){
+    output += Math.floor(Math.random()*16).toString(16);
+  }
+  return output;
+};

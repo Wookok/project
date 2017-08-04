@@ -1,6 +1,6 @@
 var util = require('../public/util.js');
 
-function CSkill(skillData, userAniStartTime, offset){
+function CSkill(skillData, userAniStartTime){
 
   this.startTime = Date.now();
   this.timeSpan = skillData.timeSpan;
@@ -18,7 +18,7 @@ function CSkill(skillData, userAniStartTime, offset){
   this.lifeTime = skillData.lifeTime;
 
   this.direction = skillData.direction;
-  this.targetPosition = util.worldToLocalPosition(skillData.targetPosition, offset);
+  this.targetPosition = skillData.targetPosition;
 
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
@@ -60,12 +60,11 @@ CSkill.prototype = {
     return projectile;
   },
   makeProjectileEffect : function(projectileData, offset){
-    var returnVal = {
+    return {
       targetPosition : util.worldToLocalPosition(projectileData.position, offset),
       explosionRadius : projectileData.explosionRadius,
       direction : 0
-    }
-    return returnVal;
+    };
   }
 };
 
@@ -127,4 +126,5 @@ ProjectileSkill.prototype = {
 };
 
 
-module.exports = CSkill;
+module.exports.Skill = CSkill;
+module.exports.ProjectileSkill = ProjectileSkill;

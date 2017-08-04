@@ -47,6 +47,7 @@ function GameManager(){
   this.obstacles = [];
   this.chestLocations = [];
   this.chests = [];
+  this.skills = [];
   this.projectiles = [];
 
   this.objExps = [];
@@ -376,7 +377,7 @@ GameManager.prototype.useSkill = function(user, skillData, clickPosition){
         user.addBuffs(skillInstance.buffsToSelf);
         user.addDebuffs(skillInstance.debuffsToSelf);
         //create projectile object and push to projectiles
-        var randomID = SUtil.generateRandomUniqueID(this.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+        var randomID = SUtil.generateRandomUniqueID(projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
         var projectile = skillInstance.makeProjectile(user, randomID, true);
         projectile.onExplosion = onProjectileFireOrExplode;
         projectiles.push(projectile);
@@ -488,6 +489,25 @@ GameManager.prototype.stopUser = function(user){
   user.stop();
 };
 
+GameManager.prototype.applySkill = function(userID, skillData){
+  if(userID in this.users){
+    this.users[userID].addBuffs(skillData.buffsToSelf);
+    this.users[userID].addDebuffs(skillData.debuffsToSelf);
+
+    this.skills.push({
+      id : userID,
+      x : skillData.targetPosition.x,
+      y : skillData.targetPosition.y,
+      width : skillData.explosionRadius * 2,
+      height : skillData.explosionRadius * 2,
+      damage : skillData.damage,
+      buffsTotarget : skillData.buffsToTarget,
+      debuffsToTarget : skillData.debuffsToTarget
+    });
+  }else{
+    console.log('cant find user data');
+  }
+}
 GameManager.prototype.updateUserData = function(userData){
   if(userData.objectID in this.users){
     this.users[userData.objectID].currentState = userData.currentState;
@@ -502,6 +522,8 @@ GameManager.prototype.updateUserData = function(userData){
     if(userData.skillIndex){
       this.users[userData.objectID].currentSkill = userData.skillIndex;
     }
+  }else{
+    console.log('cant find user data');
   }
 };
 GameManager.prototype.settingUserData = function(user){
@@ -754,6 +776,12 @@ function updateIntervalHandler(){
   chestEles = [];
   colliderEles = [];
   collectionEles = [];
+
+  var skillsIndex = this.skills.length;
+  while(skillsIndex--){
+    colliderEles.push(this.skills[skillsIndex]);
+    this.skills.splice(skillsIndex, 1);
+  }
 
   //updateUserArray
   for(var index in this.users){
