@@ -49,10 +49,10 @@ GM.onNeedUserInformToAll = function(userID){
   var userData = GM.updateDataSetting(GM.users[userID]);
   io.sockets.emit('updateUser', userData);
 };
-GM.onNeedProjectileSkillInformToAll = function(projectile){
-  var projectileData = GM.updateProjectileDataSetting(projectile);
-  io.sockets.emit('setProjectile', projectileData);
-};
+// GM.onNeedProjectileSkillInformToAll = function(projectile){
+//   var projectileData = GM.updateProjectileDataSetting(projectile);
+//   io.sockets.emit('setProjectile', projectileData);
+// };
 GM.onNeedInformCreateObjs = function(objs){
   var objDatas = [];
   for(var i=0; i<Object.keys(objs).length; i++){
@@ -120,11 +120,16 @@ io.on('connection', function(socket){
     GM.updateUserData(userAndSkillData);
     var userData = GM.settingUserData(user);
     userData.skillIndex = userAndSkillData.skillIndex;
+    userData.skillDirection = userAndSkillData.skillDirection;
     userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
+    if(userAndSkillData.projectileID){
+      userData.skillProjectileID = userAndSkillData.projectileID;
+    }
     socket.broadcast.emit('userDataUpdateAndUseSkill', userData);
   });
   socket.on('skillFired', function(data){
     var skillData = util.findData(skillTable, 'index', data.skillIndex);
+
     skillData.targetPosition = data.skillTargetPosition;
 
     skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3);
@@ -132,54 +137,24 @@ io.on('connection', function(socket){
     skillData.debuffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'debuffToSelf', 3);
     skillData.debuffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'debuffToTarget', 3);
 
-    GM.applySkill(data.userID, skillData);
+    GM.applySkill(user.objectID, skillData);
   });
-  // socket.on('reqMove', function(targetPosition, localOffset){
-  //   GM.setUserTargetAndMove(user, targetPosition);
-  //
-  //   var data = GM.updateDataSetting(user);
-  //   io.sockets.emit('resMove', data);
-  // });
-  //
+  socket.on('projectileFired', function(data){
+    var projectileData = util.findData(skillTable, 'index', data.skillIndex);
 
-  // socket.on('reqSkill', function(skillIndex, clickPosition){
-  //   //find skill by index
-  //   var skillData = util.findData(skillTable, 'index', skillIndex);
-  //   if(skillData.type !== gameConfig.SKILL_TYPE_BASIC || !GM.checkStateIsAttack(user)){
-  //     if(!clickPosition){
-  //       clickPosition = user.center;
-  //     }
-  //     //find and set buffData, debuffData
-  //     skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3);
-  //     skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3);
-  //
-  //     skillData.debuffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'debuffToSelf', 3);
-  //     skillData.debuffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'debuffToTarget', 3);
-  //
-  //     var skillInstance = GM.useSkill(user, skillData, clickPosition);
-  //
-  //     var userData = GM.updateDataSetting(user);
-  //     var skillInstanceData = GM.updateSkillDataSetting(skillInstance);
-  //     io.sockets.emit('resSkill', userData, skillInstanceData);
-  //   }
-  // });
+    projectileData.objectID = data.objectID;
+    projectileData.position = data.position;
+    projectileData.speed = data.speed;
+    projectileData.startTime = data.startTime;
+    projectileData.lifeTime = data.lifeTime;
 
-  // socket.on('reqGetSkill', function(skillIndex){
-  //   var skillData = util.findData(skillTable, 'index', skillIndex);
-  //   //check skill possession
-  //   var beforeSkillData = GM.checkSkillPossession(user, skillData);
-  //   //check skill level up is possible
-  //   if(beforeSkillData){
-  //     if(skillData.nextSkillIndex !== -1){
-  //       var newSkillIndex = skillData.nextSkillIndex;
-  //       var newSkillData = util.findData(skillTable, 'index', newSkillIndex);
-  //       var levelUpData = GM.levelUpSkill(user, beforeSkillData, newSkillData);
-  //       socket.emit('resLevelUpSkill')
-  //   }else{
-  //     var newSkillIndex = GM.getSkill(user, newSkillData);
-  //     socket.emit('resGetSkill');
-  //   }
-  // });
+    projectileData.buffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'buffToSelf', 3);
+    projectileData.buffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'buffToTarget', 3);
+    projectileData.debuffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'debuffToSelf', 3);
+    projectileData.debuffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'debuffToTarget', 3);
+
+    GM.applyProjectile(user.objectID, data);
+  });
   socket.on('disconnect', function(){
     if(user){
       io.sockets.emit('userLeave', user.objectID);

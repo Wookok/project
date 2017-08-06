@@ -3,13 +3,13 @@ var User = require('./CUser.js');
 
 var util = require('../public/util.js');
 
+var gameConfig = require('../public/gameConfig.json');
 var resources = require('../public/resource.json');
 var map = require('../public/map.json');
 
 var QuadTree = require('../public/quadtree.min.js');
 
 var Obstacle = require('./CObstacle.js');
-var Skill = require('./CSkill.js');
 
 var colliderEles = [];
 
@@ -17,9 +17,7 @@ var staticTree;
 var staticEles = [];
 var affectedEles = [];
 
-var CManager = function(gameConfig){
-	this.gameConfig = gameConfig;
-
+var CManager = function(){
 	//user correspond client
 	this.user = null;
 	//all users
@@ -41,8 +39,8 @@ var CManager = function(gameConfig){
 CManager.prototype = {
 	start : function(){
 		staticTree = new QuadTree({
-		  width : this.gameConfig.CANVAS_MAX_SIZE.width,
-		  height : this.gameConfig.CANVAS_MAX_SIZE.height,
+		  width : gameConfig.CANVAS_MAX_SIZE.width,
+		  height : gameConfig.CANVAS_MAX_SIZE.height,
 		  maxElements : 5
 		});
 
@@ -51,10 +49,10 @@ CManager.prototype = {
 	},
 	mapSetting : function(){
 		this.createObstacles();
-		this.setObstaclesLocalPos();
+		// this.setObstaclesLocalPos();
 	},
 	updateGame : function(){
-		var INTERVAL_TIMER = 1000/this.gameConfig.INTERVAL;
+		var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 		if(this.staticInterval === null){
 	    this.staticInterval = setInterval(staticIntervalHandler.bind(this), INTERVAL_TIMER);
@@ -67,34 +65,14 @@ CManager.prototype = {
 		for(var i=0; i<map.Trees.length; i++){
 			var tempObstacle = new Obstacle(map.Trees[i].posX, map.Trees[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[i].id, resources.OBJ_TREE_SRC);
 			this.obstacles.push(tempObstacle);
+			staticEles.push(tempObstacle.staticEle);
 		}
 		for(var i=0; i<map.Chests.length; i++){
 			var chestBase = new Obstacle(map.Chests[i].posX, map.Chests[i].posY, resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id, resources.OBJ_CHEST_SRC);
 			this.obstacles.push(chestBase);
+			staticEles.push(chestBase.staticEle);
 		}
-	},
-	updateObstacleEles : function(){
-		staticEles = [];
-
-		for(var i=0; i<this.obstacles.length; i++){
-			var localPos = util.worldToLocalPosition(this.obstacles[i].position, this.gameConfig.userOffset);
-
-			this.obstacles[i].staticEle.x = localPos.x
-			this.obstacles[i].staticEle.y = localPos.y
-
-			//will add filtering method
-
-			staticEles.push(this.obstacles[i].staticEle);
-		}
-
-	  staticTree.pushAll(staticEles);
-	},
-	setObstaclesLocalPos : function(){
-		for(var i=0; i<this.obstacles.length; i++){
-			var localPos = util.worldToLocalPosition(this.obstacles[i].position, this.gameConfig.userOffset);
-			this.obstacles[i].localPosition.x = localPos.x
-			this.obstacles[i].localPosition.y = localPos.y
-		}
+		staticTree.pushAll(staticEles);
 	},
 	setChests : function(chestDatas){
 		for(var i=0; i<chestDatas.length; i++){
@@ -114,19 +92,13 @@ CManager.prototype = {
 				objectID : chestData.objectID,
 				grade : chestData.grade,
 				position : chestPosition,
-				localPosition : util.worldToLocalPosition(chestPosition, this.gameConfig.userOffset),
 				size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
 			});
 		}
 	},
-	// updateProjectile : function(){
-	// 	for(var index in this.projectiles){
-	// 		this.projectiles[index].move();
-	// 	}
-	// },
 	setUser : function(userData){
 		if(!(userData.objectID in this.users)){
-			var tempUser = new User(userData, this.gameConfig);
+			var tempUser = new User(userData);
 			this.users[userData.objectID] = tempUser;
 			this.users[userData.objectID].onMove = onMoveCalcCompelPos.bind(this);
 			this.users[userData.objectID].changeState(userData.currentState);
@@ -136,7 +108,7 @@ CManager.prototype = {
 	},
 	setUsers : function(userDatas){
 		for(var i=0; i<Object.keys(userDatas).length; i++){
-			var tempUser = new User(userDatas[i], this.gameConfig);
+			var tempUser = new User(userDatas[i]);
 			this.users[userDatas[i].objectID] = tempUser;
 			this.users[userDatas[i].objectID].onMove = onMoveCalcCompelPos.bind(this);
 			this.users[userDatas[i].objectID].changeState(userDatas[i].currentState);
@@ -149,42 +121,33 @@ CManager.prototype = {
 			}
 		}
 	},
-	setProjectiles : function(projectileDatas){
-		for(var i=0; i<Object.keys(projectileDatas).length; i++){
-			this.makeProjectile(projectileDatas[i]);
-		}
-	},
 	setObjs : function(objDatas){
 		for(var i=0; i<Object.keys(objDatas).length; i++){
-			if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_EXP){
-				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
-				this.objExps.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
-			}else if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_SKILL){
-				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
-				this.objSkills.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
+			if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_EXP){
+				this.objExps.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
+			}else if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
+				this.objSkills.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
 			}
 		}
 	},
 	createOBJs : function(objDatas){
 		for(var i=0; i<Object.keys(objDatas).length; i++){
-			if(objDatas[i].objectID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_EXP){
-				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
-				this.objExps.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
-			}else if(objDatas[i].objectID.substr(0, 3) === this.gameConfig.PREFIX_OBJECT_SKILL){
-				var localPosition = util.worldToLocalPosition(objDatas[i].position,this.gameConfig.userOffset);
-				this.objSkills.push({objectID : objDatas[i].objectID, position : localPosition, radius : objDatas[i].radius });
+			if(objDatas[i].objectID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
+				this.objExps.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
+			}else if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
+				this.objSkills.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
 			}
 		}
 	},
 	deleteOBJ : function(objID){
-		if(objID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_EXP){
+		if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
 			for(var i=0; i<this.objExps.length; i++){
 				if(this.objExps[i].objectID === objID){
 					this.objExps.splice(i, 1);
 					return;
 				}
 			}
-		}else if(objID.substr(0,3) === this.gameConfig.PREFIX_OBJECT_SKILL){
+		}else if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
 			for(var i=0; i<this.objSkills.length; i++){
 				if(this.objSkills[i].objectID === objID){
 					this.objSkills.splice(i, 1);
@@ -214,141 +177,99 @@ CManager.prototype = {
 		this.user.setTargetDirection();
 		this.user.setSpeed();
 
-		this.user.changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
+		this.user.changeState(gameConfig.OBJECT_STATE_MOVE);
 	},
-	// moveUser : function(userData){
-	// 	if(this.checkUserAtUsers(userData)){
-	// 		if(this.user.objectID == userData.objectID){
-	// 			//offset targetPosition change >> targetPosition == position
-	// 			this.users[userData.objectID].changeState(this.gameConfig.OBJECT_STATE_MOVE_OFFSET);
-	// 		}else{
-	// 			this.users[userData.objectID].changeState(userData.currentState);
-	// 		}
-	// 	}else{
-  // 		console.log('can`t find user data');
-	// 	}
-	// },
 	useSkill : function(userID, skillData){
 		var skillInstance = this.users[userID].makeSkillInstance(skillData);
 		var thisUser = this.user;
-		var targetUser = this.users[userID];
+		var mainUser = this.users[userID];
+		var thisProjectiles = this.projectiles;
 		var thisEffects = this.effects;
 		var thisOnSkillFire = this.onSkillFire;
 		var thisOnProjectileSkillFire = this.onProjectileSkillFire;
 
+		this.users[userID].targetDirection = skillData.direction;
 		switch (skillData.type) {
-			case this.gameConfig.SKILL_TYPE_BASIC:
+			case gameConfig.SKILL_TYPE_BASIC:
 	      // skillInstance = this.users[userID].makeSkillInstance(skillData);
 	      skillInstance.onFire = function(){
-					if(thisUser === targetUser){
+					//inform to server
+					if(thisUser === mainUser){
 						thisOnSkillFire(skillData)
 					}
-					targetUser.skillEffectPlay = false;
-					thisEffects.push(skillInstance);
-					setTimeout(function(){
-						var index = thisEffects.indexOf(skillInstance);
-						if(index !== -1){
-							thisEffects.splice(index, 1);
-						}
-					}, skillInstance.effectLastTime);
+					mainUser.skillCastEffectPlay = false;
+					skillInstance.startEffectTimer();
+					thisEffects.push(skillInstance.effect);
 	      };
-				skillInstance.direction = this.users[userID].direction;
 	      //on attack can cast skill but on attack cant attack;
-	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_ATTACK);
+	      this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
 	      break;
-	    case this.gameConfig.SKILL_TYPE_INSTANT:
+	    case gameConfig.SKILL_TYPE_INSTANT:
 	      skillInstance.onFire = function(){
-					if(thisUser === targetUser){
+					if(thisUser === mainUser){
 						thisOnSkillFire(skillData)
 					}
-					targetUser.skillEffectPlay = false;
-					thisEffects.push(skillInstance);
-					setTimeout(function(){
-						var index = thisEffects.indexOf(skillInstance);
-						if(index !== -1){
-							thisEffects.splice(index, 1);
-						}
-					}, skillInstance.effectLastTime);
+					mainUser.skillCastEffectPlay = false;
+					skillInstance.startEffectTimer();
+					thisEffects.push(skillInstance.effect);
 	      };
-	      this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
-				skillInstance.direction = this.users[userID].targetDirection;
-				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
 	      break;
-	    case this.gameConfig.SKILL_TYPE_PROJECTILE:
+	    case gameConfig.SKILL_TYPE_SELF:
 	      skillInstance.onFire = function(){
-					if(thisUser === targetUser){
-						thisOnProjectileSkillFire(skillData)
-					}
-					targetUser.skillEffectPlay = false;
-	      };
-				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
-				skillInstance.direction = this.users[userID].targetDirection;
-				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
-	      break;
-	    case this.gameConfig.SKILL_TYPE_SELF:
-	      skillInstance.onFire = function(){
-					if(thisUser === targetUser){
+					if(thisUser === mainUser){
 						thisOnSkillFire(skillData)
 					}
-					targetUser.skillEffectPlay = false;
-					thisEffects.push(skillInstance);
-					setTimeout(function(){
-						var index = thisEffects.indexOf(skillInstance);
-						if(index !== -1){
-							thisEffects.splice(index, 1);
-						}
-					}, skillInstance.effectLastTime);
+					mainUser.skillCastEffectPlay = false;
+					skillInstance.startEffectTimer();
+					thisEffects.push(skillInstance.effect);
 	      };
-				this.users[userID].targetDirection = this.users[userID].direction;
-				skillInstance.direction = this.users[userID].direction;
-	      this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+	      this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
 	      break;
-			case this.gameConfig.SKILL_TYPE_SELF_EXPLOSION:
-				if(thisUser === targetUser){
-					thisOnSkillFire(skillData)
-				}
+			case gameConfig.SKILL_TYPE_SELF_EXPLOSION:
 				skillInstance.onFire = function(){
-					targetUser.skillEffectPlay = false;
-					thisEffects.push(skillInstance);
-					setTimeout(function(){
-						var index = thisEffects.indexOf(skillInstance);
-						if(index !== -1){
-							thisEffects.splice(index, 1);
-						}
-					}, skillInstance.effectLastTime);
+					if(thisUser === mainUser){
+						thisOnSkillFire(skillData)
+					}
+					mainUser.skillCastEffectPlay = false;
+					skillInstance.startEffectTimer();
+					thisEffects.push(skillInstance.effect);
 				};
-				this.users[userID].targetDirection = this.users[userID].direction;
-				skillInstance.direction = this.users[userID].direction;
-				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
 				break;
-			case this.gameConfig.SKILL_TYPE_TELEPORT:
-				if(thisUser === targetUser){
-					thisOnSkillFire(skillData)
-				}
+			case gameConfig.SKILL_TYPE_TELEPORT:
 				skillInstance.onFire = function(){
-					targetUser.skillEffectPlay = false;
-					thisEffects.push(skillInstance);
-					setTimeout(function(){
-						var index = thisEffects.indexOf(skillInstance);
-						if(index !== -1){
-							thisEffects.splice(index, 1);
-						}
-					}, skillInstance.effectLastTime);
+					if(thisUser === mainUser){
+						thisOnSkillFire(skillData)
+					}
+					mainUser.skillCastEffectPlay = false;
+					skillInstance.startEffectTimer();
+					thisEffects.push(skillInstance.effect);
 				};
-				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
-				skillInstance.direction = this.users[userID].targetDirection;
-				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
 				break;
-			case this.gameConfig.SKILL_TYPE_PROJECTILE_TICK:
-				if(thisUser === targetUser){
-					thisOnProjectileSkillFire(skillData)
-				}
+			case gameConfig.SKILL_TYPE_PROJECTILE:
 				skillInstance.onFire = function(){
-					targetUser.skillEffectPlay = false;
+					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+					if(thisUser === mainUser){
+						thisOnProjectileSkillFire(projectile);
+					}
+					thisProjectiles.push(projectile);
+					mainUser.skillCastEffectPlay = false;
 				};
-				this.users[userID].targetDirection = util.calcTargetDirection(skillData.targetPosition, this.users[userID].center);
-				skillInstance.direction = this.users[userID].targetDirection;
-				this.users[userID].changeState(this.gameConfig.OBJECT_STATE_CAST);
+				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+				break;
+			case gameConfig.SKILL_TYPE_PROJECTILE_TICK:
+				skillInstance.onFire = function(){
+					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+					if(thisUser === mainUser){
+						thisOnProjectileSkillFire(projectile);
+					}
+					thisProjectiles.push(projectile);
+					mainUser.skillCastEffectPlay = false;
+
+				};
+				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
 				break;
 	    default:
 				console.log('skill type error!!!');
@@ -359,32 +280,10 @@ CManager.prototype = {
 	updateSkillPossessions : function(userID, possessSkills){
 		this.users[userID].updateSkillPossessions(possessSkills);
 	},
-	makeProjectile : function(projetileData){
-		var projectile = Skill.prototype.makeProjectile(projetileData, this.gameConfig.userOffset);
-		this.projectiles.push(projectile);
-	},
-	explodeProjectile : function(projectileData, effectLastTime){
-		var thisEffects = this.effects;
-		var projectileEffect = Skill.prototype.makeProjectileEffect(projectileData, this.gameConfig.userOffset);
-		//delete if this projectile is exist in projectile array
-		for(var i=0; i<Object.keys(this.projectiles).length; i++){
-			if(this.projectiles[i].objectID === projectileData.objectID){
-				this.projectiles.splice(i, 1);
-			}
-		}
-
-		thisEffects.push(projectileEffect)
-		setTimeout(function(){
-			var index = thisEffects.indexOf(projectileEffect);
-			if(index !== -1){
-				thisEffects.splice(index, 1);
-			}
-		}, effectLastTime);
-	},
 	updateUserData : function(userData){
 		if(userData.objectID in this.users){
-			this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
-			this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
+			this.users[userData.objectID].position = userData.position;
+			this.users[userData.objectID].targetPosition = userData.targetPosition;
 
 			this.users[userData.objectID].direction = userData.direction;
 			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
@@ -398,166 +297,41 @@ CManager.prototype = {
 			console.log('can`t find user data');
 		}
 	},
-	// updateUserData : function(userData){
-	// 	if(this.checkUserAtUsers(userData)){
-	// 		this.users[userData.objectID].position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
-	// 		this.users[userData.objectID].targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
-	//
-	// 		// this.users[userData.objectID].speed.x = userData.speed.x;
-	// 		// this.users[userData.objectID].speed.y = userData.speed.y;
-	//
-	// 		this.users[userData.objectID].direction = userData.direction;
-	// 		this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
-	// 		// this.users[userData.objectID].targetDirection = userData.targetDirection;
-	//
-	// 		this.users[userData.objectID].setCenter();
-	// 		this.users[userData.objectID].setTargetDirection();
-	// 		this.users[userData.objectID].setSpeed();
-	// 	}else{
-  // 		console.log('can`t find user data');
-	// 	}
-	// },
-	//execute every frame this client user move
-	moveUsersOffset : function(addPos){
-		for(var index in this.users){
-			if(this.checkUserAtUsers(this.users[index])){
-				if(this.users[index] !== this.user){
-					this.users[index].addPosAndTargetPos(-this.user.speed.x, -this.user.speed.y);
-					if(addPos){
-						this.users[index].addPosAndTargetPos(-addPos.x, -addPos.y);
-					}
-				}
-			}else{
-				console.log('can`t find user data');
-			}
-		}
-		for(var i=0; i<Object.keys(this.obstacles).length; i++){
-			this.obstacles[i].localPosition.x -= this.user.speed.x;
-			this.obstacles[i].localPosition.y -= this.user.speed.y;
-		}
-		for(var i=0; i<Object.keys(this.projectiles).length; i++){
-			this.projectiles[i].position.x -= this.user.speed.x;
-			this.projectiles[i].position.y -= this.user.speed.y;
-		}
-		for(var i=0; i<this.objExps.length; i++){
-			this.objExps[i].position.x -= this.user.speed.x;
-			this.objExps[i].position.y -= this.user.speed.y;
-		}
-		for(var i=0; i<this.objSkills.length; i++){
-			this.objSkills[i].position.x -= this.user.speed.x;
-			this.objSkills[i].position.y -= this.user.speed.y;
-		}
-		for(var i=0; i<this.chests.length; i++){
-			this.chests[i].localPosition.x -= this.user.speed.x;
-			this.chests[i].localPosition.y -= this.user.speed.y;
-		}
-		if(addPos){
-			for(var i=0; i<Object.keys(this.obstacles).length; i++){
-				this.obstacles[i].localPosition.x -= addPos.x;
-				this.obstacles[i].localPosition.y -= addPos.y;
-				// this.obstacles[index].staticEle.x -= addPos.x;
-				// this.obstacles[index].staticEle.y -= addPos.y;
-			}
-			for(var i=0; i<this.chests.length; i++){
-				this.chests[i].localPosition.x -= addPos.x;
-				this.chests[i].localPosition.y -= addPos.y;
-			}
-			for(var i=0; i<Object.keys(this.projectiles).length; i++){
-				this.projectiles[i].position.x -= addPos.x;
-				this.projectiles[i].position.y -= addPos.y;
-			}
-			for(var i=0; i<this.objExps.length; i++){
-				this.objExps[i].position.x -= addPos.x;
-				this.objExps[i].position.y -= addPos.y;
-			}
-			for(var i=0; i<this.objSkills.length; i++){
-				this.objSkills[i].position.x -= addPos.x;
-				this.objSkills[i].position.y -= addPos.y;
-			}
-		}
-	},
-	compelUsersOffset : function(compelToX, compelToY){
-		for(var index in this.users){
-			if(this.checkUserAtUsers(this.users[index])){
-				if(this.users[index] !== this.user){
-					this.users[index].addPosAndTargetPos(-compelToX, -compelToY);
-				}
-			}
-		}
-	},
-	revisionUserPos : function(revisionX, revisionY){
-		for(var index in this.users){
-			if(this.checkUserAtUsers(this.users[index])){
-				if(this.users[index] !== this.user){
-					this.users[index].addPosAndTargetPos(revisionX, revisionY);
-				}
-			}
-		}
-		for(var index in this.obstacles){
-			this.obstacles[index].localPosition.x += revisionX;
-			this.obstacles[index].localPosition.y += revisionY;
-		}
-		for(var i=0; i<this.chests.length; i++){
-			this.chests[i].localPosition.x += revisionX;
-			this.chests[i].localPosition.y += revisionY;
-		}
-		for(var i=0; i<this.objExps.length; i++){
-			this.objExps[i].position.x += revisionX;
-			this.objExps[i].position.y += revisionY;
-		}
-		for(var i=0; i<this.objSkills.length; i++){
-			this.objSkills[i].position.x += revisionX;
-			this.objSkills[i].position.y += revisionY;
-		}
-	},
-	revisionAllObj : function(revisionX, revisionY){
-		for(var index in this.users){
-			if(this.checkUserAtUsers(this.users[index])){
-				this.users[index].addPosAndTargetPos(revisionX, revisionY);
-			}
-		}
-		for(var index in this.obstacles){
-			this.obstacles[index].localPosition.x += revisionX;
-			this.obstacles[index].localPosition.y += revisionY;
-		}
-		for(var i=0; i<this.chests.length; i++){
-			this.chests[i].localPosition.x += revisionX;
-			this.chests[i].localPosition.y += revisionY;
-		}
-		for(var i=0; i<this.objExps.length; i++){
-			this.objExps[i].position.x += revisionX;
-			this.objExps[i].position.y += revisionY;
-		}
-		for(var i=0; i<this.objSkills.length; i++){
-			this.objSkills[i].position.x += revisionX;
-			this.objSkills[i].position.y += revisionY;
-		}
-	},
 	// set this client user
 	synchronizeUser : function(userID){
 		for(var index in this.users){
 			if(this.users[index].objectID === userID){
 				this.user = this.users[index];
-				this.user.onMoveOffset = this.moveUsersOffset.bind(this);
 			}
 		}
 		if(this.user === null){
 			console.log('if print me. Something is wrong');
 		}
 	},
-	settingUserData : function(){
+	processUserData : function(){
 		return {
 			objectID : this.user.objectID,
-			currentState : this.user.currentState === this.gameConfig.OBJECT_STATE_MOVE_OFFSET ? this.gameConfig.OBJECT_STATE_MOVE : this.user.currentState,
-			position : util.localToWorldPosition(this.user.position, this.gameConfig.userOffset),
+			currentState : this.user.currentState,
+			position : this.user.position,
 			direction : this.user.direction,
-		}
+		};
 	},
-	settingSkillData : function(userID, skillData){
+	processSkillData : function(skillData){
 		return {
-			userID : userID,
+			// userID : this.user.objectID,
 			skillIndex : skillData.index,
-			skillTargetPosition : util.localToWorldPosition(skillData.targetPosition, this.gameConfig.userOffset)
+			skillTargetPosition : skillData.targetPosition
+		};
+	},
+	processProjectileData : function(projectileData){
+		return {
+			// userID : this.user.objectID,
+			objectID : projectileData.objectID,
+			skillIndex : projectileData.index,
+			position : projectileData.position,
+			speed : projectileData.speed,
+			startTime : projectileData.startTime,
+			lifeTime : projectileData.lifeTime
 		};
 	}
 };
@@ -567,56 +341,23 @@ function staticIntervalHandler(){
 	for(var index in this.users){
 		this.users[index].setEntityEle();
 	}
-	//obstacle elements remove at tree and update position
-	for(var index in staticEles){
-		staticTree.remove(staticEles[index]);
-	}
-	this.updateObstacleEles();
+
 	var i = this.projectiles.length;
   while(i--){
     if(this.projectiles[i].isExpired()){
       this.projectiles.splice(i, 1);
     }else{
-      this.projectiles[i].move(this.gameConfig.userOffset);
+      this.projectiles[i].move();
     }
   }
-  // for(var index in this.users){
-  //   var tempUserEle = this.users[index].entityTreeEle;
-  //   var collisionObjs = util.checkCircleCollision(staticTree, tempUserEle.x, tempUserEle.y, tempUserEle.width, tempUserEle.id);
-  //   if(collisionObjs.length > 0 ){
-  //     var addPos = util.calcCompelPos(tempUserEle, collisionObjs);
-  //     // affectedEles.push({func : 'moveCompel', id : tempUserEle.id, arg1 : addPos.x, arg2 : addPos.y});
-  //   }
-  // }
+	var i=this.effects.length;
+	while(i--){
+		if(this.effects[i].startTime + this.effects[i].lifeTime < Date.now()){
+			this.effects.splice(i, 1);
+		}
+	}
 };
 function affectIntervalHandler(){
-  // var i = affectedEles.length;
-  // while(i--){
-  //   if(affectedEles[i].func === 'moveCompel'){
-  //     if(affectedEles[i].id in this.users){
-	// 			if(affectedEles[i].id === this.user.objectID){
-	// 				this.users[affectedEles[i].id].targetPosition.x -= affectedEles[i].arg1;
-	//         this.users[affectedEles[i].id].targetPosition.y -= affectedEles[i].arg2;
-	//
-	// 				this.gameConfig.userOffset.x += affectedEles[i].arg1;
-	// 				this.gameConfig.userOffset.y += affectedEles[i].arg2;
-	//
-	//         this.users[affectedEles[i].id].setTargetDirection();
-	//         this.users[affectedEles[i].id].setSpeed();
-	//
-	// 				this.compelUsersOffset(affectedEles[i].arg1 , affectedEles[i].arg2);
-	// 			}else{
-	//         this.users[affectedEles[i].id].position.x += affectedEles[i].arg1;
-	//         this.users[affectedEles[i].id].position.y += affectedEles[i].arg2;
-	//         this.users[affectedEles[i].id].setCenter();
-	//
-	//         this.users[affectedEles[i].id].setTargetDirection();
-	//         this.users[affectedEles[i].id].setSpeed();
-	// 			}
-  //     }
-  //   }
-  //   affectedEles.splice(i, 1);
-  // }
 };
 var onMoveCalcCompelPos = function(user){
 	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width/2, user.entityTreeEle.id);
@@ -627,7 +368,7 @@ var onMoveCalcCompelPos = function(user){
 };
 module.exports = CManager;
 
-},{"../public/map.json":8,"../public/quadtree.min.js":9,"../public/resource.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CSkill.js":3,"./CUser.js":4}],2:[function(require,module,exports){
+},{"../public/gameConfig.json":7,"../public/map.json":8,"../public/quadtree.min.js":9,"../public/resource.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CUser.js":4}],2:[function(require,module,exports){
 function CObstacle(posX, posY, sizeW, sizeH, id, src){
   this.objectID = id;
   this.src = src;
@@ -635,9 +376,9 @@ function CObstacle(posX, posY, sizeW, sizeH, id, src){
     x : posX, y : posY
   };
   // user when draw obstacle
-  this.localPosition = {
-    x : posX, y : posY
-  };
+  // this.localPosition = {
+  //   x : posX, y : posY
+  // };
   this.size = {
     width : sizeW, height : sizeH
   };
@@ -704,6 +445,13 @@ function CSkill(skillData, userAniStartTime){
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
 
+  this.effect = {
+    position : this.targetPosition,
+    radius : this.explosionRadius,
+    startTime : 0,
+    lifeTime  : this.effectLastTime
+  };
+
   this.userAniTimeout = false;
   this.fireTimeout = false;
   this.totalTimeout = false;
@@ -720,6 +468,9 @@ CSkill.prototype = {
     this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), this.fireTime);
     this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);
   },
+  startEffectTimer : function(){
+    this.effect.startTime = Date.now();
+  },
   destroy : function(){
     if(this.userAniTimeout){
       clearTimeout(this.userAniTimeout);
@@ -732,23 +483,11 @@ CSkill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  skillAniIsExpired : function(){
-    return this.aniTime + this.fireTime > Date.now() - this.startTime
-  },
-  //static function
-  makeProjectile : function(projectileData, offset){
-    var projectile = new ProjectileSkill(projectileData, offset);
+  makeProjectile : function(currentPosition, projectileID){
+    var projectile = new ProjectileSkill(this, currentPosition, projectileID)
     return projectile;
-  },
-  makeProjectileEffect : function(projectileData, offset){
-    return {
-      targetPosition : util.worldToLocalPosition(projectileData.position, offset),
-      explosionRadius : projectileData.explosionRadius,
-      direction : 0
-    };
   }
 };
-
 function userAniTimeoutHandler(){
   this.onUserAniStart();
 };
@@ -760,49 +499,36 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(projectileData, offset){
+var ProjectileSkill = function(skillInstance, currentPosition, ID){
   this.startTime = Date.now();
 
-  this.objectID = projectileData.objectID;
-  this.position = util.worldToLocalPosition(projectileData.position, offset);
-  this.speed = projectileData.speed;
-  this.radius = projectileData.radius;
-  this.lifeTime = projectileData.lifeTime;
-  this.explosionRadius = projectileData.explosionRadius;
+  this.objectID = ID;
 
-  this.currentOffset = offset;
-  // this.direction = skillInstance.direction;
-  // this.position = {x : user.position.x, y : user.position.y};
-  // this.speed = {
-    // x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
-    // y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
-  // };
+  this.index = skillInstance.index;
+  this.position = {
+    x : currentPosition.x,
+    y : currentPosition.y
+  };
+  this.direction = skillInstance.direction;
+  this.speed = {
+    x : skillInstance.maxSpeed * Math.cos(this.direction * Math.PI/180),
+    y : skillInstance.maxSpeed * Math.sin(this.direction * Math.PI/180)
+  }
+  this.radius = skillInstance.radius;
+  this.lifeTime = skillInstance.lifeTime;
+  this.explosionRadius = skillInstance.explosionRadius;
 };
 
 ProjectileSkill.prototype = {
-  move : function(offset){
+  move : function(){
     this.position.x += this.speed.x;
     this.position.y += this.speed.y;
-    if(this.currentOffset !== offset){
-      this.revision(offset);
-    }
-  },
-  revision : function(offset){
-    var diffX = this.currentOffset.x - offset.x;
-    var diffY = this.currentOffset.y - offset.y;
-    this.position.x -= diffX;
-    this.position.y -= diffY;
-    this.currentOffset = offset;
-  },
-  hit : function(user){
-    console.log('hit something');
   },
   isExpired : function(){
     if(this.lifeTime > Date.now() - this.startTime){
       return false;
-    }else{
-      return true;
     }
+    return true;
   }
 };
 
@@ -812,24 +538,23 @@ module.exports = CSkill;
 },{"../public/util.js":11}],4:[function(require,module,exports){
 var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
+var gameConfig = require('../public/gameConfig.json');
 
-var User = function(userData, gameConfig){
-  this.gameConfig = gameConfig;
-
+var User = function(userData){
   this.objectID = userData.objectID;
 
   this.currentState = null;
   this.currentSkill = undefined;
-
+  this.projectiles = [];
   //use for execute skill only once.
   this.isExecutedSkill = false;
   //Effect around user skill effect, when cast skill. skill onFire set false.
-  this.skillEffectPlay = false;
+  this.skillCastEffectPlay = false;
 
   this.size = userData.size;
 
-  this.position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
-  this.targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
+  this.position = userData.position;
+  this.targetPosition = userData.targetPosition;
   this.direction = userData.direction;
   this.rotateSpeed = userData.rotateSpeed;
 
@@ -849,8 +574,6 @@ var User = function(userData, gameConfig){
   this.updateInterval = false;
   this.updateFunction = null;
 
-  this.onMoveOffset = new Function();
-
   this.entityTreeEle = {
     x : this.position.x,
     y : this.position.y,
@@ -869,26 +592,26 @@ User.prototype = {
 
     this.stop();
     switch (this.currentState) {
-      case this.gameConfig.OBJECT_STATE_IDLE:
+      case gameConfig.OBJECT_STATE_IDLE:
         this.updateFunction = null;
         break;
-      case this.gameConfig.OBJECT_STATE_MOVE:
+      case gameConfig.OBJECT_STATE_MOVE:
         this.updateFunction = this.rotate.bind(this);
         break;
-      case this.gameConfig.OBJECT_STATE_MOVE_OFFSET:
+      case gameConfig.OBJECT_STATE_MOVE_OFFSET:
         this.updateFunction = this.rotate.bind(this);
         break;
-      case this.gameConfig.OBJECT_STATE_ATTACK:
+      case gameConfig.OBJECT_STATE_ATTACK:
         this.updateFunction = this.attack.bind(this);
         break;
-      case this.gameConfig.OBJECT_STATE_CAST:
+      case gameConfig.OBJECT_STATE_CAST:
         this.updateFunction = this.rotate.bind(this);
         break;
     }
     this.update();
   },
   update : function(){
-    var INTERVAL_TIMER = 1000/this.gameConfig.INTERVAL;
+    var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
   setCenter : function(){
@@ -905,7 +628,7 @@ User.prototype = {
     util.setTargetDirection.call(this);
   },
   setSpeed : function(){
-    util.setSpeed.call(this, this.gameConfig.scaleFactor);
+    util.setSpeed.call(this);
   },
   moveOffset : function(){
     util.moveOffset.call(this);
@@ -931,7 +654,7 @@ User.prototype = {
       this.currentSkill.destroy();
       this.currentSkill = undefined;
       this.isExecutedSkill = false;
-      this.skillEffectPlay = false;
+      this.skillCastEffectPlay = false;
     }
   },
   setEntityEle : function(){
@@ -954,7 +677,7 @@ User.prototype = {
   },
   executeSkill : function(){
     if(!this.isExecutedSkill){
-      this.skillEffectPlay = true;
+      this.skillCastEffectPlay = true;
       this.isExecutedSkill = true;
       this.currentSkill.executeSkill();
     }
@@ -963,28 +686,27 @@ User.prototype = {
     this.possessSkills = possessSkills;
     console.log('updateSkillPossessions');
     console.log(this.possessSkills);
+  },
+  makeProjectile : function(projectileID, skillInstance){
+    var projectile = skillInstance.makeProjectile(this.position, projectileID);
+    this.projectiles.push(projectile);
+    return projectile;
   }
 };
+
 function onTimeOverHandler(skillInstance){
   skillInstance.destroy();
   this.currentSkill = undefined;
   this.isExecutedSkill = false;
-  this.skillEffectPlay = false;
-  this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
+  this.skillCastEffectPlay = false;
+  this.changeState(gameConfig.OBJECT_STATE_IDLE);
 };
 function onCastSkillHandler(skillInstance){
   console.log('cast ani start');
 };
-// var skillData = {
-//   timeSpan : Date.now() - skill.startTime,
-//   totalTime : skill.totalTime,
-//   fireTime : skill.fireTime,
-//   radius : skill.radius,
-//   targetPosition : skill.targetPosition
-// }
 module.exports = User;
 
-},{"../public/util.js":11,"./CSkill.js":3}],5:[function(require,module,exports){
+},{"../public/gameConfig.json":7,"../public/util.js":11,"./CSkill.js":3}],5:[function(require,module,exports){
 
 module.exports = {
     toObject        : toObject,
@@ -1436,14 +1158,14 @@ function _csvToArray(text, delimit, quote) {
 },{}],6:[function(require,module,exports){
 module.exports={
   "userBaseData" : "level,needExp,baseHP,baseMP,baseMaxSpeed,baseRotateSpeed,baseHPRegen,baseMPRegen,baseCastSpeed,baseDamage,baseDamageRate\n1,100,100,1000,10,15,0.5,5,1,0,1\n2,150,100,1000,10,15,0.5,5,1,0,1\n3,250,100,1000,10,15,0.5,5,1,0,1\n4,400,100,1000,10,15,0.5,5,1,0,1\n5,600,100,1000,10,15,0.5,5,1,0,1\n6,850,100,1000,10,15,0.5,5,1,0,1\n7,1150,100,1000,10,15,0.5,5,1,0,1\n8,1500,100,1000,10,15,0.5,5,1,0,1\n9,1900,100,1000,10,15,0.5,5,1,0,1\n10,2350,100,1000,10,15,0.5,5,1,0,1\n11,2850,100,1000,10,15,0.5,5,1,0,1\n12,3400,100,1000,10,15,0.5,5,1,0,1\n13,4000,100,1000,10,15,0.5,5,1,0,1\n14,4650,100,1000,10,15,0.5,5,1,0,1\n15,5350,100,1000,10,15,0.5,5,1,0,1\n16,6100,100,1000,10,15,0.5,5,1,0,1\n17,6900,100,1000,10,15,0.5,5,1,0,1\n18,7750,100,1000,10,15,0.5,5,1,0,1\n19,8650,100,1000,10,15,0.5,5,1,0,1\n20,-1,100,1000,10,15,0.5,5,1,0,1\n",
-  "skillData" : "index,name,level,type,groupIndex,nextSkillIndex,totalTime,fireTime,coolDown,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n11,RedSkillBase1,1,1,10,12,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,1000\n12,RedSkillBase2,2,1,10,13,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n13,RedSkillBase3,3,1,10,14,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n14,RedSkillBase4,4,1,10,15,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n15,RedSkillBase5,5,1,10,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n21,RedSkillProjectileWeak1,1,2,20,22,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n22,RedSkillProjectileWeak2,2,2,20,23,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n23,RedSkillProjectileWeak3,3,2,20,24,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n24,RedSkillProjectileWeak4,4,2,20,25,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n25,RedSkillProjectileWeak5,5,2,20,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n31,RedSkillProjectileStrong1,1,2,30,32,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n32,RedSkillProjectileStrong2,2,2,30,33,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n33,RedSkillProjectileStrong3,3,2,30,34,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n34,RedSkillProjectileStrong4,4,2,30,35,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n35,RedSkillProjectileStrong5,5,2,30,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n41,RedSkillRange1,1,1,40,42,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n42,RedSkillRange2,2,1,40,43,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n43,RedSkillRange3,3,1,40,44,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n44,RedSkillRange4,4,1,40,45,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n45,RedSkillRange5,5,1,40,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n51,RedSkillSelfRange1,1,3,50,52,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n52,RedSkillSelfRange2,2,3,50,53,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n53,RedSkillSelfRange3,3,3,50,54,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n54,RedSkillSelfRange4,4,3,50,55,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n55,RedSkillSelfRange5,5,3,50,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n111,BlueSkillBase1,1,0,110,112,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n112,BlueSkillBase2,2,0,110,113,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n113,BlueSkillBase3,3,0,110,114,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n114,BlueSkillBase4,4,0,110,115,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n115,BlueSkillBase5,5,0,110,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n121,BlueSkillProjectileWeak1,1,2,120,122,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n122,BlueSkillProjectileWeak2,2,2,120,123,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n123,BlueSkillProjectileWeak3,3,2,120,124,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n124,BlueSkillProjectileWeak4,4,2,120,125,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n125,BlueSkillProjectileWeak5,5,2,120,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n131,BlueSkillProjectileStrong1,1,2,130,132,2000,1200,,0,150,200,30,,,,,,,,,,,frozen1,,30,10,3000,100\n132,BlueSkillProjectileStrong2,2,2,130,133,2000,1200,,0,150,200,35,,,,,,,,,,,frozen2,,30,10,3000,100\n133,BlueSkillProjectileStrong3,3,2,130,134,2000,1200,,0,150,200,40,,,,,,,,,,,frozen3,,30,10,3000,100\n134,BlueSkillProjectileStrong4,4,2,130,135,2000,1200,,0,150,200,45,,,,,,,,,,,frozen4,,30,10,3000,100\n135,BlueSkillProjectileStrong5,5,2,130,-1,2000,1200,,0,150,200,50,,,,,,,,,,,frozen5,,30,10,3000,100\n141,BlueSkillRange1,1,1,140,142,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n142,BlueSkillRange2,2,1,140,143,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n143,BlueSkillRange3,3,1,140,144,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n144,BlueSkillRange4,4,1,140,145,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n145,BlueSkillRange5,5,1,140,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n151,BlueSkillRangeTick1,1,3,150,152,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n152,BlueSkillRangeTick2,2,3,150,153,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n153,BlueSkillRangeTick3,3,3,150,154,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n154,BlueSkillRangeTick4,4,3,150,155,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n155,BlueSkillRangeTick5,5,3,150,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n211,YellowSkillBase1,1,0,210,212,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n212,YellowSkillBase2,2,0,210,213,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n213,YellowSkillBase3,3,0,210,214,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n214,YellowSkillBase4,4,0,210,215,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n215,YellowSkillBase5,5,0,210,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n221,YellowSkillProjectileWeak1,1,2,220,222,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n222,YellowSkillProjectileWeak2,2,2,220,223,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n223,YellowSkillProjectileWeak3,3,2,220,224,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n224,YellowSkillProjectileWeak4,4,2,220,225,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n225,YellowSkillProjectileWeak5,5,2,220,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n231,YellowSkillProjectileStrong1,1,2,230,232,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n232,YellowSkillProjectileStrong2,2,2,230,233,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n233,YellowSkillProjectileStrong3,3,2,230,234,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n234,YellowSkillProjectileStrong4,4,2,230,235,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n235,YellowSkillProjectileStrong5,5,2,230,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n241,YellowSkillRange1,1,1,240,242,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n242,YellowSkillRange2,2,1,240,243,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n243,YellowSkillRange3,3,1,240,244,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n244,YellowSkillRange4,4,1,240,245,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n245,YellowSkillRange5,5,1,240,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n251,YellowSkillProjectileVStrong1,1,3,250,252,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n252,YellowSkillProjectileVStrong2,2,3,250,253,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n253,YellowSkillProjectileVStrong3,3,3,250,254,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n254,YellowSkillProjectileVStrong4,4,3,250,255,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n255,YellowSkillProjectileVStrong5,5,3,250,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n301,BPurpleSkillTeleportShort1,1,SKILL_TYPE_TELEPORT,300,302,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n302,BPurpleSkillTeleportShort2,2,SKILL_TYPE_TELEPORT,300,303,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n303,BPurpleSkillTeleportShort3,3,SKILL_TYPE_TELEPORT,300,304,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n304,BPurpleSkillTeleportShort4,4,SKILL_TYPE_TELEPORT,300,305,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n305,BPurpleSkillTeleportShort5,5,SKILL_TYPE_TELEPORT,300,-1,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n311,BPurpleSkillTeleportLong1,1,SKILL_TYPE_TELEPORT,310,312,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n312,BPurpleSkillTeleportLong2,2,SKILL_TYPE_TELEPORT,310,313,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n313,BPurpleSkillTeleportLong3,3,SKILL_TYPE_TELEPORT,310,314,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n314,BPurpleSkillTeleportLong4,4,SKILL_TYPE_TELEPORT,310,315,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n315,BPurpleSkillTeleportLong5,5,SKILL_TYPE_TELEPORT,310,-1,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n",
+  "skillData" : "index,name,level,type,groupIndex,nextSkillIndex,totalTime,fireTime,coolDown,range,explosionRadius,consumeMP,damage,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,debuffToSelf1,debuffToSelf2,debuffToSelf3,debuffToTarget1,debuffToTarget2,debuffToTarget3,radius,maxSpeed,lifeTime,effectLastTime\n11,RedSkillBase1,1,1,10,12,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,10\n12,RedSkillBase2,2,1,10,13,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n13,RedSkillBase3,3,1,10,14,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n14,RedSkillBase4,4,1,10,15,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n15,RedSkillBase5,5,1,10,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n21,RedSkillProjectileWeak1,1,2,20,22,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n22,RedSkillProjectileWeak2,2,2,20,23,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n23,RedSkillProjectileWeak3,3,2,20,24,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n24,RedSkillProjectileWeak4,4,2,20,25,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n25,RedSkillProjectileWeak5,5,2,20,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n31,RedSkillProjectileStrong1,1,3,30,32,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n32,RedSkillProjectileStrong2,2,3,30,33,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n33,RedSkillProjectileStrong3,3,3,30,34,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n34,RedSkillProjectileStrong4,4,3,30,35,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n35,RedSkillProjectileStrong5,5,3,30,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n41,RedSkillRange1,1,1,40,42,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n42,RedSkillRange2,2,1,40,43,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n43,RedSkillRange3,3,1,40,44,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n44,RedSkillRange4,4,1,40,45,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n45,RedSkillRange5,5,1,40,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n51,RedSkillSelfRange1,1,3,50,52,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n52,RedSkillSelfRange2,2,3,50,53,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n53,RedSkillSelfRange3,3,3,50,54,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n54,RedSkillSelfRange4,4,3,50,55,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n55,RedSkillSelfRange5,5,3,50,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n111,BlueSkillBase1,1,0,110,112,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n112,BlueSkillBase2,2,0,110,113,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n113,BlueSkillBase3,3,0,110,114,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n114,BlueSkillBase4,4,0,110,115,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n115,BlueSkillBase5,5,0,110,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n121,BlueSkillProjectileWeak1,1,2,120,122,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n122,BlueSkillProjectileWeak2,2,2,120,123,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n123,BlueSkillProjectileWeak3,3,2,120,124,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n124,BlueSkillProjectileWeak4,4,2,120,125,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n125,BlueSkillProjectileWeak5,5,2,120,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n131,BlueSkillProjectileStrong1,1,2,130,132,2000,1200,,0,150,200,30,,,,,,,,,,,frozen1,,30,10,3000,100\n132,BlueSkillProjectileStrong2,2,2,130,133,2000,1200,,0,150,200,35,,,,,,,,,,,frozen2,,30,10,3000,100\n133,BlueSkillProjectileStrong3,3,2,130,134,2000,1200,,0,150,200,40,,,,,,,,,,,frozen3,,30,10,3000,100\n134,BlueSkillProjectileStrong4,4,2,130,135,2000,1200,,0,150,200,45,,,,,,,,,,,frozen4,,30,10,3000,100\n135,BlueSkillProjectileStrong5,5,2,130,-1,2000,1200,,0,150,200,50,,,,,,,,,,,frozen5,,30,10,3000,100\n141,BlueSkillRange1,1,1,140,142,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n142,BlueSkillRange2,2,1,140,143,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n143,BlueSkillRange3,3,1,140,144,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n144,BlueSkillRange4,4,1,140,145,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n145,BlueSkillRange5,5,1,140,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n151,BlueSkillRangeTick1,1,3,150,152,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n152,BlueSkillRangeTick2,2,3,150,153,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n153,BlueSkillRangeTick3,3,3,150,154,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n154,BlueSkillRangeTick4,4,3,150,155,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n155,BlueSkillRangeTick5,5,3,150,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n211,YellowSkillBase1,1,0,210,212,1000,600,,30,50,0,30,,,,,,,,,,,,,0,0,0,100\n212,YellowSkillBase2,2,0,210,213,1000,600,,30,50,0,35,,,,,,,,,,,,,0,0,0,100\n213,YellowSkillBase3,3,0,210,214,1000,600,,30,50,0,40,,,,,,,,,,,,,0,0,0,100\n214,YellowSkillBase4,4,0,210,215,1000,600,,30,50,0,45,,,,,,,,,,,,,0,0,0,100\n215,YellowSkillBase5,5,0,210,-1,1000,600,,30,50,0,50,,,,,,,,,,,,,0,0,0,100\n221,YellowSkillProjectileWeak1,1,2,220,222,1500,900,,0,100,100,30,,,,,,,,,,,,,30,10,3000,100\n222,YellowSkillProjectileWeak2,2,2,220,223,1500,900,,0,100,100,35,,,,,,,,,,,,,30,10,3000,100\n223,YellowSkillProjectileWeak3,3,2,220,224,1500,900,,0,100,100,40,,,,,,,,,,,,,30,10,3000,100\n224,YellowSkillProjectileWeak4,4,2,220,225,1500,900,,0,100,100,45,,,,,,,,,,,,,30,10,3000,100\n225,YellowSkillProjectileWeak5,5,2,220,-1,1500,900,,0,100,100,50,,,,,,,,,,,,,30,10,3000,100\n231,YellowSkillProjectileStrong1,1,2,230,232,2000,1200,,0,150,200,30,,,,,,,,,,,,,30,10,3000,100\n232,YellowSkillProjectileStrong2,2,2,230,233,2000,1200,,0,150,200,35,,,,,,,,,,,,,30,10,3000,100\n233,YellowSkillProjectileStrong3,3,2,230,234,2000,1200,,0,150,200,40,,,,,,,,,,,,,30,10,3000,100\n234,YellowSkillProjectileStrong4,4,2,230,235,2000,1200,,0,150,200,45,,,,,,,,,,,,,30,10,3000,100\n235,YellowSkillProjectileStrong5,5,2,230,-1,2000,1200,,0,150,200,50,,,,,,,,,,,,,30,10,3000,100\n241,YellowSkillRange1,1,1,240,242,2000,1200,,400,150,300,30,,,,,,,,,,,,,,,,100\n242,YellowSkillRange2,2,1,240,243,2000,1200,,400,150,300,35,,,,,,,,,,,,,,,,100\n243,YellowSkillRange3,3,1,240,244,2000,1200,,400,150,300,40,,,,,,,,,,,,,,,,100\n244,YellowSkillRange4,4,1,240,245,2000,1200,,400,150,300,45,,,,,,,,,,,,,,,,100\n245,YellowSkillRange5,5,1,240,-1,2000,1200,,400,150,300,50,,,,,,,,,,,,,,,,100\n251,YellowSkillProjectileVStrong1,1,3,250,252,1500,900,,0,250,500,30,,,,,,,,,,,,,,,,100\n252,YellowSkillProjectileVStrong2,2,3,250,253,1500,900,,0,250,500,35,,,,,,,,,,,,,,,,100\n253,YellowSkillProjectileVStrong3,3,3,250,254,1500,900,,0,250,500,40,,,,,,,,,,,,,,,,100\n254,YellowSkillProjectileVStrong4,4,3,250,255,1500,900,,0,250,500,45,,,,,,,,,,,,,,,,100\n255,YellowSkillProjectileVStrong5,5,3,250,-1,1500,900,,0,250,500,50,,,,,,,,,,,,,,,,100\n301,BPurpleSkillTeleportShort1,1,SKILL_TYPE_TELEPORT,300,302,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n302,BPurpleSkillTeleportShort2,2,SKILL_TYPE_TELEPORT,300,303,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n303,BPurpleSkillTeleportShort3,3,SKILL_TYPE_TELEPORT,300,304,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n304,BPurpleSkillTeleportShort4,4,SKILL_TYPE_TELEPORT,300,305,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n305,BPurpleSkillTeleportShort5,5,SKILL_TYPE_TELEPORT,300,-1,1000,600,,150,0,150,0,,,,,,,,,,,,,,,,100\n311,BPurpleSkillTeleportLong1,1,SKILL_TYPE_TELEPORT,310,312,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n312,BPurpleSkillTeleportLong2,2,SKILL_TYPE_TELEPORT,310,313,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n313,BPurpleSkillTeleportLong3,3,SKILL_TYPE_TELEPORT,310,314,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n314,BPurpleSkillTeleportLong4,4,SKILL_TYPE_TELEPORT,310,315,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n315,BPurpleSkillTeleportLong5,5,SKILL_TYPE_TELEPORT,310,-1,2000,1200,,400,0,250,0,,,,,,,,,,,,,,,,100\n",
   "buffData" : "index,name,isPermanent,timeDuration,buffType,buffTickTime,buffAmount,buffApplyRate\n1,damageUP1,0,60000,BUFF_TICK_DAMAGE,,20,1\n2,damageUP2,0,60000,baseDamage,,30,1\n3,damageUP3,1,0,baseDamageRate,,0.1,1\n4,Heal1,0,60000,currentHP,,10,1\n5,Heal2,0,60000,currentHP,,20,1\n6,Heal3,0,60000,currentHP,,-30,0.2\n",
   "chestData" : "index,grade,HP,minExpCount,maxExpCount,minExpAmount,maxExpAmount,minSkillCount,maxSkillCount,SkillIndex1,SkillDropRate1,SkillIndex2,SkillDropRate2,SkillIndex3,SkillDropRate3,SkillIndex4,SkillDropRate4,SkillIndex5,SkillDropRate5,SkillIndex6,SkillDropRate6,SkillIndex7,SkillDropRate7,SkillIndex7,SkillDropRate7,SkillIndex8,SkillDropRate8,SkillIndex9,SkillDropRate9,SkillIndex10,SkillDropRate10,SkillIndex11,SkillDropRate11,SkillIndex12,SkillDropRate12,SkillIndex13,SkillDropRate13,SkillIndex14,SkillDropRate14,SkillIndex15,SkillDropRate15,SkillIndex16,SkillDropRate16,SkillIndex17,SkillDropRate17,SkillIndex18,SkillDropRate18,SkillIndex19,SkillDropRate19,SkillIndex20,SkillDropRate20\n1,1,100,3,5,30,50,1,1,11,35,21,25,31,20,41,15,51,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n2,2,200,4,6,50,75,1,2,111,35,121,25,131,20,141,15,151,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n3,3,300,5,7,75,100,1,3,211,35,221,25,231,20,241,15,251,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n"
 }
 
 },{}],7:[function(require,module,exports){
 module.exports={
-  "INTERVAL" : 20,
+  "INTERVAL" : 60,
 
   "CANVAS_MAX_SIZE" : {"width" : 5600 , "height" : 3360},
   "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
@@ -1516,7 +1238,7 @@ module.exports={
   "USER_HAND_SIZE" : 64,
   "GRID_SRC" : "../images/map-grass.png",
   "GRID_SIZE" : 60,
-  "GRID_IMG_SIZE" : 58,
+  "GRID_IMG_SIZE" : 59,
 
   "OBJ_TREE_SRC" : "",
   "OBJ_TREE_SIZE" : 100,
@@ -1527,6 +1249,7 @@ module.exports={
 
 },{}],11:[function(require,module,exports){
 var gameConfig = require('./gameConfig.json');
+var radianFactor = Math.PI/180;
 
 //must use with bind or call method
 exports.rotate = function(){
@@ -1623,41 +1346,10 @@ exports.move = function(){
 
   this.setCenter();
 };
-exports.moveOffset = function(){
-  var distX = this.targetPosition.x - this.center.x;
-  var distY = this.targetPosition.y - this.center.y;
-
-  if(distX == 0 && distY == 0){
-    this.stop();
-    this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
-  }
-  if(Math.abs(distX) < Math.abs(this.speed.x)){
-    this.speed.x = distX;
-  }
-  if(Math.abs(distY) < Math.abs(this.speed.y)){
-    this.speed.y = distY;
-  }
-  // this.setEntityEle();
-  var addPos = this.onMove(this);
-  if(addPos !== undefined){
-    this.targetPosition.x -= addPos.x;
-    this.targetPosition.y -= addPos.y;
-
-    this.gameConfig.userOffset.x += addPos.x;
-    this.gameConfig.userOffset.y += addPos.y;
-  }
-  this.targetPosition.x -= this.speed.x;
-  this.targetPosition.y -= this.speed.y;
-
-  this.gameConfig.userOffset.x += this.speed.x;
-  this.gameConfig.userOffset.y += this.speed.y;
-
-  this.onMoveOffset(addPos);
-}
 
 //must use with bind or call method
 //setup when click canvas for move
-exports.setSpeed = function(scaleFactor){
+exports.setSpeed = function(){
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
 
@@ -1680,12 +1372,16 @@ exports.setTargetDirection = function(){
   var distY = this.targetPosition.y - this.center.y;
 
   var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
-  if(distX < 0 && distY >= 0){
-    this.targetDirection = tangentDegree + 180;
-  }else if(distX < 0 && distY < 0){
-    this.targetDirection = tangentDegree - 180;
+  if(isNaN(tangentDegree)){
+    this.targetDirection = this.direction;
   }else{
-    this.targetDirection = tangentDegree;
+    if(distX < 0 && distY >= 0){
+      this.targetDirection = tangentDegree + 180;
+    }else if(distX < 0 && distY < 0){
+      this.targetDirection = tangentDegree - 180;
+    }else{
+      this.targetDirection = tangentDegree;
+    }
   }
 };
 //check obstacle collision
@@ -1782,18 +1478,16 @@ exports.checkAndCalcCompelPos = function(tree, posX, posY, radius, id, obj){
 
 //coordinate transform
 exports.localToWorldPosition = function(position, offset){
-  var newPosition = {
+  return {
     x : position.x + offset.x,
     y : position.y + offset.y
   };
-  return newPosition;
 };
 exports.worldToLocalPosition = function(position, offset){
-  var newPosition = {
+  return {
     x : position.x - offset.x,
     y : position.y - offset.y
   };
-  return newPosition;
 };
 exports.worldXCoordToLocalX = function(x, offsetX){
   return x - offsetX;
@@ -1840,18 +1534,107 @@ exports.distance = function(position1, position2){
   return Math.sqrt(distSqure);
 };
 //calcurate targetDirection;
-exports.calcTargetDirection = function(targetPosition, centerPosition){
+exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
+  switch (skillData.type) {
+    case gameConfig.SKILL_TYPE_BASIC:
+      var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
+      var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+
+      return {
+        x : user.center.x + addPosX,
+        y : user.center.y + addPosY
+      };
+    case gameConfig.SKILL_TYPE_INSTANT:
+      var distSquare = exports.distanceSquare(user.center, clickPosition);
+      if(Math.pow(this.range,2) > distSquare){
+        return {
+          x : clickPosition.x,
+          y : clickPosition.y
+        };
+      }else{
+        var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
+        var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+
+        return {
+          x : user.center.x + addPosX,
+          y : user.center.y + addPosY
+        };
+      }
+    case gameConfig.SKILL_TYPE_SELF :
+      return {
+        x : user.center.x,
+        y : user.center.y
+      };
+    case gameConfig.SKILL_TYPE_SELF_EXPLOSION :
+      return {
+        x : user.center.x,
+        y : user.center.y
+      };
+    case gameConfig.SKILL_TYPE_TELEPORT :
+      var distSquare = exports.distanceSquare(user.center, clickPosition);
+      if(Math.pow(this.range,2) > distSquare){
+        return {
+          x : clickPosition.x,
+          y : clickPosition.y
+        };
+      }else{
+        var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
+        var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+
+        return {
+          x : user.center.x + addPosX,
+          y : user.center.y + addPosY
+        };
+      }
+    case gameConfig.SKILL_TYPE_PROJECTILE :
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    default:
+  }
+};
+exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
+  switch (skillType) {
+    case gameConfig.SKILL_TYPE_BASIC:
+      return user.direction;
+    case gameConfig.SKILL_TYPE_INSTANT:
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_SELF :
+      return user.direction;
+    case gameConfig.SKILL_TYPE_SELF_EXPLOSION :
+      return user.direction;
+    case gameConfig.SKILL_TYPE_TELEPORT :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    default:
+  }
+};
+exports.calcTargetDirection = function(targetPosition, centerPosition, userDirection){
   var distX = targetPosition.x - centerPosition.x;
   var distY = targetPosition.y - centerPosition.y;
 
   var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
+
   var returnVal = 0;
-  if(distX < 0 && distY >= 0){
-    returnVal = tangentDegree + 180;
-  }else if(distX < 0 && distY < 0){
-    returnVal = tangentDegree - 180;
+  if(isNaN(tangentDegree)){
+    return userDirection;
   }else{
-    returnVal = tangentDegree;
+    if(distX < 0 && distY >= 0){
+      returnVal = tangentDegree + 180;
+    }else if(distX < 0 && distY < 0){
+      returnVal = tangentDegree - 180;
+    }else{
+      returnVal = tangentDegree;
+    }
   }
   return returnVal;
 };
@@ -1884,6 +1667,26 @@ exports.findAndSetBuffs = function(skillData, buffTable, columnName, length){
   }
   return returnVal;
 }
+exports.generateRandomUniqueID = function(uniqueCheckArray, prefix){
+  var IDisUnique = false;
+  while(!IDisUnique){
+    var randomID = generateRandomID(prefix);
+    IDisUnique = true;
+    for(var index in uniqueCheckArray){
+      if(randomID == uniqueCheckArray[index].objectID){
+        IDisUnique = false;
+      }
+    }
+  }
+  return randomID;
+};
+function generateRandomID(prefix){
+  var output = prefix;
+  for(var i=0; i<6; i++){
+    output += Math.floor(Math.random()*16).toString(16);
+  }
+  return output;
+};
 
 },{"./gameConfig.json":7}],12:[function(require,module,exports){
 // inner Modules
@@ -2014,7 +1817,8 @@ function setBaseSetting(){
   gameConfig = require('../../modules/public/gameConfig.json');
 
   Manager = new CManager(gameConfig);
-  Manager.onSkillFire = onSkillFireHandler
+  Manager.onSkillFire = onSkillFireHandler;
+  Manager.onProjectileSkillFire = onProjectileSkillFireHandler;
   // resource 관련
   resources = require('../../modules/public/resource.json');
 
@@ -2025,9 +1829,13 @@ function setBaseSetting(){
   userHand.src = resources.USER_HAND_SRC;
   grid.src = resources.GRID_SRC;
 };
-function onSkillFireHandler(skillData){
-  var skillData = Manager.settingSkillData(gameConfig.userID, skillData);
+function onSkillFireHandler(rawSkillData){
+  var skillData = Manager.processSkillData(rawSkillData);
   socket.emit('skillFired', skillData);
+};
+function onProjectileSkillFireHandler(rawProjectileData){
+  var projectileData = Manager.processProjectileData(rawProjectileData);
+  socket.emit('projectileFired', projectileData);
 };
 function setCanvasSize(){
 
@@ -2052,7 +1860,7 @@ function setCanvasSize(){
     var revisionX = oldOffsetX - gameConfig.userOffset.x;
     var revisionY = oldOffsetY - gameConfig.userOffset.y;
 
-    Manager.revisionAllObj(revisionX, revisionY);
+    // Manager.revisionAllObj(revisionX, revisionY);
   }
 };
 
@@ -2073,6 +1881,8 @@ function drawGame(){
   standingScene.classList.add('disable');
   standingScene.classList.remove('enable');
 
+  gameConfig.userOffset = calcOffset();
+
   drawScreen();
   drawGrid();
   drawObstacles();
@@ -2081,7 +1891,6 @@ function drawGame(){
   drawUsers();
   drawEffect();
   drawProjectile();
-  console.log(latency);
 };
 
 // socket connect and server response configs
@@ -2102,7 +1911,7 @@ function setupSocket(){
   socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas, chestDatas){
     Manager.setUsers(userDatas, skillDatas);
     Manager.setUsersSkills(skillDatas);
-    Manager.setProjectiles(projectileDatas);
+    // Manager.setProjectiles(projectileDatas);
     Manager.setObjs(objDatas);
     Manager.setChests(chestDatas);
 
@@ -2128,52 +1937,13 @@ function setupSocket(){
   socket.on('userDataUpdateAndUseSkill', function(userData){
     Manager.updateUserData(userData);
     var skillData = util.findData(skillTable, 'index', userData.skillIndex);
-    skillData.targetPosition = util.worldToLocalPosition(userData.skillTargetPosition, gameConfig.userOffset);
-    Manager.useSkill(userData.objectID, skillData);
-  });
-  // socket.on('resMove', function(userData){
-  //   if(userData.objectID === gameConfig.userID){
-  //     revisionUserPos(userData);
-  //   }
-  //   console.log(userData.objectID + ' move start');
-  //   Manager.updateUserData(userData);
-  //   Manager.moveUser(userData);
-  // });
-  // socket.on('resSkill', function(userData, resSkillData){
-  //   if(userData.objectID === gameConfig.userID){
-  //     revisionUserPos(userData);
-  //   }
-  //   var skillData = util.findData(skillTable, 'index', resSkillData.index);
-  //   // console.log(userData.position);
-  //   console.log(resSkillData.targetPosition);
-  //   // console.log((userData.position.x - resSkillData.targetPosition.x) + ' : ' + (userData.position.y - resSkillData.targetPosition.y));
-  //   skillData.targetPosition = resSkillData.targetPosition;
-  //   skillData.direction = resSkillData.direction;
-  //   skillData.totalTime = resSkillData.totalTime;
-  //   skillData.fireTime = resSkillData.fireTime;
-  //
-  //   Manager.updateUserData(userData);
-  //   // console.log(Manager.users[gameConfig.userID].position);
-  //   // console.log(skillData.targetPosition);
-  //   // console.log((Manager.users[gameConfig.userID].position.x - skillData.targetPosition.x) + ' : ' + (Manager.users[gameConfig.userID].position.y - skillData.targetPosition.y))
-  //   Manager.useSkill(userData.objectID, skillData);
-  //
-  //   //create user castingEffect
-  //   // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
-  //
-  //   // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
-  //   // setInterval(animator.startAnimation, fps * 2);
-  //   // user state change
-  //   // animation start
-  // });
-  socket.on('setProjectile', function(projectileData){
-    console.log(projectileData);
-    if(projectileData.explode){
-      var skillData = util.findData(skillTable, 'index', projectileData.index);
-      Manager.explodeProjectile(projectileData, skillData.effectLastTime);
-    }else{
-      Manager.makeProjectile(projectileData);
+
+    skillData.targetPosition = userData.skillTargetPosition;
+    skillData.direction = userData.skillDirection;
+    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+      skillData.projectileID = userData.skillProjectileID;
     }
+    Manager.useSkill(userData.objectID, skillData);
   });
   socket.on('createOBJs', function(objDatas){
     Manager.createOBJs(objDatas);
@@ -2216,9 +1986,10 @@ function drawScreen(){
 function drawObstacles(){
   ctx.fillStyle ="#000000";
 
-  for(var index in Manager.obstacles){
+  for(var i=0; i<Manager.obstacles.length; i++){
     ctx.beginPath();
-    ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor, (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor,
+    var center = util.worldToLocalPosition(Manager.obstacles[i].center, gameConfig.userOffset);
+    ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
             resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
@@ -2232,22 +2003,25 @@ function drawChests(){
   ctx.fillStyle = "#00ff00";
   for(var i=0; i<Manager.chests.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.chests[i].localPosition.x) * gameConfig.scaleFactor, Manager.chests[i].localPosition.y * gameConfig.scaleFactor,
+    var pos = util.worldToLocalPosition(Manager.chests[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
                   Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
     ctx.closePath();
   }
-}
+};
 function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objExps[i].position.x) * gameConfig.scaleFactor, (Manager.objExps[i].position.y) * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
+    var pos = util.worldToLocalPosition(Manager.objExps[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
   ctx.fillStyle = "#ff0000";
   for(var i=0; i<Manager.objSkills.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objSkills[i].position.x) * gameConfig.scaleFactor, (Manager.objSkills[i].position.y) * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
+    var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
 }
@@ -2257,13 +2031,15 @@ function drawUsers(){
 
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
+    var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+    ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
     // console.log('user positionX : ' + (Manager.users[index].position.x  * gameConfig.scaleFactor));
-    if(Manager.users[index].objectID === gameConfig.userID){
-      ctx.translate(Manager.users[index].center.x * gameConfig.scaleFactor, Manager.users[index].center.y * gameConfig.scaleFactor);
-      // ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
-    }else{
-      ctx.translate((Manager.users[index].center.x) * gameConfig.scaleFactor, (Manager.users[index].center.y) * gameConfig.scaleFactor);
-    }
+    // if(Manager.users[index].objectID === gameConfig.userID){
+    //   ctx.translate(Manager.users[index].center.x * gameConfig.scaleFactor, Manager.users[index].center.y * gameConfig.scaleFactor);
+    //   // ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
+    // }else{
+    //   ctx.translate((Manager.users[index].center.x) * gameConfig.scaleFactor, (Manager.users[index].center.y) * gameConfig.scaleFactor);
+    // }
     ctx.rotate(radian);
     ctx.fillStyle = 'yellow';
     ctx.arc(0, 0, 64 * gameConfig.scaleFactor, 0, 2 * Math.PI);
@@ -2273,7 +2049,7 @@ function drawUsers(){
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
     //draw cast effect
-    if(Manager.users[index].skillEffectPlay){
+    if(Manager.users[index].skillCastEffectPlay){
       ctx.fillStyle ="#00ff00";
       ctx.beginPath();
       ctx.arc(-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 100, 0, 2 * Math.PI);
@@ -2284,51 +2060,62 @@ function drawUsers(){
   }
 };
 function drawEffect(){
-  for(var index in Manager.effects){
-    var radian = Manager.effects[index].direction * radianFactor;
-
+  for(var i=0; i<Manager.effects.length; i++){
     ctx.fillStyle ="#ff0000";
-    ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
-    var centerX = (Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius) * gameConfig.scaleFactor;
-    var centerY = (Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius) * gameConfig.scaleFactor;
-    ctx.translate(centerX, centerY);
+    var pos = util.worldToLocalPosition(Manager.effects[i].position, gameConfig.userOffset);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].explosionRadius * gameConfig.scaleFactor, -Manager.effects[index].explosionRadius * gameConfig.scaleFactor,
-                 Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor, Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
+                 Manager.effects[i].radius * 2 * gameConfig.scaleFactor, Manager.effects[i].radius * 2 * gameConfig.scaleFactor);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
-    ctx.restore();
   }
 };
 function drawProjectile(){
-  for(var index in Manager.projectiles){
+  for(var i=0; i<Manager.projectiles.length; i++){
     ctx.fillStyle ="#ff0000";
     ctx.beginPath();
-    ctx.arc((Manager.projectiles[index].position.x + Manager.projectiles[index].radius) * gameConfig.scaleFactor,
-            (Manager.projectiles[index].position.y + Manager.projectiles[index].radius) * gameConfig.scaleFactor, 50, 0, 2 * Math.PI);
-    ctx.fill();
+    var pos = util.worldToLocalPosition(Manager.projectiles[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor)
     ctx.closePath();
   }
 };
+// function drawGrid(){
+//   //draw boundary
+//   //draw grid
+//   for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
+//     if(util.isDrawX(i, gameConfig)){
+//       var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
+//       for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
+//         if(util.isDrawY(j, gameConfig)){
+//           var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
+//           ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
+//         }
+//       }
+//     }
+//   }
+// };
 function drawGrid(){
-  //draw boundary
-  //draw grid
-  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
-    if(util.isDrawX(i, gameConfig)){
-      var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
-      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
-        if(util.isDrawY(j, gameConfig)){
-          var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
-          ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
-        }
-      }
-    }
-  }
-};
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#0000ff';
+  ctx.globalAlpha = 0.15;
+  ctx.beginPath();
 
+  for (var x = - Manager.user.position.x; x<gameConfig.canvasSize.width; x+= gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, gameConfig.CANVAS_MAX_LOCAL_SIZE.height)
+  }
+
+  for(var y = - Manager.user.position.y; y<gameConfig.canvasSize.height; y+= gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
+    ctx.moveTo(0, y);
+    ctx.lineTo(gameConfig.CANVAS_MAX_LOCAL_SIZE.width, y);
+  }
+
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.closePath();
+};
 function updateUserDataHandler(){
-  var userData = Manager.settingUserData();
+  var userData = Manager.processUserData();
   userData.latency = latency;
   socket.emit('userDataUpdate', userData);
 };
@@ -2338,80 +2125,53 @@ function canvasAddEvent(){
       x : e.clientX/gameConfig.scaleFactor,
       y : e.clientY/gameConfig.scaleFactor
     }
-    Manager.moveUser(targetPosition);
-
     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-    var userData = Manager.settingUserData();
+    Manager.moveUser(worldTargetPosition);
+
+    var userData = Manager.processUserData();
     userData.targetPosition = worldTargetPosition;
     socket.emit('userMoveStart', userData);
   }, false);
 };
-// function canvasAddEvent(){
-//   canvas.addEventListener('click', function(e){
-//     var targetPosition ={
-//       x : e.clientX/gameConfig.scaleFactor,
-//       y : e.clientY/gameConfig.scaleFactor
-//     }
-//     console.log(targetPosition);
-//     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-//     console.log(worldTargetPosition);
-//     socket.emit('reqMove', worldTargetPosition);
-//   }, false);
-// };
 function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
     var tempPos = {x : 0, y : 0};
 
-    //calculate targetPosition
-    var localPos = util.worldToLocalPosition(tempPos, gameConfig.userOffset);
-
     var skillIndex = 0;
     if(keyCode === 69 || keyCode === 32){
-      var skillData = util.findData(skillTable, 'index', 11);
-      skillData.targetPosition = localPos;
       skillIndex = 11;
-      Manager.useSkill(gameConfig.userID, skillData);
+      var skillData = util.findData(skillTable, 'index', 11);
     }else if(keyCode === 49){
-      skillData = util.findData(skillTable, 'index', 21);
-      skillData.targetPosition = localPos;
       skillIndex = 21;
-      Manager.useSkill(gameConfig.userID, skillData);
+      skillData = util.findData(skillTable, 'index', 21);
     }else if(keyCode === 50){
-      skillData = util.findData(skillTable, 'index', 31);
-      skillData.targetPosition = localPos;
       skillIndex = 31;
-      Manager.useSkill(gameConfig.userID, skillData);
+      skillData = util.findData(skillTable, 'index', 31);
     }else if(keyCode === 51){
-      skillData = util.findData(skillTable, 'index', 41);
-      skillData.targetPosition = localPos;
       skillIndex = 41;
+      skillData = util.findData(skillTable, 'index', 41);
+    }else if(keyCode === 52){
+
+    }
+    //skills direction and targetPosition setting
+    if(skillIndex){
+      skillData.targetPosition = util.calcSkillTargetPosition(skillData, tempPos, Manager.users[gameConfig.userID]);
+      skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, Manager.users[gameConfig.userID]);
+      if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+        skillData.projectileID = util.generateRandomUniqueID(Manager.user.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+      }
       Manager.useSkill(gameConfig.userID, skillData);
     }
 
-    var userData = Manager.settingUserData();
+    var userData = Manager.processUserData();
     userData.skillIndex = skillIndex;
+    userData.skillDirection = skillData.direction;
     userData.skillTargetPosition = tempPos;
 
     socket.emit('userUseSkill', userData);
   }, false);
 };
-
-// function documentAddEvent(){
-//   document.addEventListener('keydown', function(e){
-//     var keyCode = e.keyCode;
-//     var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
-//     if(keyCode === 69 || keyCode === 32){
-//       socket.emit('reqSkill', 11);
-//     }else if(keyCode === 49){
-//       socket.emit('reqSkill', 21, tempPos);
-//     }else if(keyCode === 50){
-//       socket.emit('reqSkill', 41, tempPos);
-//     }else if(keyCode === 51){
-//       socket.emit('reqSkill', 51);
-//     }
-//   }, false);
-// };
 update();
 
 function setCanvasScale(gameConfig){
@@ -2423,13 +2183,18 @@ function setCanvasScale(gameConfig){
   if(gameConfig.canvasSize.height >= gameConfig.CANVAS_MAX_LOCAL_SIZE.height){
     gameConfig.scaleY = (gameConfig.canvasSize.height / gameConfig.CANVAS_MAX_LOCAL_SIZE.height);
   }
-  // if(gameConfig.canvasSize.width >= canvasMaxLocalSize.width || gameConfig.canvasSize.height >= canvasMaxLocalSize.height){
-  // }
   if(gameConfig.scaleX > gameConfig.scaleY){
     gameConfig.scaleFactor = gameConfig.scaleX;
   }else{
     gameConfig.scaleFactor = gameConfig.scaleY;
   }
 };
+function calcOffset(){
+  return {
+    x : Manager.user.position.x - gameConfig.canvasSize.width/2 + Manager.user.size.width/2,
+    y : Manager.user.position.y - gameConfig.canvasSize.height/2 + Manager.user.size.height/2
+  }
+
+}
 
 },{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/csvjson.js":5,"../../modules/public/data.json":6,"../../modules/public/gameConfig.json":7,"../../modules/public/resource.json":10,"../../modules/public/util.js":11}]},{},[12]);

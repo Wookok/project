@@ -501,13 +501,46 @@ GameManager.prototype.applySkill = function(userID, skillData){
       width : skillData.explosionRadius * 2,
       height : skillData.explosionRadius * 2,
       damage : skillData.damage,
-      buffsTotarget : skillData.buffsToTarget,
+      buffsToTarget : skillData.buffsToTarget,
       debuffsToTarget : skillData.debuffsToTarget
     });
   }else{
     console.log('cant find user data');
   }
-}
+};
+GameManager.prototype.applyProjectile = function(userID, projectileData){
+  if(userID in this.users){
+    this.users[userID].addBuffs(projectileData.buffsToSelf);
+    this.users[userID].addDebuffs(projectileData.debuffsToSelf);
+
+    this.projectiles.push({
+      id : userID,
+      projectileID : projectileData.objectID,
+      x : projectileData.position.x,
+      y : projectileData.position.y,
+      width : projectileData.radius * 2,
+      height : projectileData.radius * 2,
+      damage : projectileData.damage,
+      buffsToTarget : projectileData.buffsToTarget,
+      debuffsToTarget : projectileData.debuffsToTarget,
+
+      startTime : projectileData.startTime,
+      lifeTime : projectileData.lifeTime,
+      move : function(){
+          this.x += projectileData.position.x;
+          this.y += projectileData.position.y;
+      },
+      isExpired : function(){
+        if(Date.now() - startTime > lifeTime){
+          return true;
+        }
+        return false;
+      }
+    });
+  }else{
+    console.log('cant find user data');
+  }
+};
 GameManager.prototype.updateUserData = function(userData){
   if(userData.objectID in this.users){
     this.users[userData.objectID].currentState = userData.currentState;

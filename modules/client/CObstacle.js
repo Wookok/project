@@ -5,9 +5,9 @@ function CObstacle(posX, posY, sizeW, sizeH, id, src){
     x : posX, y : posY
   };
   // user when draw obstacle
-  this.localPosition = {
-    x : posX, y : posY
-  };
+  // this.localPosition = {
+  //   x : posX, y : posY
+  // };
   this.size = {
     width : sizeW, height : sizeH
   };

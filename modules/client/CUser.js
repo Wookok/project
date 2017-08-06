@@ -1,11 +1,8 @@
 var util = require('../public/util.js');
-var Skills = require('./CSkill.js');
-var Skill = Skills.Skill;
-var ProjectileSkill = Skills.ProjectileSkill;
+var Skill = require('./CSkill.js');
+var gameConfig = require('../public/gameConfig.json');
 
-var User = function(userData, gameConfig){
-  this.gameConfig = gameConfig;
-
+var User = function(userData){
   this.objectID = userData.objectID;
 
   this.currentState = null;
@@ -14,12 +11,12 @@ var User = function(userData, gameConfig){
   //use for execute skill only once.
   this.isExecutedSkill = false;
   //Effect around user skill effect, when cast skill. skill onFire set false.
-  this.skillEffectPlay = false;
+  this.skillCastEffectPlay = false;
 
   this.size = userData.size;
 
-  this.position = util.worldToLocalPosition(userData.position, this.gameConfig.userOffset);
-  this.targetPosition = util.worldToLocalPosition(userData.targetPosition, this.gameConfig.userOffset);
+  this.position = userData.position;
+  this.targetPosition = userData.targetPosition;
   this.direction = userData.direction;
   this.rotateSpeed = userData.rotateSpeed;
 
@@ -39,8 +36,6 @@ var User = function(userData, gameConfig){
   this.updateInterval = false;
   this.updateFunction = null;
 
-  this.onMoveOffset = new Function();
-
   this.entityTreeEle = {
     x : this.position.x,
     y : this.position.y,
@@ -59,26 +54,26 @@ User.prototype = {
 
     this.stop();
     switch (this.currentState) {
-      case this.gameConfig.OBJECT_STATE_IDLE:
+      case gameConfig.OBJECT_STATE_IDLE:
         this.updateFunction = null;
         break;
-      case this.gameConfig.OBJECT_STATE_MOVE:
+      case gameConfig.OBJECT_STATE_MOVE:
         this.updateFunction = this.rotate.bind(this);
         break;
-      case this.gameConfig.OBJECT_STATE_MOVE_OFFSET:
+      case gameConfig.OBJECT_STATE_MOVE_OFFSET:
         this.updateFunction = this.rotate.bind(this);
         break;
-      case this.gameConfig.OBJECT_STATE_ATTACK:
+      case gameConfig.OBJECT_STATE_ATTACK:
         this.updateFunction = this.attack.bind(this);
         break;
-      case this.gameConfig.OBJECT_STATE_CAST:
+      case gameConfig.OBJECT_STATE_CAST:
         this.updateFunction = this.rotate.bind(this);
         break;
     }
     this.update();
   },
   update : function(){
-    var INTERVAL_TIMER = 1000/this.gameConfig.INTERVAL;
+    var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
   setCenter : function(){
@@ -95,7 +90,7 @@ User.prototype = {
     util.setTargetDirection.call(this);
   },
   setSpeed : function(){
-    util.setSpeed.call(this, this.gameConfig.scaleFactor);
+    util.setSpeed.call(this);
   },
   moveOffset : function(){
     util.moveOffset.call(this);
@@ -121,7 +116,7 @@ User.prototype = {
       this.currentSkill.destroy();
       this.currentSkill = undefined;
       this.isExecutedSkill = false;
-      this.skillEffectPlay = false;
+      this.skillCastEffectPlay = false;
     }
   },
   setEntityEle : function(){
@@ -144,7 +139,7 @@ User.prototype = {
   },
   executeSkill : function(){
     if(!this.isExecutedSkill){
-      this.skillEffectPlay = true;
+      this.skillCastEffectPlay = true;
       this.isExecutedSkill = true;
       this.currentSkill.executeSkill();
     }
@@ -154,26 +149,21 @@ User.prototype = {
     console.log('updateSkillPossessions');
     console.log(this.possessSkills);
   },
-  makeProjectile : function(projectileID, skillData){
-    var projectile = new ProjectileSkill(projectileID, skillData);
+  makeProjectile : function(projectileID, skillInstance){
+    var projectile = skillInstance.makeProjectile(this.position, projectileID);
     this.projectiles.push(projectile);
+    return projectile;
   }
 };
+
 function onTimeOverHandler(skillInstance){
   skillInstance.destroy();
   this.currentSkill = undefined;
   this.isExecutedSkill = false;
-  this.skillEffectPlay = false;
-  this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
+  this.skillCastEffectPlay = false;
+  this.changeState(gameConfig.OBJECT_STATE_IDLE);
 };
 function onCastSkillHandler(skillInstance){
   console.log('cast ani start');
 };
-// var skillData = {
-//   timeSpan : Date.now() - skill.startTime,
-//   totalTime : skill.totalTime,
-//   fireTime : skill.fireTime,
-//   radius : skill.radius,
-//   targetPosition : skill.targetPosition
-// }
 module.exports = User;

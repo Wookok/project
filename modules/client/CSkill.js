@@ -23,6 +23,13 @@ function CSkill(skillData, userAniStartTime){
   this.userAniStartTime = userAniStartTime;
   this.effectLastTime = skillData.effectLastTime;
 
+  this.effect = {
+    position : this.targetPosition,
+    radius : this.explosionRadius,
+    startTime : 0,
+    lifeTime  : this.effectLastTime
+  };
+
   this.userAniTimeout = false;
   this.fireTimeout = false;
   this.totalTimeout = false;
@@ -39,6 +46,9 @@ CSkill.prototype = {
     this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), this.fireTime);
     this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);
   },
+  startEffectTimer : function(){
+    this.effect.startTime = Date.now();
+  },
   destroy : function(){
     if(this.userAniTimeout){
       clearTimeout(this.userAniTimeout);
@@ -51,23 +61,11 @@ CSkill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  skillAniIsExpired : function(){
-    return this.aniTime + this.fireTime > Date.now() - this.startTime
-  },
-  //static function
-  makeProjectile : function(projectileData, offset){
-    var projectile = new ProjectileSkill(projectileData, offset);
+  makeProjectile : function(currentPosition, projectileID){
+    var projectile = new ProjectileSkill(this, currentPosition, projectileID)
     return projectile;
-  },
-  makeProjectileEffect : function(projectileData, offset){
-    return {
-      targetPosition : util.worldToLocalPosition(projectileData.position, offset),
-      explosionRadius : projectileData.explosionRadius,
-      direction : 0
-    };
   }
 };
-
 function userAniTimeoutHandler(){
   this.onUserAniStart();
 };
@@ -79,52 +77,38 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(projectileData, offset){
+var ProjectileSkill = function(skillInstance, currentPosition, ID){
   this.startTime = Date.now();
 
-  this.objectID = projectileData.objectID;
-  this.position = util.worldToLocalPosition(projectileData.position, offset);
-  this.speed = projectileData.speed;
-  this.radius = projectileData.radius;
-  this.lifeTime = projectileData.lifeTime;
-  this.explosionRadius = projectileData.explosionRadius;
+  this.objectID = ID;
 
-  this.currentOffset = offset;
-  // this.direction = skillInstance.direction;
-  // this.position = {x : user.position.x, y : user.position.y};
-  // this.speed = {
-    // x : skillInstance.maxSpeed * Math.cos(skillInstance.direction * Math.PI/180),
-    // y : skillInstance.maxSpeed * Math.sin(skillInstance.direction * Math.PI/180)
-  // };
+  this.index = skillInstance.index;
+  this.position = {
+    x : currentPosition.x,
+    y : currentPosition.y
+  };
+  this.direction = skillInstance.direction;
+  this.speed = {
+    x : skillInstance.maxSpeed * Math.cos(this.direction * Math.PI/180),
+    y : skillInstance.maxSpeed * Math.sin(this.direction * Math.PI/180)
+  }
+  this.radius = skillInstance.radius;
+  this.lifeTime = skillInstance.lifeTime;
+  this.explosionRadius = skillInstance.explosionRadius;
 };
 
 ProjectileSkill.prototype = {
-  move : function(offset){
+  move : function(){
     this.position.x += this.speed.x;
     this.position.y += this.speed.y;
-    if(this.currentOffset !== offset){
-      this.revision(offset);
-    }
-  },
-  revision : function(offset){
-    var diffX = this.currentOffset.x - offset.x;
-    var diffY = this.currentOffset.y - offset.y;
-    this.position.x -= diffX;
-    this.position.y -= diffY;
-    this.currentOffset = offset;
-  },
-  hit : function(user){
-    console.log('hit something');
   },
   isExpired : function(){
     if(this.lifeTime > Date.now() - this.startTime){
       return false;
-    }else{
-      return true;
     }
+    return true;
   }
 };
 
 
-module.exports.Skill = CSkill;
-module.exports.ProjectileSkill = ProjectileSkill;
+module.exports = CSkill;

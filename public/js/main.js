@@ -126,7 +126,8 @@ function setBaseSetting(){
   gameConfig = require('../../modules/public/gameConfig.json');
 
   Manager = new CManager(gameConfig);
-  Manager.onSkillFire = onSkillFireHandler
+  Manager.onSkillFire = onSkillFireHandler;
+  Manager.onProjectileSkillFire = onProjectileSkillFireHandler;
   // resource 관련
   resources = require('../../modules/public/resource.json');
 
@@ -137,9 +138,13 @@ function setBaseSetting(){
   userHand.src = resources.USER_HAND_SRC;
   grid.src = resources.GRID_SRC;
 };
-function onSkillFireHandler(skillData){
-  var skillData = Manager.settingSkillData(gameConfig.userID, skillData);
+function onSkillFireHandler(rawSkillData){
+  var skillData = Manager.processSkillData(rawSkillData);
   socket.emit('skillFired', skillData);
+};
+function onProjectileSkillFireHandler(rawProjectileData){
+  var projectileData = Manager.processProjectileData(rawProjectileData);
+  socket.emit('projectileFired', projectileData);
 };
 function setCanvasSize(){
 
@@ -164,7 +169,7 @@ function setCanvasSize(){
     var revisionX = oldOffsetX - gameConfig.userOffset.x;
     var revisionY = oldOffsetY - gameConfig.userOffset.y;
 
-    Manager.revisionAllObj(revisionX, revisionY);
+    // Manager.revisionAllObj(revisionX, revisionY);
   }
 };
 
@@ -185,6 +190,8 @@ function drawGame(){
   standingScene.classList.add('disable');
   standingScene.classList.remove('enable');
 
+  gameConfig.userOffset = calcOffset();
+
   drawScreen();
   drawGrid();
   drawObstacles();
@@ -193,7 +200,6 @@ function drawGame(){
   drawUsers();
   drawEffect();
   drawProjectile();
-  console.log(latency);
 };
 
 // socket connect and server response configs
@@ -214,7 +220,7 @@ function setupSocket(){
   socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas, chestDatas){
     Manager.setUsers(userDatas, skillDatas);
     Manager.setUsersSkills(skillDatas);
-    Manager.setProjectiles(projectileDatas);
+    // Manager.setProjectiles(projectileDatas);
     Manager.setObjs(objDatas);
     Manager.setChests(chestDatas);
 
@@ -240,52 +246,13 @@ function setupSocket(){
   socket.on('userDataUpdateAndUseSkill', function(userData){
     Manager.updateUserData(userData);
     var skillData = util.findData(skillTable, 'index', userData.skillIndex);
-    skillData.targetPosition = util.worldToLocalPosition(userData.skillTargetPosition, gameConfig.userOffset);
-    Manager.useSkill(userData.objectID, skillData);
-  });
-  // socket.on('resMove', function(userData){
-  //   if(userData.objectID === gameConfig.userID){
-  //     revisionUserPos(userData);
-  //   }
-  //   console.log(userData.objectID + ' move start');
-  //   Manager.updateUserData(userData);
-  //   Manager.moveUser(userData);
-  // });
-  // socket.on('resSkill', function(userData, resSkillData){
-  //   if(userData.objectID === gameConfig.userID){
-  //     revisionUserPos(userData);
-  //   }
-  //   var skillData = util.findData(skillTable, 'index', resSkillData.index);
-  //   // console.log(userData.position);
-  //   console.log(resSkillData.targetPosition);
-  //   // console.log((userData.position.x - resSkillData.targetPosition.x) + ' : ' + (userData.position.y - resSkillData.targetPosition.y));
-  //   skillData.targetPosition = resSkillData.targetPosition;
-  //   skillData.direction = resSkillData.direction;
-  //   skillData.totalTime = resSkillData.totalTime;
-  //   skillData.fireTime = resSkillData.fireTime;
-  //
-  //   Manager.updateUserData(userData);
-  //   // console.log(Manager.users[gameConfig.userID].position);
-  //   // console.log(skillData.targetPosition);
-  //   // console.log((Manager.users[gameConfig.userID].position.x - skillData.targetPosition.x) + ' : ' + (Manager.users[gameConfig.userID].position.y - skillData.targetPosition.y))
-  //   Manager.useSkill(userData.objectID, skillData);
-  //
-  //   //create user castingEffect
-  //   // Manager.createSkillEffect(skillData.targetPosition, skillData.radius, userData.direction, skillData.fireTime);
-  //
-  //   // var animator = animateCastingEffect(userData, skillData.totalTime, ctx);
-  //   // setInterval(animator.startAnimation, fps * 2);
-  //   // user state change
-  //   // animation start
-  // });
-  socket.on('setProjectile', function(projectileData){
-    console.log(projectileData);
-    if(projectileData.explode){
-      var skillData = util.findData(skillTable, 'index', projectileData.index);
-      Manager.explodeProjectile(projectileData, skillData.effectLastTime);
-    }else{
-      Manager.makeProjectile(projectileData);
+
+    skillData.targetPosition = userData.skillTargetPosition;
+    skillData.direction = userData.skillDirection;
+    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+      skillData.projectileID = userData.skillProjectileID;
     }
+    Manager.useSkill(userData.objectID, skillData);
   });
   socket.on('createOBJs', function(objDatas){
     Manager.createOBJs(objDatas);
@@ -328,9 +295,10 @@ function drawScreen(){
 function drawObstacles(){
   ctx.fillStyle ="#000000";
 
-  for(var index in Manager.obstacles){
+  for(var i=0; i<Manager.obstacles.length; i++){
     ctx.beginPath();
-    ctx.arc((Manager.obstacles[index].localPosition.x + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor, (Manager.obstacles[index].localPosition.y + resources.OBJ_TREE_SIZE/2) * gameConfig.scaleFactor,
+    var center = util.worldToLocalPosition(Manager.obstacles[i].center, gameConfig.userOffset);
+    ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
             resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
     ctx.lineWidth = 5;
@@ -344,22 +312,25 @@ function drawChests(){
   ctx.fillStyle = "#00ff00";
   for(var i=0; i<Manager.chests.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.chests[i].localPosition.x) * gameConfig.scaleFactor, Manager.chests[i].localPosition.y * gameConfig.scaleFactor,
+    var pos = util.worldToLocalPosition(Manager.chests[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
                   Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
     ctx.closePath();
   }
-}
+};
 function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objExps[i].position.x) * gameConfig.scaleFactor, (Manager.objExps[i].position.y) * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
+    var pos = util.worldToLocalPosition(Manager.objExps[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
   ctx.fillStyle = "#ff0000";
   for(var i=0; i<Manager.objSkills.length; i++){
     ctx.beginPath();
-    ctx.fillRect((Manager.objSkills[i].position.x) * gameConfig.scaleFactor, (Manager.objSkills[i].position.y) * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
+    var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
 }
@@ -369,13 +340,15 @@ function drawUsers(){
 
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
+    var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+    ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
     // console.log('user positionX : ' + (Manager.users[index].position.x  * gameConfig.scaleFactor));
-    if(Manager.users[index].objectID === gameConfig.userID){
-      ctx.translate(Manager.users[index].center.x * gameConfig.scaleFactor, Manager.users[index].center.y * gameConfig.scaleFactor);
-      // ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
-    }else{
-      ctx.translate((Manager.users[index].center.x) * gameConfig.scaleFactor, (Manager.users[index].center.y) * gameConfig.scaleFactor);
-    }
+    // if(Manager.users[index].objectID === gameConfig.userID){
+    //   ctx.translate(Manager.users[index].center.x * gameConfig.scaleFactor, Manager.users[index].center.y * gameConfig.scaleFactor);
+    //   // ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
+    // }else{
+    //   ctx.translate((Manager.users[index].center.x) * gameConfig.scaleFactor, (Manager.users[index].center.y) * gameConfig.scaleFactor);
+    // }
     ctx.rotate(radian);
     ctx.fillStyle = 'yellow';
     ctx.arc(0, 0, 64 * gameConfig.scaleFactor, 0, 2 * Math.PI);
@@ -385,7 +358,7 @@ function drawUsers(){
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
     //draw cast effect
-    if(Manager.users[index].skillEffectPlay){
+    if(Manager.users[index].skillCastEffectPlay){
       ctx.fillStyle ="#00ff00";
       ctx.beginPath();
       ctx.arc(-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 100, 0, 2 * Math.PI);
@@ -396,51 +369,62 @@ function drawUsers(){
   }
 };
 function drawEffect(){
-  for(var index in Manager.effects){
-    var radian = Manager.effects[index].direction * radianFactor;
-
+  for(var i=0; i<Manager.effects.length; i++){
     ctx.fillStyle ="#ff0000";
-    ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
-    var centerX = (Manager.effects[index].targetPosition.x + Manager.effects[index].explosionRadius) * gameConfig.scaleFactor;
-    var centerY = (Manager.effects[index].targetPosition.y + Manager.effects[index].explosionRadius) * gameConfig.scaleFactor;
-    ctx.translate(centerX, centerY);
+    var pos = util.worldToLocalPosition(Manager.effects[i].position, gameConfig.userOffset);
     // ctx.rotate(radian);
-    ctx.fillRect(-Manager.effects[index].explosionRadius * gameConfig.scaleFactor, -Manager.effects[index].explosionRadius * gameConfig.scaleFactor,
-                 Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor, Manager.effects[index].explosionRadius * 2 * gameConfig.scaleFactor);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
+                 Manager.effects[i].radius * 2 * gameConfig.scaleFactor, Manager.effects[i].radius * 2 * gameConfig.scaleFactor);
     // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
     // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
-    ctx.restore();
   }
 };
 function drawProjectile(){
-  for(var index in Manager.projectiles){
+  for(var i=0; i<Manager.projectiles.length; i++){
     ctx.fillStyle ="#ff0000";
     ctx.beginPath();
-    ctx.arc((Manager.projectiles[index].position.x + Manager.projectiles[index].radius) * gameConfig.scaleFactor,
-            (Manager.projectiles[index].position.y + Manager.projectiles[index].radius) * gameConfig.scaleFactor, 50, 0, 2 * Math.PI);
-    ctx.fill();
+    var pos = util.worldToLocalPosition(Manager.projectiles[i].position, gameConfig.userOffset);
+    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor)
     ctx.closePath();
   }
 };
+// function drawGrid(){
+//   //draw boundary
+//   //draw grid
+//   for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
+//     if(util.isDrawX(i, gameConfig)){
+//       var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
+//       for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
+//         if(util.isDrawY(j, gameConfig)){
+//           var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
+//           ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
+//         }
+//       }
+//     }
+//   }
+// };
 function drawGrid(){
-  //draw boundary
-  //draw grid
-  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
-    if(util.isDrawX(i, gameConfig)){
-      var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
-      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
-        if(util.isDrawY(j, gameConfig)){
-          var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
-          ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
-        }
-      }
-    }
-  }
-};
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#0000ff';
+  ctx.globalAlpha = 0.15;
+  ctx.beginPath();
 
+  for (var x = - Manager.user.position.x; x<gameConfig.canvasSize.width; x+= gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, gameConfig.CANVAS_MAX_LOCAL_SIZE.height)
+  }
+
+  for(var y = - Manager.user.position.y; y<gameConfig.canvasSize.height; y+= gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
+    ctx.moveTo(0, y);
+    ctx.lineTo(gameConfig.CANVAS_MAX_LOCAL_SIZE.width, y);
+  }
+
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.closePath();
+};
 function updateUserDataHandler(){
-  var userData = Manager.settingUserData();
+  var userData = Manager.processUserData();
   userData.latency = latency;
   socket.emit('userDataUpdate', userData);
 };
@@ -450,80 +434,53 @@ function canvasAddEvent(){
       x : e.clientX/gameConfig.scaleFactor,
       y : e.clientY/gameConfig.scaleFactor
     }
-    Manager.moveUser(targetPosition);
-
     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-    var userData = Manager.settingUserData();
+    Manager.moveUser(worldTargetPosition);
+
+    var userData = Manager.processUserData();
     userData.targetPosition = worldTargetPosition;
     socket.emit('userMoveStart', userData);
   }, false);
 };
-// function canvasAddEvent(){
-//   canvas.addEventListener('click', function(e){
-//     var targetPosition ={
-//       x : e.clientX/gameConfig.scaleFactor,
-//       y : e.clientY/gameConfig.scaleFactor
-//     }
-//     console.log(targetPosition);
-//     var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-//     console.log(worldTargetPosition);
-//     socket.emit('reqMove', worldTargetPosition);
-//   }, false);
-// };
 function documentAddEvent(){
   document.addEventListener('keydown', function(e){
     var keyCode = e.keyCode;
     var tempPos = {x : 0, y : 0};
 
-    //calculate targetPosition
-    var localPos = util.worldToLocalPosition(tempPos, gameConfig.userOffset);
-
     var skillIndex = 0;
     if(keyCode === 69 || keyCode === 32){
-      var skillData = util.findData(skillTable, 'index', 11);
-      skillData.targetPosition = localPos;
       skillIndex = 11;
-      Manager.useSkill(gameConfig.userID, skillData);
+      var skillData = util.findData(skillTable, 'index', 11);
     }else if(keyCode === 49){
-      skillData = util.findData(skillTable, 'index', 21);
-      skillData.targetPosition = localPos;
       skillIndex = 21;
-      Manager.useSkill(gameConfig.userID, skillData);
+      skillData = util.findData(skillTable, 'index', 21);
     }else if(keyCode === 50){
-      skillData = util.findData(skillTable, 'index', 31);
-      skillData.targetPosition = localPos;
       skillIndex = 31;
-      Manager.useSkill(gameConfig.userID, skillData);
+      skillData = util.findData(skillTable, 'index', 31);
     }else if(keyCode === 51){
-      skillData = util.findData(skillTable, 'index', 41);
-      skillData.targetPosition = localPos;
       skillIndex = 41;
+      skillData = util.findData(skillTable, 'index', 41);
+    }else if(keyCode === 52){
+
+    }
+    //skills direction and targetPosition setting
+    if(skillIndex){
+      skillData.targetPosition = util.calcSkillTargetPosition(skillData, tempPos, Manager.users[gameConfig.userID]);
+      skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, Manager.users[gameConfig.userID]);
+      if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+        skillData.projectileID = util.generateRandomUniqueID(Manager.user.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+      }
       Manager.useSkill(gameConfig.userID, skillData);
     }
 
-    var userData = Manager.settingUserData();
+    var userData = Manager.processUserData();
     userData.skillIndex = skillIndex;
+    userData.skillDirection = skillData.direction;
     userData.skillTargetPosition = tempPos;
 
     socket.emit('userUseSkill', userData);
   }, false);
 };
-
-// function documentAddEvent(){
-//   document.addEventListener('keydown', function(e){
-//     var keyCode = e.keyCode;
-//     var tempPos = util.localToWorldPosition({x : 0, y : 0}, gameConfig.userOffset);
-//     if(keyCode === 69 || keyCode === 32){
-//       socket.emit('reqSkill', 11);
-//     }else if(keyCode === 49){
-//       socket.emit('reqSkill', 21, tempPos);
-//     }else if(keyCode === 50){
-//       socket.emit('reqSkill', 41, tempPos);
-//     }else if(keyCode === 51){
-//       socket.emit('reqSkill', 51);
-//     }
-//   }, false);
-// };
 update();
 
 function setCanvasScale(gameConfig){
@@ -535,11 +492,16 @@ function setCanvasScale(gameConfig){
   if(gameConfig.canvasSize.height >= gameConfig.CANVAS_MAX_LOCAL_SIZE.height){
     gameConfig.scaleY = (gameConfig.canvasSize.height / gameConfig.CANVAS_MAX_LOCAL_SIZE.height);
   }
-  // if(gameConfig.canvasSize.width >= canvasMaxLocalSize.width || gameConfig.canvasSize.height >= canvasMaxLocalSize.height){
-  // }
   if(gameConfig.scaleX > gameConfig.scaleY){
     gameConfig.scaleFactor = gameConfig.scaleX;
   }else{
     gameConfig.scaleFactor = gameConfig.scaleY;
   }
 };
+function calcOffset(){
+  return {
+    x : Manager.user.position.x - gameConfig.canvasSize.width/2 + Manager.user.size.width/2,
+    y : Manager.user.position.y - gameConfig.canvasSize.height/2 + Manager.user.size.height/2
+  }
+
+}

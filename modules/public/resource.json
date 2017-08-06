@@ -5,7 +5,7 @@
   "USER_HAND_SIZE" : 64,
   "GRID_SRC" : "../images/map-grass.png",
   "GRID_SIZE" : 60,
-  "GRID_IMG_SIZE" : 58,
+  "GRID_IMG_SIZE" : 59,
 
   "OBJ_TREE_SRC" : "",
   "OBJ_TREE_SIZE" : 100,

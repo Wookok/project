@@ -1,4 +1,5 @@
 var gameConfig = require('./gameConfig.json');
+var radianFactor = Math.PI/180;
 
 //must use with bind or call method
 exports.rotate = function(){
@@ -95,41 +96,10 @@ exports.move = function(){
 
   this.setCenter();
 };
-exports.moveOffset = function(){
-  var distX = this.targetPosition.x - this.center.x;
-  var distY = this.targetPosition.y - this.center.y;
-
-  if(distX == 0 && distY == 0){
-    this.stop();
-    this.changeState(this.gameConfig.OBJECT_STATE_IDLE);
-  }
-  if(Math.abs(distX) < Math.abs(this.speed.x)){
-    this.speed.x = distX;
-  }
-  if(Math.abs(distY) < Math.abs(this.speed.y)){
-    this.speed.y = distY;
-  }
-  // this.setEntityEle();
-  var addPos = this.onMove(this);
-  if(addPos !== undefined){
-    this.targetPosition.x -= addPos.x;
-    this.targetPosition.y -= addPos.y;
-
-    this.gameConfig.userOffset.x += addPos.x;
-    this.gameConfig.userOffset.y += addPos.y;
-  }
-  this.targetPosition.x -= this.speed.x;
-  this.targetPosition.y -= this.speed.y;
-
-  this.gameConfig.userOffset.x += this.speed.x;
-  this.gameConfig.userOffset.y += this.speed.y;
-
-  this.onMoveOffset(addPos);
-}
 
 //must use with bind or call method
 //setup when click canvas for move
-exports.setSpeed = function(scaleFactor){
+exports.setSpeed = function(){
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
 
@@ -152,12 +122,16 @@ exports.setTargetDirection = function(){
   var distY = this.targetPosition.y - this.center.y;
 
   var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
-  if(distX < 0 && distY >= 0){
-    this.targetDirection = tangentDegree + 180;
-  }else if(distX < 0 && distY < 0){
-    this.targetDirection = tangentDegree - 180;
+  if(isNaN(tangentDegree)){
+    this.targetDirection = this.direction;
   }else{
-    this.targetDirection = tangentDegree;
+    if(distX < 0 && distY >= 0){
+      this.targetDirection = tangentDegree + 180;
+    }else if(distX < 0 && distY < 0){
+      this.targetDirection = tangentDegree - 180;
+    }else{
+      this.targetDirection = tangentDegree;
+    }
   }
 };
 //check obstacle collision
@@ -254,18 +228,16 @@ exports.checkAndCalcCompelPos = function(tree, posX, posY, radius, id, obj){
 
 //coordinate transform
 exports.localToWorldPosition = function(position, offset){
-  var newPosition = {
+  return {
     x : position.x + offset.x,
     y : position.y + offset.y
   };
-  return newPosition;
 };
 exports.worldToLocalPosition = function(position, offset){
-  var newPosition = {
+  return {
     x : position.x - offset.x,
     y : position.y - offset.y
   };
-  return newPosition;
 };
 exports.worldXCoordToLocalX = function(x, offsetX){
   return x - offsetX;
@@ -312,18 +284,107 @@ exports.distance = function(position1, position2){
   return Math.sqrt(distSqure);
 };
 //calcurate targetDirection;
-exports.calcTargetDirection = function(targetPosition, centerPosition){
+exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
+  switch (skillData.type) {
+    case gameConfig.SKILL_TYPE_BASIC:
+      var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
+      var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+
+      return {
+        x : user.center.x + addPosX,
+        y : user.center.y + addPosY
+      };
+    case gameConfig.SKILL_TYPE_INSTANT:
+      var distSquare = exports.distanceSquare(user.center, clickPosition);
+      if(Math.pow(this.range,2) > distSquare){
+        return {
+          x : clickPosition.x,
+          y : clickPosition.y
+        };
+      }else{
+        var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
+        var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+
+        return {
+          x : user.center.x + addPosX,
+          y : user.center.y + addPosY
+        };
+      }
+    case gameConfig.SKILL_TYPE_SELF :
+      return {
+        x : user.center.x,
+        y : user.center.y
+      };
+    case gameConfig.SKILL_TYPE_SELF_EXPLOSION :
+      return {
+        x : user.center.x,
+        y : user.center.y
+      };
+    case gameConfig.SKILL_TYPE_TELEPORT :
+      var distSquare = exports.distanceSquare(user.center, clickPosition);
+      if(Math.pow(this.range,2) > distSquare){
+        return {
+          x : clickPosition.x,
+          y : clickPosition.y
+        };
+      }else{
+        var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
+        var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+
+        return {
+          x : user.center.x + addPosX,
+          y : user.center.y + addPosY
+        };
+      }
+    case gameConfig.SKILL_TYPE_PROJECTILE :
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    default:
+  }
+};
+exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
+  switch (skillType) {
+    case gameConfig.SKILL_TYPE_BASIC:
+      return user.direction;
+    case gameConfig.SKILL_TYPE_INSTANT:
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_SELF :
+      return user.direction;
+    case gameConfig.SKILL_TYPE_SELF_EXPLOSION :
+      return user.direction;
+    case gameConfig.SKILL_TYPE_TELEPORT :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    default:
+  }
+};
+exports.calcTargetDirection = function(targetPosition, centerPosition, userDirection){
   var distX = targetPosition.x - centerPosition.x;
   var distY = targetPosition.y - centerPosition.y;
 
   var tangentDegree = Math.atan(distY/distX) * 180 / Math.PI;
+
   var returnVal = 0;
-  if(distX < 0 && distY >= 0){
-    returnVal = tangentDegree + 180;
-  }else if(distX < 0 && distY < 0){
-    returnVal = tangentDegree - 180;
+  if(isNaN(tangentDegree)){
+    return userDirection;
   }else{
-    returnVal = tangentDegree;
+    if(distX < 0 && distY >= 0){
+      returnVal = tangentDegree + 180;
+    }else if(distX < 0 && distY < 0){
+      returnVal = tangentDegree - 180;
+    }else{
+      returnVal = tangentDegree;
+    }
   }
   return returnVal;
 };
