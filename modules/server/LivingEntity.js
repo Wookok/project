@@ -13,7 +13,6 @@ function LivingEntity(){
   this.currentState = gameConfig.OBJECT_STATE_IDLE;
   // this.currentSkill = undefined;
   // this.isExecutedSkill = false;
-
   this.speed = {x: 0, y:0};
   this.direction = 0;
 
@@ -90,13 +89,14 @@ LivingEntity.prototype.update = function(){
 // };
 //rotate before move or fire skill etc..
 LivingEntity.prototype.rotate = function(){
-  util.rotate.call(this);
+  util.rotate.call(this, deltaTime);
 };
 //move after rotate
 LivingEntity.prototype.move = function(){
   util.move.call(this);
 };
 LivingEntity.prototype.idle = function(){
+  var deltaTime = Date.now() - this.timer;
   //do nothing or send current stat to client;
 };
 LivingEntity.prototype.moveDirect = function(newPosition){

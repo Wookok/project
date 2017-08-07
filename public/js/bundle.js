@@ -540,6 +540,8 @@ var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
 var gameConfig = require('../public/gameConfig.json');
 
+var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
+
 var User = function(userData){
   this.objectID = userData.objectID;
 
@@ -563,6 +565,8 @@ var User = function(userData){
   this.center = {x : 0, y : 0};
   this.speed = {x : 0, y : 0};
   this.targetDirection = 0;
+
+  this.timer = Date.now();
 
   this.equipSkills = [];
   this.possessSkills = [];
@@ -593,7 +597,7 @@ User.prototype = {
     this.stop();
     switch (this.currentState) {
       case gameConfig.OBJECT_STATE_IDLE:
-        this.updateFunction = null;
+        this.updateFunction = this.idle.bind(this);
         break;
       case gameConfig.OBJECT_STATE_MOVE:
         this.updateFunction = this.rotate.bind(this);
@@ -611,18 +615,24 @@ User.prototype = {
     this.update();
   },
   update : function(){
-    var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
   setCenter : function(){
     this.center.x = this.position.x + this.size.width/2,
     this.center.y = this.position.y + this.size.height/2
   },
-  rotate : function(){
-    util.rotate.call(this);
+  idle : function(){
+    console.log(Date.now() - this.timer);
+    this.timer = Date.now();
   },
-  move : function(){
-    util.move.call(this);
+  rotate : function(){
+    var deltaTime = (Date.now() - this.timer)/1000;
+    util.rotate.call(this, deltaTime);
+    this.timer = Date.now();
+    console.log(deltaTime);
+  },
+  move : function(deltaTime){
+    util.move.call(this, deltaTime);
   },
   setTargetDirection : function(){
     util.setTargetDirection.call(this);
@@ -635,6 +645,8 @@ User.prototype = {
   },
   attack : function(){
     this.executeSkill();
+    this.timer = Date.now();
+    console.log(deltaTime);
   },
   addPosAndTargetPos : function(addPosX , addPosY){
     this.position.x += addPosX;
@@ -1252,13 +1264,10 @@ var gameConfig = require('./gameConfig.json');
 var radianFactor = Math.PI/180;
 
 //must use with bind or call method
-exports.rotate = function(){
+exports.rotate = function(deltaTime){
   if(this.targetDirection === this.direction){
     if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
-      this.move();
-    }else if(this.currentState === gameConfig.OBJECT_STATE_MOVE_OFFSET){
-        //only use at client
-        this.moveOffset();
+      this.move(deltaTime);
     }else if(this.currentState === gameConfig.OBJECT_STATE_ATTACK){
     }else if(this.currentState === gameConfig.OBJECT_STATE_CAST){
       this.executeSkill();
@@ -1267,43 +1276,43 @@ exports.rotate = function(){
   //check rotate direction
   else if(this.direction > 0 && this.targetDirection < 0){
     if((180 - this.direction + 180 + this.targetDirection) < (this.direction - this.targetDirection)){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction) < this.rotateSpeed * deltaTime){
         this.direction += Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction += this.rotateSpeed;
+        this.direction += this.rotateSpeed * deltaTime;
       }
     }else if(this.targetDirection < this.direction){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction -= Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction -= this.rotateSpeed;
+        this.direction -= this.rotateSpeed * deltaTime;
       }
     }
   }else if(this.direction < 0 && this.targetDirection >0 ){
     if((180 + this.direction + 180 - this.targetDirection) < (this.targetDirection - this.direction)){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction -= Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction -= this.rotateSpeed;
+        this.direction -= this.rotateSpeed * deltaTime;
       }
     }else if(this.targetDirection > this.direction){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction += Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction += this.rotateSpeed;
+        this.direction += this.rotateSpeed * deltaTime;
       }
     }
   }else if(this.targetDirection > this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
       this.direction += Math.abs(this.targetDirection - this.direction);
     }else{
-      this.direction += this.rotateSpeed;
+      this.direction += this.rotateSpeed * deltaTime;
     }
   }else if(this.targetDirection < this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
       this.direction -= Math.abs(this.targetDirection - this.direction);
     }else{
-      this.direction -= this.rotateSpeed;
+      this.direction -= this.rotateSpeed * deltaTime;
     }
   }
 
@@ -1315,7 +1324,7 @@ exports.rotate = function(){
 };
 
 //must use with bind or call method
-exports.move = function(){
+exports.move = function(deltaTime){
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
@@ -1324,10 +1333,10 @@ exports.move = function(){
     this.stop();
     this.changeState(gameConfig.OBJECT_STATE_IDLE);
   }
-  if(Math.abs(distX) < Math.abs(this.speed.x)){
+  if(Math.abs(distX) < Math.abs(this.speed.x) * deltaTime){
     this.speed.x = distX;
   }
-  if(Math.abs(distY) < Math.abs(this.speed.y)){
+  if(Math.abs(distY) < Math.abs(this.speed.y) * deltaTime){
     this.speed.y = distY;
   }
 
@@ -1341,8 +1350,8 @@ exports.move = function(){
     this.position.x += addPos.x;
     this.position.y += addPos.y;
   }
-  this.position.x += this.speed.x;
-  this.position.y += this.speed.y;
+  this.position.x += this.speed.x * deltaTime;
+  this.position.y += this.speed.y * deltaTime;
 
   this.setCenter();
 };
@@ -1838,30 +1847,11 @@ function onProjectileSkillFireHandler(rawProjectileData){
   socket.emit('projectileFired', projectileData);
 };
 function setCanvasSize(){
-
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  if(gameConfig.userOffset){
-    var oldOffsetX = gameConfig.userOffset.x;
-    var oldOffsetY = gameConfig.userOffset.y;
-  }
-
   gameConfig.canvasSize = {width : window.innerWidth, height : window.innerHeight};
   setCanvasScale(gameConfig);
-
-  if(gameConfig.userOffset){
-    var worldPosUser = {
-      position : util.localToWorldPosition(Manager.user.position,gameConfig.userOffset),
-      size : Manager.user.size
-    };
-    gameConfig.userOffset = util.calculateOffset(worldPosUser, {width : gameConfig.canvasSize.width/gameConfig.scaleFactor, height : gameConfig.canvasSize.height/gameConfig.scaleFactor});
-
-    var revisionX = oldOffsetX - gameConfig.userOffset.x;
-    var revisionY = oldOffsetY - gameConfig.userOffset.y;
-
-    // Manager.revisionAllObj(revisionX, revisionY);
-  }
 };
 
 function drawStartScene(){
@@ -1884,6 +1874,7 @@ function drawGame(){
   gameConfig.userOffset = calcOffset();
 
   drawScreen();
+  drawBackground();
   drawGrid();
   drawObstacles();
   drawChests();
@@ -1967,16 +1958,6 @@ function setupSocket(){
   });
 };
 
-function revisionUserPos(userData){
-  var oldOffsetX = gameConfig.userOffset.x;
-  var oldOffsetY = gameConfig.userOffset.y;
-
-  gameConfig.userOffset = util.calculateOffset(userData, gameConfig.canvasSize);
-  var revisionX = oldOffsetX - gameConfig.userOffset.x;
-  var revisionY = oldOffsetY - gameConfig.userOffset.y;
-  // Manager.revisionAllObj(revisionX, revisionY);
-  Manager.revisionUserPos(revisionX, revisionY);
-};
 //draw
 function drawScreen(){
   //draw background
@@ -2079,35 +2060,28 @@ function drawProjectile(){
     ctx.closePath();
   }
 };
-// function drawGrid(){
-//   //draw boundary
-//   //draw grid
-//   for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
-//     if(util.isDrawX(i, gameConfig)){
-//       var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
-//       for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
-//         if(util.isDrawY(j, gameConfig)){
-//           var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
-//           ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
-//         }
-//       }
-//     }
-//   }
-// };
+function drawBackground(){
+  ctx.fillStyle = "#11ff11";
+  var posX = -gameConfig.userOffset.x;
+  var posY = -gameConfig.userOffset.y;
+  var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor - posX;
+  var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor- posY;
+  ctx.fillRect(posX, posY, sizeW, sizeH);
+};
 function drawGrid(){
   ctx.lineWidth = 1;
   ctx.strokeStyle = '#0000ff';
   ctx.globalAlpha = 0.15;
   ctx.beginPath();
 
-  for (var x = - Manager.user.position.x; x<gameConfig.canvasSize.width; x+= gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, gameConfig.CANVAS_MAX_LOCAL_SIZE.height)
+  for(var x = - Manager.user.position.x; x<gameConfig.canvasSize.width; x+= gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+    ctx.moveTo(x * gameConfig.scaleFactor, 0);
+    ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor);
   }
 
   for(var y = - Manager.user.position.y; y<gameConfig.canvasSize.height; y+= gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
-    ctx.moveTo(0, y);
-    ctx.lineTo(gameConfig.CANVAS_MAX_LOCAL_SIZE.width, y);
+    ctx.moveTo(0, y * gameConfig.scaleFactor);
+    ctx.lineTo(gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor, y * gameConfig.scaleFactor);
   }
 
   ctx.stroke();
@@ -2191,10 +2165,9 @@ function setCanvasScale(gameConfig){
 };
 function calcOffset(){
   return {
-    x : Manager.user.position.x - gameConfig.canvasSize.width/2 + Manager.user.size.width/2,
-    y : Manager.user.position.y - gameConfig.canvasSize.height/2 + Manager.user.size.height/2
+    x : Manager.user.position.x - gameConfig.canvasSize.width/(2 * gameConfig.scaleFactor) + Manager.user.size.width/2,
+    y : Manager.user.position.y - gameConfig.canvasSize.height/(2 * gameConfig.scaleFactor)+ Manager.user.size.height/2
   }
-
-}
+};
 
 },{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/csvjson.js":5,"../../modules/public/data.json":6,"../../modules/public/gameConfig.json":7,"../../modules/public/resource.json":10,"../../modules/public/util.js":11}]},{},[12]);

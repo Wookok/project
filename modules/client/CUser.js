@@ -2,6 +2,8 @@ var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
 var gameConfig = require('../public/gameConfig.json');
 
+var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
+
 var User = function(userData){
   this.objectID = userData.objectID;
 
@@ -25,6 +27,8 @@ var User = function(userData){
   this.center = {x : 0, y : 0};
   this.speed = {x : 0, y : 0};
   this.targetDirection = 0;
+
+  this.timer = Date.now();
 
   this.equipSkills = [];
   this.possessSkills = [];
@@ -55,7 +59,7 @@ User.prototype = {
     this.stop();
     switch (this.currentState) {
       case gameConfig.OBJECT_STATE_IDLE:
-        this.updateFunction = null;
+        this.updateFunction = this.idle.bind(this);
         break;
       case gameConfig.OBJECT_STATE_MOVE:
         this.updateFunction = this.rotate.bind(this);
@@ -73,18 +77,21 @@ User.prototype = {
     this.update();
   },
   update : function(){
-    var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
   },
   setCenter : function(){
     this.center.x = this.position.x + this.size.width/2,
     this.center.y = this.position.y + this.size.height/2
   },
-  rotate : function(){
-    util.rotate.call(this);
+  idle : function(){
+    this.timer = Date.now();
   },
-  move : function(){
-    util.move.call(this);
+  rotate : function(){
+    util.rotate.call(this, deltaTime);
+    this.timer = Date.now();
+  },
+  move : function(deltaTime){
+    util.move.call(this, deltaTime);
   },
   setTargetDirection : function(){
     util.setTargetDirection.call(this);
@@ -97,6 +104,7 @@ User.prototype = {
   },
   attack : function(){
     this.executeSkill();
+    this.timer = Date.now();
   },
   addPosAndTargetPos : function(addPosX , addPosY){
     this.position.x += addPosX;

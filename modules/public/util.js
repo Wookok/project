@@ -2,13 +2,10 @@ var gameConfig = require('./gameConfig.json');
 var radianFactor = Math.PI/180;
 
 //must use with bind or call method
-exports.rotate = function(){
+exports.rotate = function(deltaTime){
   if(this.targetDirection === this.direction){
     if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
-      this.move();
-    }else if(this.currentState === gameConfig.OBJECT_STATE_MOVE_OFFSET){
-        //only use at client
-        this.moveOffset();
+      this.move(deltaTime);
     }else if(this.currentState === gameConfig.OBJECT_STATE_ATTACK){
     }else if(this.currentState === gameConfig.OBJECT_STATE_CAST){
       this.executeSkill();
@@ -17,43 +14,43 @@ exports.rotate = function(){
   //check rotate direction
   else if(this.direction > 0 && this.targetDirection < 0){
     if((180 - this.direction + 180 + this.targetDirection) < (this.direction - this.targetDirection)){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction) < this.rotateSpeed * deltaTime){
         this.direction += Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction += this.rotateSpeed;
+        this.direction += this.rotateSpeed * deltaTime;
       }
     }else if(this.targetDirection < this.direction){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction -= Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction -= this.rotateSpeed;
+        this.direction -= this.rotateSpeed * deltaTime;
       }
     }
   }else if(this.direction < 0 && this.targetDirection >0 ){
     if((180 + this.direction + 180 - this.targetDirection) < (this.targetDirection - this.direction)){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction -= Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction -= this.rotateSpeed;
+        this.direction -= this.rotateSpeed * deltaTime;
       }
     }else if(this.targetDirection > this.direction){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction += Math.abs(this.targetDirection - this.direction);
       }else{
-        this.direction += this.rotateSpeed;
+        this.direction += this.rotateSpeed * deltaTime;
       }
     }
   }else if(this.targetDirection > this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
       this.direction += Math.abs(this.targetDirection - this.direction);
     }else{
-      this.direction += this.rotateSpeed;
+      this.direction += this.rotateSpeed * deltaTime;
     }
   }else if(this.targetDirection < this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed){
+    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
       this.direction -= Math.abs(this.targetDirection - this.direction);
     }else{
-      this.direction -= this.rotateSpeed;
+      this.direction -= this.rotateSpeed * deltaTime;
     }
   }
 
@@ -65,7 +62,7 @@ exports.rotate = function(){
 };
 
 //must use with bind or call method
-exports.move = function(){
+exports.move = function(deltaTime){
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
@@ -74,10 +71,10 @@ exports.move = function(){
     this.stop();
     this.changeState(gameConfig.OBJECT_STATE_IDLE);
   }
-  if(Math.abs(distX) < Math.abs(this.speed.x)){
+  if(Math.abs(distX) < Math.abs(this.speed.x) * deltaTime){
     this.speed.x = distX;
   }
-  if(Math.abs(distY) < Math.abs(this.speed.y)){
+  if(Math.abs(distY) < Math.abs(this.speed.y) * deltaTime){
     this.speed.y = distY;
   }
 
@@ -91,8 +88,8 @@ exports.move = function(){
     this.position.x += addPos.x;
     this.position.y += addPos.y;
   }
-  this.position.x += this.speed.x;
-  this.position.y += this.speed.y;
+  this.position.x += this.speed.x * deltaTime;
+  this.position.y += this.speed.y * deltaTime;
 
   this.setCenter();
 };
