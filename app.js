@@ -49,10 +49,6 @@ GM.onNeedUserInformToAll = function(userID){
   var userData = GM.updateDataSetting(GM.users[userID]);
   io.sockets.emit('updateUser', userData);
 };
-// GM.onNeedProjectileSkillInformToAll = function(projectile){
-//   var projectileData = GM.updateProjectileDataSetting(projectile);
-//   io.sockets.emit('setProjectile', projectileData);
-// };
 GM.onNeedInformCreateObjs = function(objs){
   var objDatas = [];
   for(var i=0; i<Object.keys(objs).length; i++){
@@ -69,6 +65,10 @@ GM.onNeedInformSkillData = function(socketID, possessSkills){
   io.to(socketID).emit('updateSkillPossessions', possessSkills);
   // socket.emit('updateSkillPossessions', possessSkills);
 };
+GM.onNeedInformProjectileExplode = function(projectileData){
+  io.sockets.emit('explodeProjectile', projectileData.objectID);
+};
+
 GM.onNeedInformCreateChest = function(chest){
   var chestData = GM.updateChestDataSetting(chest);
   io.sockets.emit('createChest', chestData);
@@ -153,7 +153,7 @@ io.on('connection', function(socket){
     projectileData.debuffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'debuffToSelf', 3);
     projectileData.debuffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'debuffToTarget', 3);
 
-    GM.applyProjectile(user.objectID, data);
+    GM.applyProjectile(user.objectID, projectileData);
   });
   socket.on('disconnect', function(){
     if(user){

@@ -9,7 +9,6 @@ var User = function(userData){
 
   this.currentState = null;
   this.currentSkill = undefined;
-  this.projectiles = [];
   //use for execute skill only once.
   this.isExecutedSkill = false;
   //Effect around user skill effect, when cast skill. skill onFire set false.
@@ -87,6 +86,7 @@ User.prototype = {
     this.timer = Date.now();
   },
   rotate : function(){
+    var deltaTime = (Date.now() - this.timer)/1000;
     util.rotate.call(this, deltaTime);
     this.timer = Date.now();
   },
@@ -159,7 +159,6 @@ User.prototype = {
   },
   makeProjectile : function(projectileID, skillInstance){
     var projectile = skillInstance.makeProjectile(this.position, projectileID);
-    this.projectiles.push(projectile);
     return projectile;
   }
 };

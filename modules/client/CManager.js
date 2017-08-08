@@ -56,9 +56,6 @@ CManager.prototype = {
 		if(this.staticInterval === null){
 	    this.staticInterval = setInterval(staticIntervalHandler.bind(this), INTERVAL_TIMER);
 	  }
-	  if(this.affectInterval === null){
-	    this.affectInterval = setInterval(affectIntervalHandler.bind(this), INTERVAL_TIMER);
-	  }
 	},
 	createObstacles : function(){
 		for(var i=0; i<map.Trees.length; i++){
@@ -276,6 +273,14 @@ CManager.prototype = {
 		}
 		this.users[userID].setSkill(skillInstance);
 	},
+	explodeProjectile : function(projectileID){
+		for(var i=0; i<this.projectiles.length; i++){
+			if(this.projectiles[i].objectID === projectileID){
+				this.projectiles[i].explode();
+				break;
+			}
+		}
+	},
 	updateSkillPossessions : function(userID, possessSkills){
 		this.users[userID].updateSkillPossessions(possessSkills);
 	},
@@ -355,8 +360,6 @@ function staticIntervalHandler(){
 			this.effects.splice(i, 1);
 		}
 	}
-};
-function affectIntervalHandler(){
 };
 var onMoveCalcCompelPos = function(user){
 	var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width/2, user.entityTreeEle.id);

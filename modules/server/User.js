@@ -1,6 +1,5 @@
 var LivingEntity = require('./LivingEntity.js');
 
-var Skill = require('./Skill.js');
 var util = require('../public/util.js');
 var csvJson = require('../public/csvjson');
 
@@ -54,7 +53,6 @@ function User(id, userBaseData, Exp){
   this.socketID = id;
 
   this.currentSkill = undefined;
-  this.isExecutedSkill = false;
 
   this.buffUpdateInterval = false;
 
@@ -100,9 +98,6 @@ User.prototype.getSkill = function(index){
   //check possible levelup
   if(!possessSkill){
     this.possessSkills.push(skillData.index);
-    console.log('getSkill' + skillData.index);
-    console.log('currentPossessSkills');
-    console.log(this.possessSkills);
     return this.possessSkills;
   }else{
     if(possessSkill.nextSkillIndex !== -1){
@@ -123,66 +118,13 @@ User.prototype.getSkill = function(index){
     }
   }
 };
-// User.prototype.levelUpSkill = function(beforeSkillData, skillData){
-//   var changeSkillIndex = this.possessSkills.indexOf(beforeSkillData);
-//   if(changeSkillIndex === -1){
-//     console.log('cant find skill index at possess skill array');
-//     return null;
-//   }else{
-//     this.possessSkills[changeSkillIndex] = skillData.index;
-//     return {
-//       beforeIndex : changeSkillIndex,
-//       newIndex : skillData.index
-//     }
-//   }
-// };
-// User.prototype.checkSkillPossession = function(skillData){
-//   for(var i=0; i<this.possessSkills.length; i++){
-//     var tempSkillData = util.findData(skillTable, 'index', this.possessSkills[i].index);
-//     if(skillData.groupIndex === tempSkillData.groupIndex){
-//       return tempSkillData;
-//     }
-//   }
-//   return false;
-// };
-User.prototype.makeSkillInstance = function(skillData, clickPosition){
-  var skillInstance = new Skill(this, skillData);
-  skillInstance.setDirection(this.center, this.direction, clickPosition);
-  skillInstance.setTargetPosition(this.center, this.direction, clickPosition);
-  skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
-  return skillInstance;
-};
-function onTimeOverHandler(skillInstance){
-  skillInstance.destroy();
-  this.currentSkill = undefined;
-  this.isExecutedSkill = false;
-  this.changeState(gameConfig.OBJECT_STATE_IDLE);
-};
-User.prototype.setSkill = function(skillInstance){
-  this.currentSkill = skillInstance;
-};
-//excute skill
-User.prototype.executeSkill = function(){
-  if(!this.isExecutedSkill){
-    this.isExecutedSkill = true;
-    this.currentSkill.executeSkill();
-  }
-};
-User.prototype.attack = function(){
-  if(!this.isExecutedSkill && this.currentSkill !== undefined){
-    this.isExecutedSkill = true;
-    this.currentSkill.executeSkill();
-  }
-};
 User.prototype.stop = function(){
   if(this.updateInterval){
     clearInterval(this.updateInterval);
     this.updateInterval = false;
   }
   if(this.currentSkill){
-    this.currentSkill.destroy();
     this.currentSkill = undefined;
-    this.isExecutedSkill = false;
   }
 };
 User.prototype.takeDamage = function(attackUserID, dmg){
@@ -210,7 +152,7 @@ User.prototype.addBuff = function(buff){
 
 };
 User.prototype.addBuffs = function(buffs){
-  for(var i=0; i<Object.keys(buffs).length; i++){
+  for(var i=0; i<buffs.length; i++){
 
   }
 };
@@ -218,7 +160,7 @@ User.prototype.addDebuff = function(debuff){
 
 };
 User.prototype.addDebuffs = function(debuffs){
-  for(var i=0; i<Object.keys(debuffs).length; i++){
+  for(var i=0; i<debuffs.length; i++){
 
   }
 };

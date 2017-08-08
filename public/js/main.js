@@ -34,12 +34,19 @@ var gameSetupFunc = load;
 var gameUpdateFunc = null;
 
 var latency = 0;
-var drawInterval = null;
+var drawInterval = false;
+var userDataUpdateInterval = false;
 
 //state changer
 function changeState(newState){
   clearInterval(drawInterval);
-  drawInterval = null;
+  clearInterval(userDataUpdateInterval);
+  drawInterval = false;
+  userDataUpdateInterval = false;
+
+  documentDisableEvent();
+  canvasDisableEvent();
+
   switch (newState) {
     case gameConfig.GAME_STATE_LOAD:
       gameState = newState;
@@ -69,6 +76,7 @@ function changeState(newState){
   }
   update();
 };
+
 function update(){
   if(gameSetupFunc === null && gameUpdateFunc !== null){
     drawInterval = setInterval(gameUpdateFunc,fps);
@@ -188,6 +196,13 @@ function drawGame(){
 function setupSocket(){
   socket = io();
 
+  socket.on('connect', function(){
+    console.log('connection to the server');
+  });
+  socket.on('disconnect', function(){
+    console.log('disconnected');
+    changeState(gameConfig.GAME_STATE_LOAD);
+  });
   socket.on('pong', function(laty){
     latency = laty;
   });
@@ -214,7 +229,7 @@ function setupSocket(){
     documentAddEvent();
 
     changeState(gameConfig.GAME_STATE_GAME_ON);
-    setInterval(updateUserDataHandler, 1000/30);
+    userDataUpdateInterval = setInterval(updateUserDataHandler, 1000/30);
   });
 
   socket.on('userJoined', function(data){
@@ -236,6 +251,9 @@ function setupSocket(){
     }
     Manager.useSkill(userData.objectID, skillData);
   });
+  socket.on('explodeProjectile', function(projectileID){
+    Manager.explodeProjectile(projectileID);
+  })
   socket.on('createOBJs', function(objDatas){
     Manager.createOBJs(objDatas);
   });
@@ -394,60 +412,69 @@ function updateUserDataHandler(){
   socket.emit('userDataUpdate', userData);
 };
 function canvasAddEvent(){
-  canvas.addEventListener('click', function(e){
-    var targetPosition ={
-      x : e.clientX/gameConfig.scaleFactor,
-      y : e.clientY/gameConfig.scaleFactor
-    }
-    var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-    Manager.moveUser(worldTargetPosition);
-
-    var userData = Manager.processUserData();
-    userData.targetPosition = worldTargetPosition;
-    socket.emit('userMoveStart', userData);
-  }, false);
+  canvas.addEventListener('click', canvasAddEventHandler, false);
 };
 function documentAddEvent(){
-  document.addEventListener('keydown', function(e){
-    var keyCode = e.keyCode;
-    var tempPos = {x : 0, y : 0};
-
-    var skillIndex = 0;
-    if(keyCode === 69 || keyCode === 32){
-      skillIndex = 11;
-      var skillData = util.findData(skillTable, 'index', 11);
-    }else if(keyCode === 49){
-      skillIndex = 21;
-      skillData = util.findData(skillTable, 'index', 21);
-    }else if(keyCode === 50){
-      skillIndex = 31;
-      skillData = util.findData(skillTable, 'index', 31);
-    }else if(keyCode === 51){
-      skillIndex = 41;
-      skillData = util.findData(skillTable, 'index', 41);
-    }else if(keyCode === 52){
-
-    }
-    //skills direction and targetPosition setting
-    if(skillIndex){
-      skillData.targetPosition = util.calcSkillTargetPosition(skillData, tempPos, Manager.users[gameConfig.userID]);
-      skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, Manager.users[gameConfig.userID]);
-      if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
-        skillData.projectileID = util.generateRandomUniqueID(Manager.user.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
-      }
-      Manager.useSkill(gameConfig.userID, skillData);
-    }
-
-    var userData = Manager.processUserData();
-    userData.skillIndex = skillIndex;
-    userData.skillDirection = skillData.direction;
-    userData.skillTargetPosition = tempPos;
-
-    socket.emit('userUseSkill', userData);
-  }, false);
+  document.addEventListener('keydown', documentEventHandler, false);
 };
 update();
 
+function canvasAddEventHandler(){
+  var targetPosition ={
+    x : e.clientX/gameConfig.scaleFactor,
+    y : e.clientY/gameConfig.scaleFactor
+  }
+  var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
+  Manager.moveUser(worldTargetPosition);
+
+  var userData = Manager.processUserData();
+  userData.targetPosition = worldTargetPosition;
+  socket.emit('userMoveStart', userData);
+};
+
+function documentEventHandler(e){
+  var keyCode = e.keyCode;
+  var tempPos = {x : 0, y : 0};
+
+  var skillIndex = 0;
+  if(keyCode === 69 || keyCode === 32){
+    skillIndex = 11;
+    var skillData = util.findData(skillTable, 'index', 11);
+  }else if(keyCode === 49){
+    skillIndex = 21;
+    skillData = util.findData(skillTable, 'index', 21);
+  }else if(keyCode === 50){
+    skillIndex = 31;
+    skillData = util.findData(skillTable, 'index', 31);
+  }else if(keyCode === 51){
+    skillIndex = 41;
+    skillData = util.findData(skillTable, 'index', 41);
+  }else if(keyCode === 52){
+
+  }
+  //skills direction and targetPosition setting
+  if(skillIndex){
+    skillData.targetPosition = util.calcSkillTargetPosition(skillData, tempPos, Manager.users[gameConfig.userID]);
+    skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, Manager.users[gameConfig.userID]);
+    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+      skillData.projectileID = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+    }
+    Manager.useSkill(gameConfig.userID, skillData);
+  }
+
+  var userData = Manager.processUserData();
+  userData.skillIndex = skillIndex;
+  userData.skillDirection = skillData.direction;
+  userData.skillTargetPosition = tempPos;
+
+  socket.emit('userUseSkill', userData);
+};
+function canvasDisableEvent(){
+  canvas.removeEventListener("click", canvasAddEventHandler);
+};
+function documentDisableEvent(){
+  document.removeEventListener("keydown", documentEventHandler);
+};
 function setCanvasScale(gameConfig){
   gameConfig.scaleX = 1;
   gameConfig.scaleY = 1;

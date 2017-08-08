@@ -12,8 +12,6 @@ var chestTable = csvJson.toObject(dataJson.chestData, {delimiter : ',', quote : 
 var resources = require('../public/resource.json');
 var map = require('../public/map.json');
 
-var Skill = require('./Skill.js');
-
 var OBJs = require('./OBJs.js');
 var OBJExp = OBJs.OBJExp;
 var OBJSkill = OBJs.OBJSkill;
@@ -69,6 +67,7 @@ function GameManager(){
   this.onNeedInformCreateChest = new Function();
 
   this.onNeedInformSkillData = new Function();
+  this.onNeedInformProjectileExplode = new Function();
 };
 
 GameManager.prototype.start = function(){
@@ -100,7 +99,7 @@ GameManager.prototype.mapSetting = function(){
 };
 GameManager.prototype.updateGame = function(){
   if(this.chestInterval === false){
-    this.chestInterval = setInterval(chestIntervalHandler.bind(this), 1000);
+    this.chestInterval = setInterval(chestIntervalHandler.bind(this), 10000);
   }
   if(this.updateInteval === false){
     this.updateInteval = setInterval(updateIntervalHandler.bind(this), INTERVAL_TIMER);
@@ -109,7 +108,10 @@ GameManager.prototype.updateGame = function(){
     this.staticInterval = setInterval(staticIntervalHandler.bind(this), INTERVAL_TIMER);
   }
   if(this.affectInterval === false){
-    this.affectInterval = setInterval(affectIntervalHandler.bind(this), INTERVAL_TIMER);
+    var thisManager = this;
+    setTimeout(function(){
+      thisManager.affectInterval = setInterval(affectIntervalHandler.bind(thisManager), INTERVAL_TIMER);
+    }, INTERVAL_TIMER/3);
   }
 };
 
@@ -194,17 +196,21 @@ GameManager.prototype.createChest = function(chestLocationID){
   }
 };
 var onChestDestroyHandler = function(cht){
+  var createdObjs = [];
   for(var i=0; i<cht.exps.length; i++){
-    this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
+    var objExp = this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
+    createdObjs.push(objExp);
   }
   for(var i=0; i<cht.skills.length; i++){
-    this.createOBJs(1, gameConfig.PREFIX_OBJECT_SKILL, cht.skills[i], cht.position);
+    var objSkill = this.createOBJs(1, gameConfig.PREFIX_OBJECT_SKILL, cht.skills[i], cht.position);
+    createdObjs.push(objSkill);
   }
   for(var i=0; i<this.chests.length; i++){
     if(this.chests[i].objectID === cht.objectID){
       this.chests.splice(i, 1);
     }
   }
+  this.onNeedInformCreateObjs(createdObjs);
 }
 GameManager.prototype.createOBJs = function(count, type, expOrSkill, nearPosition){
   var createdObjs =[];
@@ -256,7 +262,7 @@ GameManager.prototype.createOBJs = function(count, type, expOrSkill, nearPositio
       createdObjs.push(objSkill);
     }
   }
-  this.onNeedInformCreateObjs(createdObjs);
+  return createdObjs;
 };
 GameManager.prototype.getObj = function(work){
   if(work.type === 'getExpObj'){
@@ -509,13 +515,15 @@ GameManager.prototype.applySkill = function(userID, skillData){
   }
 };
 GameManager.prototype.applyProjectile = function(userID, projectileData){
+  var thisManager = this;
   if(userID in this.users){
+
     this.users[userID].addBuffs(projectileData.buffsToSelf);
     this.users[userID].addDebuffs(projectileData.debuffsToSelf);
 
     this.projectiles.push({
       id : userID,
-      projectileID : projectileData.objectID,
+      objectID : projectileData.objectID,
       x : projectileData.position.x,
       y : projectileData.position.y,
       width : projectileData.radius * 2,
@@ -526,15 +534,29 @@ GameManager.prototype.applyProjectile = function(userID, projectileData){
 
       startTime : projectileData.startTime,
       lifeTime : projectileData.lifeTime,
+      explosionRadius : projectileData.explosionRadius,
+      isExplosive : true,
+      isCollide : false,
+
+      timer : Date.now(),
+
       move : function(){
-          this.x += projectileData.position.x;
-          this.y += projectileData.position.y;
+        var deltaTime = Date.now() - this.timer;
+        this.x += projectileData.position.x * deltaTime;
+        this.y += projectileData.position.y * deltaTime;
+        this.timer = Date.now();
       },
       isExpired : function(){
-        if(Date.now() - startTime > lifeTime){
+        if(Date.now() - this.startTime > this.lifeTime){
           return true;
         }
         return false;
+      },
+      explode : function(){
+        this.width = this.explosionRadius * 2;
+        this.height = this.explosionRadius * 2;
+        this.isCollide = true;
+        console.log('projectile is explode');
       }
     });
   }else{
@@ -615,24 +637,6 @@ GameManager.prototype.updateDataSetting = function(user){
   };
   return userData;
 };
-GameManager.prototype.updateSkillDataSetting = function(skill){
-  var skillData = {
-    index : skill.index,
-    targetPosition : skill.targetPosition,
-    direction : skill.direction,
-    totalTime : skill.totalTime,
-    fireTime : skill.fireTime
-    // type : skill.type,
-    // timeSpan : Date.now() - skill.startTime,
-    // totalTime : skill.totalTime,
-    // fireTime : skill.fireTime,
-    // explosionRadius : skill.explosionRadius,
-    // radius : skill.radius,
-    // targetPosition : skill.targetPosition,
-    // maxSpeed : skill.maxSpeed
-  }
-  return skillData;
-};
 GameManager.prototype.updateSkillsDataSettings = function(){
   var skillDatas = [];
   for(var index in this.users){
@@ -648,19 +652,6 @@ GameManager.prototype.updateSkillsDataSettings = function(){
     }
   }
   return skillDatas;
-};
-GameManager.prototype.updateProjectileDataSetting = function(projectile){
-  var projectileData = {
-    index : projectile.index,
-    objectID : projectile.objectID,
-    position : projectile.position,
-    speed : projectile.speed,
-    radius : projectile.radius,
-    lifeTime : projectile.lifeTime,
-    explosionRadius : projectile.explosionRadius,
-    explode : projectile.colliderEle.isCollide
-  }
-  return projectileData;
 };
 GameManager.prototype.updateProjectilesDataSettings = function(){
   var projectileDatas = [];
@@ -741,11 +732,9 @@ GameManager.prototype.isCreateChest = function(){
 function chestIntervalHandler(){
   if(this.isCreateChest()){
     this.createChest('CH1');
-    // this.createChest.call(this,'CH1');
   }
 };
 function updateIntervalHandler(){
-  var startTime = Date.now();
   //check collision user with skill
   //colliderEle : skill, collisionObj : user, chest
   for(var i=0; i<colliderEles.length; i++){
@@ -810,12 +799,6 @@ function updateIntervalHandler(){
   colliderEles = [];
   collectionEles = [];
 
-  var skillsIndex = this.skills.length;
-  while(skillsIndex--){
-    colliderEles.push(this.skills[skillsIndex]);
-    this.skills.splice(skillsIndex, 1);
-  }
-
   //updateUserArray
   for(var index in this.users){
     this.users[index].setEntityEle();
@@ -828,10 +811,12 @@ function updateIntervalHandler(){
   var addExpCounts = this.objExpsCount - Object.keys(this.objExps).length;
   var addSkillCounts = this.objSkillsCount - Object.keys(this.objSkills).length;
   if(addExpCounts > 0){
-    this.createOBJs(addExpCounts, gameConfig.PREFIX_OBJECT_EXP);
+    var createdObjs = this.createOBJs(addExpCounts, gameConfig.PREFIX_OBJECT_EXP);
+    this.onNeedInformCreateObjs(createdObjs);
   }
   if(addSkillCounts > 0){
-    this.createOBJs(addSkillCounts, gameConfig.PREFIX_OBJECT_SKILL);
+    var createdObjs = this.createOBJs(addSkillCounts, gameConfig.PREFIX_OBJECT_SKILL);
+    this.onNeedInformCreateObjs(createdObjs);
   }
   for(var i=0; i<Object.keys(this.objExps).length; i++){
     collectionEles.push(this.objExps[i].collectionEle);
@@ -842,27 +827,34 @@ function updateIntervalHandler(){
   //update projectiles array
   var i = this.projectiles.length;
   while(i--){
-    if(this.projectiles[i].isExpired() || this.projectiles[i].colliderEle.isCollide){
-      if(this.projectiles[i].colliderEle.isExplosive){
+    if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
+      if(this.projectiles[i].isExplosive){
         this.projectiles[i].explode();
+        this.onNeedInformProjectileExplode(this.projectiles[i]);
+        this.skills.push(this.projectiles[i]);
       }
       this.projectiles.splice(i, 1);
     }else{
       this.projectiles[i].move();
-      colliderEles.push(this.projectiles[i].colliderEle);
+      colliderEles.push(this.projectiles[i]);
     }
+  }
+  //update skills array
+  var skillsIndex = this.skills.length;
+  while(skillsIndex--){
+    colliderEles.push(this.skills[skillsIndex]);
+    this.skills.splice(skillsIndex, 1);
   }
 
   //put users data to tree
   entityTree.pushAll(userEles);
   entityTree.pushAll(chestEles);
   collectionTree.pushAll(collectionEles);
-  // console.log(Date.now() - startTime);
 };
 function staticIntervalHandler(){
   //explode when projectile collide with obstacle
   for(var i=0; i<this.projectiles; i++){
-    var projectileCollider = this.projectiles[i].colliderEle;
+    var projectileCollider = this.projectiles[i];
     var collisionObjs = util.checkCircleCollision(staticTree, projectileCollider.x, projectileCollider.y, projectileCollider.width/2, projectileCollider.id);
     if(collisionObjs.length > 0 ){
       for(var j = 0; j<collisionObjs.length; j++){
@@ -870,6 +862,9 @@ function staticIntervalHandler(){
           for(var k=0; k<this.projectiles; k++){
             if(this.projectiles[k].objectID === tempCollider.objectID){
               this.projectiles[k].explode();
+              this.onNeedInformProjectileExplode(this.projectiles[k]);
+              this.skills.push(this.projectiles[k]);
+              this.projectiles.splice(k, 1);
               break;
             }
           }

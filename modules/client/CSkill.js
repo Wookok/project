@@ -91,22 +91,31 @@ var ProjectileSkill = function(skillInstance, currentPosition, ID){
   this.speed = {
     x : skillInstance.maxSpeed * Math.cos(this.direction * Math.PI/180),
     y : skillInstance.maxSpeed * Math.sin(this.direction * Math.PI/180)
-  }
+  };
+  this.timer = Date.now();
   this.radius = skillInstance.radius;
   this.lifeTime = skillInstance.lifeTime;
   this.explosionRadius = skillInstance.explosionRadius;
+
+  this.onExplosion = new Function();
 };
 
 ProjectileSkill.prototype = {
   move : function(){
-    this.position.x += this.speed.x;
-    this.position.y += this.speed.y;
+    var deltaTime = (Date.now() - this.timer)/ 1000;
+    this.position.x += this.speed.x * deltaTime;
+    this.position.y += this.speed.y * deltaTime;
+    this.timer = Date.now();
   },
   isExpired : function(){
     if(this.lifeTime > Date.now() - this.startTime){
       return false;
     }
     return true;
+  },
+  explode : function(){
+    this.onExplosion();
+    console.log('explode!!!!!!');
   }
 };
 
