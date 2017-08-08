@@ -541,9 +541,9 @@ GameManager.prototype.applyProjectile = function(userID, projectileData){
       timer : Date.now(),
 
       move : function(){
-        var deltaTime = Date.now() - this.timer;
-        this.x += projectileData.position.x * deltaTime;
-        this.y += projectileData.position.y * deltaTime;
+        var deltaTime = (Date.now() - this.timer)/1000;
+        this.x += projectileData.speed.x * deltaTime;
+        this.y += projectileData.speed.y * deltaTime;
         this.timer = Date.now();
       },
       isExpired : function(){
@@ -750,11 +750,10 @@ function updateIntervalHandler(){
             affectedEles.push({type : 'hitObj', objectID : tempCollider.objectID, attackUser : tempCollider.id, hitObj : collisionObjs[j].id, damage : tempCollider.damage,
                               buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
           }else{
-            for(var k=0; j<this.projectiles; k++){
-              if(this.projectiles[k].objectID === tempCollider.objectID){
-                this.projectiles[k].explode();
-                break;
-              }
+            var index = this.projectiles.indexOf(tempCollider);
+            console.log('projectile collision with user or chest');
+            if(index !== -1){
+              this.projectiles[index].explode();
             }
           }
         }else{
@@ -808,8 +807,8 @@ function updateIntervalHandler(){
     chestEles.push(this.chests[i].entityTreeEle);
   }
   //update collectable objects array
-  var addExpCounts = this.objExpsCount - Object.keys(this.objExps).length;
-  var addSkillCounts = this.objSkillsCount - Object.keys(this.objSkills).length;
+  var addExpCounts = this.objExpsCount -this.objExps.length;
+  var addSkillCounts = this.objSkillsCount - this.objSkills.length;
   if(addExpCounts > 0){
     var createdObjs = this.createOBJs(addExpCounts, gameConfig.PREFIX_OBJECT_EXP);
     this.onNeedInformCreateObjs(createdObjs);
@@ -818,10 +817,10 @@ function updateIntervalHandler(){
     var createdObjs = this.createOBJs(addSkillCounts, gameConfig.PREFIX_OBJECT_SKILL);
     this.onNeedInformCreateObjs(createdObjs);
   }
-  for(var i=0; i<Object.keys(this.objExps).length; i++){
+  for(var i=0; i<this.objExps.length; i++){
     collectionEles.push(this.objExps[i].collectionEle);
   }
-  for(var i=0; i<Object.keys(this.objSkills).length; i++){
+  for(var i=0; i<this.objSkills.length; i++){
     collectionEles.push(this.objSkills[i].collectionEle);
   }
   //update projectiles array
@@ -853,21 +852,18 @@ function updateIntervalHandler(){
 };
 function staticIntervalHandler(){
   //explode when projectile collide with obstacle
-  for(var i=0; i<this.projectiles; i++){
+  for(var i=0; i<this.projectiles.length; i++){
     var projectileCollider = this.projectiles[i];
     var collisionObjs = util.checkCircleCollision(staticTree, projectileCollider.x, projectileCollider.y, projectileCollider.width/2, projectileCollider.id);
     if(collisionObjs.length > 0 ){
-      for(var j = 0; j<collisionObjs.length; j++){
-        if(!projectileCollider.isCollide){
-          for(var k=0; k<this.projectiles; k++){
-            if(this.projectiles[k].objectID === tempCollider.objectID){
-              this.projectiles[k].explode();
-              this.onNeedInformProjectileExplode(this.projectiles[k]);
-              this.skills.push(this.projectiles[k]);
-              this.projectiles.splice(k, 1);
-              break;
-            }
-          }
+      if(!projectileCollider.isCollide){
+        var index = this.projectiles.indexOf(projectileCollider);
+        console.log('projectile collision with obstacle');
+        if(index !== -1){
+          this.projectiles[index].explode();
+          this.skills.push(this.projectiles[index]);
+          this.onNeedInformProjectileExplode(this.projectiles[index]);
+          this.projectiles.splice(index,1);
         }
       }
     }
@@ -877,6 +873,7 @@ function staticIntervalHandler(){
 function affectIntervalHandler(){
   var i = affectedEles.length;
   while(i--){
+    console.log(affectedEles);
     if(affectedEles[i].type === 'hitObj'){
       if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_USER){
         if(affectedEles[i].hitObj in this.users){

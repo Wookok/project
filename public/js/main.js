@@ -43,9 +43,9 @@ function changeState(newState){
   clearInterval(userDataUpdateInterval);
   drawInterval = false;
   userDataUpdateInterval = false;
-
-  documentDisableEvent();
-  canvasDisableEvent();
+  //
+  // documentDisableEvent();
+  // canvasDisableEvent();
 
   switch (newState) {
     case gameConfig.GAME_STATE_LOAD:
@@ -114,7 +114,9 @@ function game(){
 };
 //show end message and restart button
 function end(){
-
+  canvasDisableEvent();
+  documentDisableEvent();
+  changeState(gameConfig.GAME_STATE_START_SCENE);
 };
 
 //functions
@@ -201,10 +203,10 @@ function setupSocket(){
   });
   socket.on('disconnect', function(){
     console.log('disconnected');
-    changeState(gameConfig.GAME_STATE_LOAD);
+    changeState(gameConfig.GAME_STATE_END);
   });
-  socket.on('pong', function(laty){
-    latency = laty;
+  socket.on('pong', function(lat){
+    latency = lat;
   });
 
   socket.on('setSyncUser', function(user){
@@ -412,14 +414,14 @@ function updateUserDataHandler(){
   socket.emit('userDataUpdate', userData);
 };
 function canvasAddEvent(){
-  canvas.addEventListener('click', canvasAddEventHandler, false);
+  canvas.addEventListener('click', canvasEventHandler, false);
 };
 function documentAddEvent(){
   document.addEventListener('keydown', documentEventHandler, false);
 };
 update();
 
-function canvasAddEventHandler(){
+var canvasEventHandler = function(e){
   var targetPosition ={
     x : e.clientX/gameConfig.scaleFactor,
     y : e.clientY/gameConfig.scaleFactor
@@ -432,7 +434,7 @@ function canvasAddEventHandler(){
   socket.emit('userMoveStart', userData);
 };
 
-function documentEventHandler(e){
+var documentEventHandler = function(e){
   var keyCode = e.keyCode;
   var tempPos = {x : 0, y : 0};
 
@@ -470,7 +472,7 @@ function documentEventHandler(e){
   socket.emit('userUseSkill', userData);
 };
 function canvasDisableEvent(){
-  canvas.removeEventListener("click", canvasAddEventHandler);
+  canvas.removeEventListener("click", canvasEventHandler);
 };
 function documentDisableEvent(){
   document.removeEventListener("keydown", documentEventHandler);

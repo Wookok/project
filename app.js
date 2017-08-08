@@ -169,16 +169,3 @@ io.on('connection', function(socket){
     console.log('user disconnect :' + socket.id);
   });
 });
-//
-// //server util functions
-// function setCanvasScale(windowSize, canvasMaxSize){
-//   if(windowSize.width >= canvasMaxLocalSize.width || windowSize.height >= canvasMaxLocalSize.height){
-//     var scaleFactor = (windowSize.width / canvasMaxLocalSize.width) > (windowSize.height / canvasMaxLocalSize.height) ?
-//                   (windowSize.width / canvasMaxLocalSize.width) : (windowSize.height / canvasMaxLocalSize.height);
-//     // localConfig.canvasSize = {
-//     //   width : config.canvasMaxLocalSize.width,
-//     //   height : config.canvasMaxLocalSize.height
-//     // };
-//   }
-//   return 1;
-// }

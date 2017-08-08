@@ -97,6 +97,13 @@ var ProjectileSkill = function(skillInstance, currentPosition, ID){
   this.lifeTime = skillInstance.lifeTime;
   this.explosionRadius = skillInstance.explosionRadius;
 
+  this.effect = {
+    position : this.position,
+    radius : this.explosionRadius,
+    startTime : 0,
+    lifeTime  : skillInstance.effectLastTime
+  };
+
   this.onExplosion = new Function();
 };
 
@@ -107,6 +114,9 @@ ProjectileSkill.prototype = {
     this.position.y += this.speed.y * deltaTime;
     this.timer = Date.now();
   },
+  startEffectTimer : function(){
+    this.effect.startTime = Date.now();
+  },
   isExpired : function(){
     if(this.lifeTime > Date.now() - this.startTime){
       return false;
@@ -114,7 +124,6 @@ ProjectileSkill.prototype = {
     return true;
   },
   explode : function(){
-    this.onExplosion();
     console.log('explode!!!!!!');
   }
 };

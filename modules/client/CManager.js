@@ -277,6 +277,9 @@ CManager.prototype = {
 		for(var i=0; i<this.projectiles.length; i++){
 			if(this.projectiles[i].objectID === projectileID){
 				this.projectiles[i].explode();
+				this.projectiles[i].startEffectTimer();
+				this.effects.push(this.projectiles[i].effect);
+				this.projectiles.splice(i, 1);
 				break;
 			}
 		}
