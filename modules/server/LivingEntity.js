@@ -18,6 +18,9 @@ function LivingEntity(){
   this.targetPosition = {
     x : this.position.x, y : this.position.y
   };
+  this.beforePositions = [];
+  this.before150msPos = {x : -1000, y : -1000};
+  this.before300msPos = {x : -1000, y : -1000};
   this.targetDirection = 0;
 
   this.updateInterval = false;
@@ -26,6 +29,20 @@ function LivingEntity(){
   this.entityTreeEle = {
     x : this.position.x,
     y : this.position.y,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
+  this.entityBefore150msTreeEle = {
+    x : this.before150msPos.x,
+    y : this.before150msPos.y,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
+  this.entityBefore300msTreeEle = {
+    x : this.before150msPos.x,
+    y : this.before150msPos.y,
     width : this.size.width,
     height : this.size.height,
     id : this.objectID
@@ -63,14 +80,13 @@ LivingEntity.prototype.update = function(){
 };
 //rotate before move or fire skill etc..
 LivingEntity.prototype.rotate = function(){
-  util.rotate.call(this, deltaTime);
+  util.rotate.call(this);
 };
 //move after rotate
 LivingEntity.prototype.move = function(){
   util.move.call(this);
 };
 LivingEntity.prototype.idle = function(){
-  var deltaTime = Date.now() - this.timer;
   //do nothing or send current stat to client;
 };
 LivingEntity.prototype.moveDirect = function(newPosition){
@@ -125,13 +141,16 @@ LivingEntity.prototype.assignID = function(x){
 
 // initialize and update for entityTreeEle
 LivingEntity.prototype.setEntityEle = function(){
-  this.entityTreeEle = {
-    x : this.position.x,
-    y : this.position.y,
-    width : this.size.width,
-    height : this.size.height,
-    id : this.objectID
-  };
+  this.entityTreeEle.x = this.position.x;
+  this.entityTreeEle.y = this.position.y;
+};
+LivingEntity.prototype.setBefore150msEntitiyEle = function(){
+  this.entityTreeEle.x = this.before150msPos.x;
+  this.entityTreeEle.y = this.before150msPos.y;
+};
+LivingEntity.prototype.setBefore300msEntityEle = function(){
+  this.entityTreeEle.x = this.before300msPos.x;
+  this.entityTreeEle.y = this.before300msPos.y;
 };
 
 module.exports = LivingEntity;

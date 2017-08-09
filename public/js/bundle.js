@@ -1925,7 +1925,7 @@ function setupSocket(){
     changeState(gameConfig.GAME_STATE_END);
   });
   socket.on('pong', function(lat){
-    latency = lat;
+    latency = lat + 150;
   });
 
   socket.on('setSyncUser', function(user){
@@ -2129,6 +2129,7 @@ function drawGrid(){
 };
 function updateUserDataHandler(){
   var userData = Manager.processUserData();
+  userData.time = Date.now();
   userData.latency = latency;
   socket.emit('userDataUpdate', userData);
 };
