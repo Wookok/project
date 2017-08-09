@@ -10,5 +10,7 @@
 
     "CHEST_NEAR_RANGE" : 50,
 
-    "INITSKILLLIST" : [10, 20, 30]
+    "INITSKILLLIST" : [10, 20, 30],
+
+    "TOLERANCE_LIMIT_RATE" : 0.95
 }

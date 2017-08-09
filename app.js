@@ -41,18 +41,10 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var io = socketio.listen(server);
 
-GM.onNeedUserInform = function(userID){
-  var userData = GM.updateDataSetting(GM.users[userID]);
-  socket.emit('updateUser', userData);
-};
-GM.onNeedUserInformToAll = function(userID){
-  var userData = GM.updateDataSetting(GM.users[userID]);
-  io.sockets.emit('updateUser', userData);
-};
 GM.onNeedInformCreateObjs = function(objs){
   var objDatas = [];
   for(var i=0; i<Object.keys(objs).length; i++){
-    objDatas.push(GM.updateOBJDataSetting(objs[i]));
+    objDatas.push(GM.processOBJDataSetting(objs[i]));
   }
   io.sockets.emit('createOBJs', objDatas);
   console.log('createObjs executed');
@@ -70,7 +62,7 @@ GM.onNeedInformProjectileExplode = function(projectileData){
 };
 
 GM.onNeedInformCreateChest = function(chest){
-  var chestData = GM.updateChestDataSetting(chest);
+  var chestData = GM.processChestDataSetting(chest);
   io.sockets.emit('createChest', chestData);
 };
 
@@ -91,34 +83,38 @@ io.on('connection', function(socket){
       updateUserInterval = setInterval(function(){ GM.updateUser(user); }, INTERVAL_TIMER);
     }
 
-    var userData = GM.updateDataSetting(user);
+    var userData = GM.processUserDataSetting(user);
     //send users user joined game
     socket.broadcast.emit('userJoined', userData);
 
-    var userDatas = GM.updateDataSettings();
+    var userDatas = GM.processUserDataSettings();
     console.log(userDatas);
-    var skillDatas = GM.updateSkillsDataSettings();
-    var projectileDatas = GM.updateProjectilesDataSettings();
-    var objDatas = GM.updateOBJDataSettings();
-    var chestDatas = GM.updateChestDataSettings();
+    var skillDatas = GM.processSkillsDataSettings();
+    var projectileDatas = GM.processProjectilesDataSettings();
+    var objDatas = GM.processOBJDataSettings();
+    var chestDatas = GM.processChestDataSettings();
 
     socket.emit('setSyncUser', userData);
     socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas, chestDatas);
   });
 
   socket.on('userDataUpdate', function(userData){
+    if(GM.checkCheat(userData)){
+      console.log('is not cheating!');
+    }else{
+      console.log(userData.objectID + ' is cheating!!!!!');
+    }
     GM.updateUserData(userData);
   });
   socket.on('userMoveStart', function(userData){
     GM.updateUserData(userData);
 
-    var userData = GM.settingUserData(user);
+    var userData = GM.processUserDataSetting(user);
     socket.broadcast.emit('userDataUpdate', userData);
-    // io.sockets.emit('userDataUpdate', userData);
   });
   socket.on('userUseSkill', function(userAndSkillData){
     GM.updateUserData(userAndSkillData);
-    var userData = GM.settingUserData(user);
+    var userData = GM.processUserDataSetting(user);
     userData.skillIndex = userAndSkillData.skillIndex;
     userData.skillDirection = userAndSkillData.skillDirection;
     userData.skillTargetPosition = userAndSkillData.skillTargetPosition;

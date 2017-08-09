@@ -432,6 +432,8 @@ var canvasEventHandler = function(e){
 
   var userData = Manager.processUserData();
   userData.targetPosition = worldTargetPosition;
+  userData.time = Date.now();
+  userData.latency = latency;
   socket.emit('userMoveStart', userData);
 };
 

@@ -508,11 +508,9 @@ GameManager.prototype.initializeUser = function(user){
   // user.setRotateSpeed(20);
   // user.setMaxSpeed(5);
 };
-
 GameManager.prototype.stopUser = function(user){
   user.stop();
 };
-
 GameManager.prototype.applySkill = function(userID, skillData){
   if(userID in this.users){
     this.users[userID].addBuffs(skillData.buffsToSelf);
@@ -585,6 +583,26 @@ GameManager.prototype.applyProjectile = function(userID, projectileData){
     console.log('cant find user data');
   }
 };
+GameManager.prototype.checkCheat = function(userData){
+  var lastPositionIndex = this.users[userData.objectID].beforePositions.length;
+  console.log(lastPositionIndex);
+  if(lastPositionIndex > 0){
+    var lastPosition = this.users[userData.objectID].beforePositions[lastPositionIndex - 1];
+    var timeSpan = (userData.time - lastPosition.time)/1000;
+    var distX = Math.abs(userData.position.x - lastPosition.x);
+    var distY = Math.abs(userData.position.y - lastPosition.y);
+    var distSquare = Math.pow(distX + distY,2);
+    console.log(distSquare);
+    console.log(timeSpan);
+    console.log(this.users[userData.objectID].maxSpeed);
+    console.log(Math.pow(this.users[userData.objectID].maxSpeed,2) * timeSpan);
+    if(distSquare > Math.pow(this.users[userData.objectID].maxSpeed,2) * timeSpan * serverConfig.TOLERANCE_LIMIT_RATE){
+      return false;
+    }
+    return true;
+  }
+  return true;
+};
 GameManager.prototype.updateUserData = function(userData){
   if(userData.objectID in this.users){
     if(userData.time){
@@ -594,8 +612,8 @@ GameManager.prototype.updateUserData = function(userData){
         y : this.users[userData.objectID].position.y,
         time : this.users[userData.objectID].time
       });
-      if(this.users[userData.objectID].beforePositions.length >= 15){
-        while(this.users[userData.objectID].beforePositions.length >= 15){
+      if(this.users[userData.objectID].beforePositions.length > 15){
+        while(this.users[userData.objectID].beforePositions.length > 15){
           this.users[userData.objectID].beforePositions.splice(0, 1);
         }
       }
@@ -629,7 +647,7 @@ GameManager.prototype.updateUserData = function(userData){
     console.log('cant find user data');
   }
 };
-GameManager.prototype.settingUserData = function(user){
+GameManager.prototype.processUserDataSetting = function(user){
   return {
     objectID : user.objectID,
     currentState : user.currentState,
@@ -641,7 +659,7 @@ GameManager.prototype.settingUserData = function(user){
   };
 };
 // data setting for send to client
-GameManager.prototype.updateDataSettings = function(){
+GameManager.prototype.processUserDataSettings = function(){
   var userData = [];
 
   for(var index in this.users){
@@ -666,7 +684,7 @@ GameManager.prototype.updateDataSettings = function(){
 
   return userData;
 };
-GameManager.prototype.updateDataSetting = function(user){
+GameManager.prototype.processUserDataSetting = function(user){
   var userData = {
     objectID : user.objectID,
 
@@ -685,7 +703,7 @@ GameManager.prototype.updateDataSetting = function(user){
   };
   return userData;
 };
-GameManager.prototype.updateSkillsDataSettings = function(){
+GameManager.prototype.processSkillsDataSettings = function(){
   var skillDatas = [];
   for(var index in this.users){
     if(this.users[index].currentState === gameConfig.OBJECT_STATE_CAST){
@@ -701,7 +719,7 @@ GameManager.prototype.updateSkillsDataSettings = function(){
   }
   return skillDatas;
 };
-GameManager.prototype.updateProjectilesDataSettings = function(){
+GameManager.prototype.processProjectilesDataSettings = function(){
   var projectileDatas = [];
   for(var i=0; i<this.projectiles; i++){
     var projectile = {
@@ -718,14 +736,14 @@ GameManager.prototype.updateProjectilesDataSettings = function(){
   }
   return projectileDatas;
 };
-GameManager.prototype.updateOBJDataSetting = function(data){
+GameManager.prototype.processOBJDataSetting = function(data){
   return {
     objectID : data.objectID,
     position : data.position,
     radius : data.size.width/2
   };
 };
-GameManager.prototype.updateOBJDataSettings = function(){
+GameManager.prototype.processOBJDataSettings = function(){
   var objDatas = [];
   for(var i=0; i<this.objExps.length; i++){
     var objExp = {
@@ -745,14 +763,14 @@ GameManager.prototype.updateOBJDataSettings = function(){
   }
   return objDatas;
 };
-GameManager.prototype.updateChestDataSetting = function(data){
+GameManager.prototype.processChestDataSetting = function(data){
   return {
     objectID : data.objectID,
     locationID : data.locationID,
     grade : data.grade
   };
 };
-GameManager.prototype.updateChestDataSettings = function(){
+GameManager.prototype.processChestDataSettings = function(){
   var chestDatas = [];
   for(var i=0; i<this.chests.length; i++){
     chestDatas.push({
@@ -762,13 +780,6 @@ GameManager.prototype.updateChestDataSettings = function(){
     });
   }
   return chestDatas;
-};
-GameManager.prototype.checkStateIsAttack = function(user){
-  if(user.currentState === gameConfig.OBJECT_STATE_ATTACK){
-    return true;
-  }else{
-    return false;
-  }
 };
 GameManager.prototype.isCreateChest = function(){
   if(this.chests.length === 0){
@@ -783,6 +794,7 @@ function chestIntervalHandler(){
   }
 };
 function updateIntervalHandler(){
+  var startTime = Date.now();
   //check collision user with skill
   //colliderEle : skill, collisionObj : user, chest
   for(var i=0; i<colliderEles.length; i++){
