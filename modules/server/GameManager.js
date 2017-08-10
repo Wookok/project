@@ -332,145 +332,7 @@ GameManager.prototype.deleteObj = function(objID){
     }
   }
 };
-//setting User for moving and move user;
-GameManager.prototype.setUserTargetAndMove = function(user, targetPosition){
-  var collisionObjs = util.checkCircleCollision(staticTree, targetPosition.x - user.size.width/2, targetPosition.y - user.size.width/2, user.size.width/2, user.objectID);
-  //if click in obstacle calculate new target position
 
-  if(collisionObjs.length > 0){
-    var curPosX = user.position.x + user.size.width/2;
-    var curPosY = user.position.y + user.size.width/2;
-
-    var addPosX = collisionObjs[0].x + collisionObjs[0].width/2 - curPosX;
-    var addPosY = collisionObjs[0].y + collisionObjs[0].width/2 - curPosY;
-
-    var vecSize = Math.sqrt(Math.pow(addPosX,2) + Math.pow(addPosY,2));
-
-    var unitVecX = addPosX/vecSize;
-    var unitVecY = addPosY/vecSize;
-
-    var radiusDist = collisionObjs[0].width/2 + user.size.width/2
-
-    var newAddPosX = unitVecX * (vecSize - radiusDist);
-    var newAddPosY = unitVecY * (vecSize - radiusDist);
-
-    var newTargetPosX = curPosX + newAddPosX;
-    var newTargetPosY = curPosY + newAddPosY;
-
-    targetPosition.x = newTargetPosX;
-    targetPosition.y = newTargetPosY;
-  }
-  user.setTargetPosition(targetPosition);
-  user.setTargetDirection();
-  user.setSpeed();
-
-  user.changeState(gameConfig.OBJECT_STATE_MOVE);
-};
-
-GameManager.prototype.useSkill = function(user, skillData, clickPosition){
-  var skillInstance = user.makeSkillInstance(skillData, clickPosition);
-  switch (parseInt(skillData.type)) {
-    case gameConfig.SKILL_TYPE_BASIC:
-        skillInstance.onFire = function(){
-          //buff and debuff apply to self;
-          user.addBuffs(skillInstance.buffsToSelf);
-          user.addDebuffs(skillInstance.debuffsToSelf);
-          // skillInstance.applyBuff(user, 'buffsToSelf', 'buffList');
-          // skillInstance.applyBuff(user, 'debuffsToSelf', 'buffList');
-          setTimeout(function(){
-            colliderEles.push(skillInstance.colliderEle);
-          }, skillData.effectLastTime/2);
-        };
-      user.changeState(gameConfig.OBJECT_STATE_ATTACK);
-      break;
-    case gameConfig.SKILL_TYPE_INSTANT:
-      skillInstance.onFire = function(){
-        //buff and debuff apply to self;
-        user.addBuffs(skillInstance.buffsToSelf);
-        user.addDebuffs(skillInstance.debuffsToSelf);
-        setTimeout(function(){
-          colliderEles.push(skillInstance.colliderEle);
-        }, skillData.effectLastTime/2);
-      };
-      user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
-      user.changeState(gameConfig.OBJECT_STATE_CAST);
-      break;
-    case gameConfig.SKILL_TYPE_PROJECTILE:
-      var projectiles = this.projectiles;
-      var onProjectileFireOrExplode = this.onNeedProjectileSkillInformToAll;
-      skillInstance.onFire = function(){
-        //buff and debuff apply to self;
-        user.addBuffs(skillInstance.buffsToSelf);
-        user.addDebuffs(skillInstance.debuffsToSelf);
-        //create projectile object and push to projectiles
-        var randomID = SUtil.generateRandomUniqueID(projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
-        var projectile = skillInstance.makeProjectile(user, randomID, true);
-        projectile.onExplosion = onProjectileFireOrExplode;
-        projectiles.push(projectile);
-        colliderEles.push(projectile.colliderEle);
-        onProjectileFireOrExplode(projectile);
-      };
-      user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
-      user.changeState(gameConfig.OBJECT_STATE_CAST);
-      break;
-    case gameConfig.SKILL_TYPE_SELF:
-      skillInstance.onFire = function(){
-        //buff and debuff apply to self;
-        user.addBuffs(skillInstance.buffsToSelf);
-        user.addDebuffs(skillInstance.debuffsToSelf);
-      };
-      user.changeState(gameConfig.OBJECT_STATE_CAST);
-      break;
-    case gameConfig.SKILL_TYPE_SELF_EXPLOSION:
-      skillInstance.onFire = function(){
-        user.addBuffs(skillInstance.buffsToSelf);
-        user.addDebuffs(skillInstance.debuffsToSelf);
-        setTimeout(function(){
-          colliderEles.push(skillInstance.colliderEle);
-        }, skillData.effectLastTime/2);
-      };
-      user.changeState(gameConfig.OBJECT_STATE_CAST);
-      break;
-    case gameConfig.SKILL_TYPE_TELEPORT:
-      skillInstance.onFire = function(){
-        user.addBuffs(skillInstance.buffsToSelf);
-        user.addDebuffs(skillInstance.debuffsToSelf);
-        setTimeout(function(){
-          user.moveDirect(clickPosition);
-        }, skillData.effectLastTime/2);
-      };
-      break;
-    case gameConfig.SKILL_TYPE_PROJECTILE_TICK:
-      var projectiles = this.projectiles;
-      var onProjectileFireOrExplode = this.onNeedProjectileSkillInformToAll;
-      skillInstance.onFire = function(){
-        //buff and debuff apply to self;
-        user.addBuffs(skillInstance.buffsToSelf);
-        user.addDebuffs(skillInstance.debuffsToSelf);
-        //create projectile object and push to projectiles
-        var randomID = SUtil.generateRandomUniqueID(this.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
-        var projectile = skillInstance.makeProjectile(user, randomID, false);
-        projectile.onExplosion = onProjectileFireOrExplode;
-        projectiles.push(projectile);
-        colliderEles.push(projectile.colliderEle);
-        onProjectileFireOrExplode(projectile);
-      };
-      user.targetDirection = util.calcTargetDirection(clickPosition, user.center);
-      user.changeState(gameConfig.OBJECT_STATE_CAST);
-      break;
-    default:
-      console.log('skill type error!!!');
-      break;
-  }
-  user.setSkill(skillInstance);
-  return skillInstance;
-};
-// GameManager.prototype.checkSkillPossession = function(user, skillData){
-//   return user.checkSkillPossession(skillData);
-// };
-// GameManager.prototype.levelUpSkill = function(user, beforeSkillData, skillData){
-//   return user.levelUpSkill(beforeSkillData, skillData);
-// };
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
@@ -488,7 +350,9 @@ GameManager.prototype.kickUser = function(user){
     this.objExpsCount -= gameConfig.OBJ_EXP_ADD_PER_USER;
   }
 };
-
+GameManager.prototype.stopUser = function(user){
+  user.stop();
+};
 //user initialize
 GameManager.prototype.initializeUser = function(user){
   // check ID is unique
@@ -499,12 +363,10 @@ GameManager.prototype.initializeUser = function(user){
   user.setSize(64,64);
   user.setPosition(10, 10);
 
+  user.initEntityEle();
   user.buffUpdate();
   // user.setRotateSpeed(20);
   // user.setMaxSpeed(5);
-};
-GameManager.prototype.stopUser = function(user){
-  user.stop();
 };
 GameManager.prototype.applySkill = function(userID, skillData){
   if(userID in this.users){
@@ -879,7 +741,6 @@ function updateIntervalHandler(){
   for(var index in this.users){
     this.users[index].setEntityEle();
     userEles.push(this.users[index].entityTreeEle);
-
     this.users[index].setBefore150msEntitiyEle();
     userBefore150msEles.push(this.users[index].entityBefore150msTreeEle);
 

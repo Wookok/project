@@ -18,6 +18,7 @@ var canvas, ctx, scaleFactor;
 // const var
 var radianFactor = Math.PI/180;
 var fps = 1000/60;
+var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 // game var
 var Manager;
@@ -43,9 +44,6 @@ function changeState(newState){
   clearInterval(userDataUpdateInterval);
   drawInterval = false;
   userDataUpdateInterval = false;
-  //
-  // documentDisableEvent();
-  // canvasDisableEvent();
 
   switch (newState) {
     case gameConfig.GAME_STATE_LOAD:
@@ -83,7 +81,7 @@ function update(){
   }else if(gameSetupFunc !==null && gameUpdateFunc === null){
     gameSetupFunc();
   }
-}
+};
 
 //load resource, base setting
 function load(){
@@ -231,7 +229,7 @@ function setupSocket(){
     documentAddEvent();
 
     changeState(gameConfig.GAME_STATE_GAME_ON);
-    userDataUpdateInterval = setInterval(updateUserDataHandler, 1000/30);
+    userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
   });
 
   socket.on('userJoined', function(data){
@@ -415,13 +413,14 @@ function drawGrid(){
   ctx.strokeStyle = '#0000ff';
   ctx.globalAlpha = 0.15;
   ctx.beginPath();
-
-  for(var x = - Manager.user.position.x; x<gameConfig.canvasSize.width; x+= gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+ // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
+ //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
+  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/32){
     ctx.moveTo(x * gameConfig.scaleFactor, 0);
     ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor);
   }
 
-  for(var y = - Manager.user.position.y; y<gameConfig.canvasSize.height; y+= gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
+  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/20){
     ctx.moveTo(0, y * gameConfig.scaleFactor);
     ctx.lineTo(gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor, y * gameConfig.scaleFactor);
   }
@@ -430,11 +429,9 @@ function drawGrid(){
   ctx.globalAlpha = 1;
   ctx.closePath();
 };
-var beforeTime = 0;
 function updateUserDataHandler(){
   var userData = Manager.processUserData();
   userData.latency = latency;
-  beforeTime = userData.time;
   socket.emit('userDataUpdate', userData);
 };
 function canvasAddEvent(){
@@ -519,7 +516,7 @@ function setCanvasScale(gameConfig){
 };
 function calcOffset(){
   return {
-    x : Manager.user.position.x - gameConfig.canvasSize.width/(2 * gameConfig.scaleFactor) + Manager.user.size.width/2,
-    y : Manager.user.position.y - gameConfig.canvasSize.height/(2 * gameConfig.scaleFactor)+ Manager.user.size.height/2
+    x : Manager.user.center.x - gameConfig.canvasSize.width/(2 * gameConfig.scaleFactor),
+    y : Manager.user.center.y - gameConfig.canvasSize.height/(2 * gameConfig.scaleFactor)
   }
 };

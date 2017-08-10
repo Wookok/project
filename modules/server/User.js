@@ -14,7 +14,7 @@ var serverConfig = require('./serverConfig.json');
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 function User(id, userBaseData, Exp){
-  LivingEntity.call(this, Exp);
+  LivingEntity.call(this);
   // base setting;
   this.baseHP = userBaseData.baseHP;
   this.baseMP = userBaseData.baseMP;

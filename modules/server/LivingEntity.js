@@ -27,25 +27,25 @@ function LivingEntity(){
   this.updateFunction = new Function();
 
   this.entityTreeEle = {
-    x : this.position.x,
-    y : this.position.y,
-    width : this.size.width,
-    height : this.size.height,
-    id : this.objectID
+    x : 0,
+    y : 0,
+    width : 0,
+    height : 0,
+    id : ''
   };
   this.entityBefore150msTreeEle = {
-    x : this.before150msPos.x,
-    y : this.before150msPos.y,
-    width : this.size.width,
-    height : this.size.height,
-    id : this.objectID
+    x : 0,
+    y : 0,
+    width : 0,
+    height : 0,
+    id : ''
   };
   this.entityBefore300msTreeEle = {
-    x : this.before150msPos.x,
-    y : this.before150msPos.y,
-    width : this.size.width,
-    height : this.size.height,
-    id : this.objectID
+    x : 0,
+    y : 0,
+    width : 0,
+    height : 0,
+    id : ''
   };
   this.onMove = new Function();
 };
@@ -138,19 +138,41 @@ LivingEntity.prototype.setMaxSpeed = function(x){
 LivingEntity.prototype.assignID = function(x){
   this.objectID = x;
 };
-
+LivingEntity.prototype.initEntityEle = function(){
+  this.entityTreeEle = {
+    x : this.position.x,
+    y : this.position.y,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
+  this.entityBefore150msTreeEle = {
+    x : -2000,
+    y : -2000,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
+  this.entityBefore300msTreeEle = {
+    x : -2000,
+    y : -2000,
+    width : this.size.width,
+    height : this.size.height,
+    id : this.objectID
+  };
+}
 // initialize and update for entityTreeEle
 LivingEntity.prototype.setEntityEle = function(){
   this.entityTreeEle.x = this.position.x;
   this.entityTreeEle.y = this.position.y;
 };
 LivingEntity.prototype.setBefore150msEntitiyEle = function(){
-  this.entityTreeEle.x = this.before150msPos.x;
-  this.entityTreeEle.y = this.before150msPos.y;
+  this.entityBefore150msTreeEle.x = this.before150msPos.x;
+  this.entityBefore150msTreeEle.y = this.before150msPos.y;
 };
 LivingEntity.prototype.setBefore300msEntityEle = function(){
-  this.entityTreeEle.x = this.before300msPos.x;
-  this.entityTreeEle.y = this.before300msPos.y;
+  this.entityBefore300msTreeEle.x = this.before300msPos.x;
+  this.entityBefore300msTreeEle.y = this.before300msPos.y;
 };
 
 module.exports = LivingEntity;
