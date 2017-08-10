@@ -314,22 +314,44 @@ function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
-    var pos = util.worldToLocalPosition(Manager.objExps[i].position, gameConfig.userOffset);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
+    var centerX = util.worldXCoordToLocalX(Manager.objExps[i].position.x + Manager.objExps[i].radius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.objExps[i].position.y + Manager.objExps[i].radius, gameConfig.userOffset.y);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.objExps[i].radius * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+    // var pos = util.worldToLocalPosition(Manager.objExps[i].position, gameConfig.userOffset);
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
-  }
+  };
   ctx.fillStyle = "#ff0000";
   for(var i=0; i<Manager.objSkills.length; i++){
     ctx.beginPath();
-    var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
+    var centerX = util.worldXCoordToLocalX(Manager.objSkills[i].position.x + Manager.objSkills[i].radius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.objSkills[i].position.y + Manager.objSkills[i].radius, gameConfig.userOffset.y);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.objSkills[i].radius * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+    // var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
-}
+};
 function drawUsers(){
   for(var index in Manager.users){
     var radian = Manager.users[index].direction * radianFactor;
 
+    var centerX = util.worldXCoordToLocalX(Manager.users[index].position.x + Manager.users[index].size.width/2, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.users[index].position.y + Manager.users[index].size.height/2, gameConfig.userOffset.y);
+
+    var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+
+    ctx.beginPath();
+    ctx.fillStyle = "#ffff00";
+    ctx.globalAlpha = 0.5;
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, 32 * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.closePath();
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor);
+
+    ctx.beginPath();
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
@@ -408,10 +430,11 @@ function drawGrid(){
   ctx.globalAlpha = 1;
   ctx.closePath();
 };
+var beforeTime = 0;
 function updateUserDataHandler(){
   var userData = Manager.processUserData();
-  userData.time = Date.now();
   userData.latency = latency;
+  beforeTime = userData.time;
   socket.emit('userDataUpdate', userData);
 };
 function canvasAddEvent(){
@@ -432,7 +455,6 @@ var canvasEventHandler = function(e){
 
   var userData = Manager.processUserData();
   userData.targetPosition = worldTargetPosition;
-  userData.time = Date.now();
   userData.latency = latency;
   socket.emit('userMoveStart', userData);
 };

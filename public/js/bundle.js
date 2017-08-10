@@ -322,6 +322,7 @@ CManager.prototype = {
 			currentState : this.user.currentState,
 			position : this.user.position,
 			direction : this.user.direction,
+			time : this.user.timer
 		};
 	},
 	processSkillData : function(skillData){
@@ -1381,15 +1382,18 @@ exports.setSpeed = function(){
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
 
+  var distXSquare = Math.pow(distX,2);
+  var distYSquare = Math.pow(distY,2);
+
   if(distX == 0  && distY ==0){
     this.speed.x = 0;
     this.speed.y = 0;
-  }else if(Math.pow(distX,2) + Math.pow(distY,2) < 100){
+  }else if(distXSquare + distYSquare < 100){
     this.speed.x = distX;
     this.speed.y = distY;
   }else{
-    this.speed.x = (distX>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distX,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
-    this.speed.y = (distY>=0?1:-1)*Math.sqrt(Math.pow(this.maxSpeed,2)*Math.pow(distY,2)/(Math.pow(distX,2)+Math.pow(distY,2)));
+    this.speed.x = (distX>=0?1:-1)* this.maxSpeed * Math.sqrt(distXSquare / (distXSquare + distYSquare));
+    this.speed.y = (distY>=0?1:-1)* this.maxSpeed * Math.sqrt(distYSquare / (distXSquare + distYSquare));
   }
 };
 
@@ -1418,14 +1422,14 @@ exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   var obj = {x : posX, y: posY, width:radius * 2, height: radius * 2, id: id};
   tree.onCollision(obj, function(item){
     if(obj.id !== item.id){
-      var objCenterX = obj.x + obj.width/2;
-      var objCenterY = obj.y + obj.height/2;
+      var objCenterX = obj.x + radius;
+      var objCenterY = obj.y + radius;
 
       var itemCenterX = item.x + item.width/2;
       var itemCenterY = item.y + item.height/2;
 
       // check sum of radius with item`s distance
-      var distSquareDiff = Math.pow(obj.width/2 + item.width/2,2) - Math.pow(itemCenterX - objCenterX,2) - Math.pow(itemCenterY - objCenterY,2);
+      var distSquareDiff = Math.pow(radius + item.width/2,2) - Math.pow(itemCenterX - objCenterX,2) - Math.pow(itemCenterY - objCenterY,2);
 
       if(distSquareDiff > 0 ){
         //collision occured
@@ -2033,15 +2037,23 @@ function drawObjs(){
   ctx.fillStyle = "#0000ff";
   for(var i=0; i<Manager.objExps.length; i++){
     ctx.beginPath();
-    var pos = util.worldToLocalPosition(Manager.objExps[i].position, gameConfig.userOffset);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
+    var centerX = util.worldXCoordToLocalX(Manager.objExps[i].position.x + Manager.objExps[i].radius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.objExps[i].position.y + Manager.objExps[i].radius, gameConfig.userOffset.y);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.objExps[i].radius * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+    // var pos = util.worldToLocalPosition(Manager.objExps[i].position, gameConfig.userOffset);
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor, Manager.objExps[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
   ctx.fillStyle = "#ff0000";
   for(var i=0; i<Manager.objSkills.length; i++){
     ctx.beginPath();
-    var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
+    var centerX = util.worldXCoordToLocalX(Manager.objSkills[i].position.x + Manager.objSkills[i].radius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.objSkills[i].position.y + Manager.objSkills[i].radius, gameConfig.userOffset.y);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.objSkills[i].radius * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+    // var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
 }
@@ -2049,6 +2061,22 @@ function drawUsers(){
   for(var index in Manager.users){
     var radian = Manager.users[index].direction * radianFactor;
 
+    var centerX = util.worldXCoordToLocalX(Manager.users[index].position.x + Manager.users[index].size.width/2, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.users[index].position.y + Manager.users[index].size.height/2, gameConfig.userOffset.y);
+
+    var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+    console.log(centerX + ' : ' + centerY);
+    console.log(center);
+
+    ctx.beginPath();
+    ctx.fillStyle = "#ffff00";
+    ctx.globalAlpha = 0.5;
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, 32 * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.closePath();
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor);
+
+    ctx.beginPath();
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
@@ -2127,10 +2155,11 @@ function drawGrid(){
   ctx.globalAlpha = 1;
   ctx.closePath();
 };
+var beforeTime = 0;
 function updateUserDataHandler(){
   var userData = Manager.processUserData();
-  userData.time = Date.now();
   userData.latency = latency;
+  beforeTime = userData.time;
   socket.emit('userDataUpdate', userData);
 };
 function canvasAddEvent(){
@@ -2151,6 +2180,7 @@ var canvasEventHandler = function(e){
 
   var userData = Manager.processUserData();
   userData.targetPosition = worldTargetPosition;
+  userData.latency = latency;
   socket.emit('userMoveStart', userData);
 };
 

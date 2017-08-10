@@ -321,6 +321,7 @@ CManager.prototype = {
 			currentState : this.user.currentState,
 			position : this.user.position,
 			direction : this.user.direction,
+			time : this.user.timer
 		};
 	},
 	processSkillData : function(skillData){

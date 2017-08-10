@@ -11,6 +11,7 @@ var app = express();
 
 var config = require('./config.json');
 var gameConfig = require('./modules/public/gameConfig.json');
+var serverConfig = require('./modules/server/serverConfig.json');
 
 var dataJson = require('./modules/public/data.json');
 var csvJsonOption = {delimiter : ',', quote : '"'};
@@ -70,7 +71,6 @@ io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
 
   var user = new User(socket.id, userBaseTable[0], 0);
-  var updateUserInterval = false;
 
   socket.on('reqStartGame', function(){
 
@@ -79,9 +79,7 @@ io.on('connection', function(socket){
     GM.joinUser(user);
 
     //update user data
-    if(!updateUserInterval){
-      updateUserInterval = setInterval(function(){ GM.updateUser(user); }, INTERVAL_TIMER);
-    }
+
 
     var userData = GM.processUserDataSetting(user);
     //send users user joined game
@@ -99,10 +97,13 @@ io.on('connection', function(socket){
   });
 
   socket.on('userDataUpdate', function(userData){
-    if(GM.checkCheat(userData)){
-      console.log('is not cheating!');
-    }else{
-      console.log(userData.objectID + ' is cheating!!!!!');
+    var rand = Math.floor(Math.random() * serverConfig.CHEAT_CHECK_RATE);
+    if(rand === 1){
+      if(GM.checkCheat(userData)){
+        console.log('is not cheating!');
+      }else{
+        console.log(userData.objectID + ' is cheating!!!!!');
+      }
     }
     GM.updateUserData(userData);
   });
@@ -157,10 +158,6 @@ io.on('connection', function(socket){
       GM.stopUser(user);
       GM.kickUser(user);
       user = null;
-    }
-    if(updateUserInterval){
-      clearInterval(updateUserInterval);
-      updateUserInterval = false;
     }
     console.log('user disconnect :' + socket.id);
   });

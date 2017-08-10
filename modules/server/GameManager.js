@@ -55,7 +55,9 @@ function GameManager(){
   this.projectiles = [];
 
   this.objExps = [];
+  this.addedObjExps = [];
   this.objSkills = [];
+  this.addedObjSkills = [];
   this.objExpsCount = serverConfig.OBJ_EXP_MIN_COUNT;
   this.objSkillsCount = serverConfig.OBJ_SKILL_MIN_COUNT;
 
@@ -252,7 +254,7 @@ GameManager.prototype.createOBJs = function(count, type, expOrSkill, nearPositio
       objExp.initOBJExp(randomPos, radius, expAmount);
       objExp.setCollectionEle();
       this.objExps.push(objExp);
-
+      this.addedObjExps.push(objExp);
       createdObjs.push(objExp);
     }
   }else if(type === gameConfig.PREFIX_OBJECT_SKILL){
@@ -276,7 +278,7 @@ GameManager.prototype.createOBJs = function(count, type, expOrSkill, nearPositio
       objSkill.setCollectionEle();
       // this.staticTree.push(food.staticEle);
       this.objSkills.push(objSkill);
-
+      this.addedObjSkills.push(objSkill);
       createdObjs.push(objSkill);
     }
   }
@@ -486,13 +488,6 @@ GameManager.prototype.kickUser = function(user){
     this.objExpsCount -= gameConfig.OBJ_EXP_ADD_PER_USER;
   }
 };
-GameManager.prototype.updateUser = function(user){
-  if(!(user.objectID in this.users)){
-    console.log("can`t find user`s ID. something is wrong");
-  }else{
-    this.users[user.objectID] = user;
-  }
-};
 
 //user initialize
 GameManager.prototype.initializeUser = function(user){
@@ -585,28 +580,21 @@ GameManager.prototype.applyProjectile = function(userID, projectileData){
 };
 GameManager.prototype.checkCheat = function(userData){
   var lastPositionIndex = this.users[userData.objectID].beforePositions.length;
-  console.log(lastPositionIndex);
   if(lastPositionIndex > 0){
     var lastPosition = this.users[userData.objectID].beforePositions[lastPositionIndex - 1];
     var timeSpan = (userData.time - lastPosition.time)/1000;
     var distX = Math.abs(userData.position.x - lastPosition.x);
     var distY = Math.abs(userData.position.y - lastPosition.y);
-    var distSquare = Math.pow(distX + distY,2);
-    console.log(distSquare);
-    console.log(timeSpan);
-    console.log(this.users[userData.objectID].maxSpeed);
-    console.log(Math.pow(this.users[userData.objectID].maxSpeed,2) * timeSpan);
-    if(distSquare > Math.pow(this.users[userData.objectID].maxSpeed,2) * timeSpan * serverConfig.TOLERANCE_LIMIT_RATE){
+    var dist = Math.sqrt(Math.pow(distX,2) + Math.pow(distY,2));
+    if(dist > this.users[userData.objectID].maxSpeed * timeSpan * serverConfig.TOLERANCE_LIMIT_RATE){
       return false;
     }
-    return true;
   }
   return true;
 };
 GameManager.prototype.updateUserData = function(userData){
   if(userData.objectID in this.users){
     if(userData.time){
-      this.users[userData.objectID].time = userData.time;
       this.users[userData.objectID].beforePositions.push({
         x : this.users[userData.objectID].position.x,
         y : this.users[userData.objectID].position.y,
@@ -630,6 +618,7 @@ GameManager.prototype.updateUserData = function(userData){
           }
         }
       }
+      this.users[userData.objectID].time = userData.time;
     }
     this.users[userData.objectID].currentState = userData.currentState;
     this.users[userData.objectID].position = userData.position;
@@ -794,7 +783,6 @@ function chestIntervalHandler(){
   }
 };
 function updateIntervalHandler(){
-  var startTime = Date.now();
   //check collision user with skill
   //colliderEle : skill, collisionObj : user, chest
   for(var i=0; i<colliderEles.length; i++){
@@ -833,6 +821,7 @@ function updateIntervalHandler(){
   }
   //check collision user with object(exp, skill, etc)
   //userEle : user, collisionObj : objExp, objSkill
+  var removeOBJs = [];
   for(var i=0; i<userEles.length; i++){
     var tempUser = userEles[i];
     //collisionObj : exp or skill object
@@ -847,6 +836,7 @@ function updateIntervalHandler(){
       }else{
         console.log('check id' + collisionObjs[j].id);
       }
+      removeOBJs.push(collisionObjs[j]);
     }
   }
 
@@ -865,16 +855,25 @@ function updateIntervalHandler(){
     entityBefore150msTree.remove(chestEles[i]);
     entityBefore300msTree.remove(chestEles[i]);
   }
-  for(var i=0; i<collectionEles.length; i++){
-    collectionTree.remove(collectionEles[i]);
+
+  for(var i=0; i<removeOBJs.length; i++){
+    collectionTree.remove(removeOBJs[i]);
+
+    var index = collectionEles.indexOf(removeOBJs[i]);
+    if(index >= 0){
+      collectionEles.splice(index, 1);
+    }
   }
+  // for(var i=0; i<collectionEles.length; i++){
+  //   collectionTree.remove(collectionEles[i]);
+  // }
 
   userEles = [];
   userBefore150msEles = [];
   userBefore300msEles = [];
   chestEles = [];
   colliderEles = [];
-  collectionEles = [];
+  // collectionEles = [];
 
   //updateUserArray
   for(var index in this.users){
@@ -901,12 +900,24 @@ function updateIntervalHandler(){
     var createdObjs = this.createOBJs(addSkillCounts, gameConfig.PREFIX_OBJECT_SKILL);
     this.onNeedInformCreateObjs(createdObjs);
   }
-  for(var i=0; i<this.objExps.length; i++){
-    collectionEles.push(this.objExps[i].collectionEle);
+
+  var addedObjEles = [];
+  for(var i=0; i<this.addedObjExps.length; i++){
+    addedObjEles.push(this.addedObjExps[i].collectionEle);
   }
-  for(var i=0; i<this.objSkills.length; i++){
-    collectionEles.push(this.objSkills[i].collectionEle);
+  for(var i=0; i<this.addedObjSkills.length; i++){
+    addedObjEles.push(this.addedObjSkills[i].collectionEle);
   }
+  for(var i=0; i<addedObjEles.length; i++){
+    collectionEles.push(addedObjEles[i]);
+  }
+  // for(var i=0; i<this.objExps.length; i++){
+  //   collectionEles.push(this.objExps[i].collectionEle);
+  // }
+  // for(var i=0; i<this.objSkills.length; i++){
+  //   collectionEles.push(this.objSkills[i].collectionEle);
+  // }
+
   //update projectiles array
   var i = this.projectiles.length;
   while(i--){
@@ -938,7 +949,8 @@ function updateIntervalHandler(){
   entityBefore300msTree.pushAll(userBefore300msEles);
   entityBefore300msTree.pushAll(chestEles);
 
-  collectionTree.pushAll(collectionEles);
+  // collectionTree.pushAll(collectionEles);
+  collectionTree.pushAll(addedObjEles);
 };
 function staticIntervalHandler(){
   //explode when projectile collide with obstacle
