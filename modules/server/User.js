@@ -16,6 +16,8 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 function User(id, userBaseData, Exp){
   LivingEntity.call(this);
   // base setting;
+  this.type = userBaseData.type;
+
   this.baseHP = userBaseData.baseHP;
   this.baseMP = userBaseData.baseMP;
   this.baseMaxSpeed = userBaseData.baseMaxSpeed;
@@ -166,7 +168,7 @@ User.prototype.addDebuffs = function(debuffs){
 };
 User.prototype.getExp = function(exp){
   this.Exp += exp;
-  var userLevelData = util.findData(userBaseTable, 'level', this.level);
+  var userLevelData = util.findDataWithTwoColumns(userBaseTable, 'type', this.type, 'level', this.level);
   if(userLevelData.needExp === -1){
     console.log('user reach max level');
   }else if(this.Exp >= userLevelData.needExp){
@@ -175,7 +177,7 @@ User.prototype.getExp = function(exp){
 };
 User.prototype.levelUp = function(){
   this.level ++;
-  var userLevelData = util.findData(userBaseTable, 'level', this.level);
+  var userLevelData = util.findDataWithTwoColumns(userBaseTable, 'type', this.type, 'level', this.level);
   console.log('level up to ' + this.level);
   //add levelBonus
   //additional level up check.
@@ -185,7 +187,7 @@ User.prototype.levelUp = function(){
 
 //execute when level up or down
 User.prototype.updateUserBaseStat = function(){
-  var userLevelData = util.findData(userBaseTable, 'level', this.level);
+  var userLevelData = util.findDataWithTwoColumns(userBaseTable, 'type', this.type, 'level', this.level);
 
   this.baseHP = userLevelData.baseHP;
   this.baseMP = userLevelData.baseMP;

@@ -11,6 +11,7 @@ var socket;
 
 // document elements
 var infoScene, gameScene, standingScene;
+var btnType1, btnType2, btnType3, btnType4, btnType5;
 var startButton;
 
 var canvas, ctx, scaleFactor;
@@ -104,7 +105,19 @@ function standby(){
 //setup socket here!!! now changestates in socket response functions
 function start(){
   setupSocket();
-  socket.emit('reqStartGame');
+  var userType = 1;
+  if(btnType1.checked){
+    userType = gameConfig.CHAR_TYPE_FIRE;
+  }else if(btnType2.checked){
+    userType = gameConfig.CHAR_TYPE_ICE;
+  }else if(btnType3.checked){
+    userType = gameConfig.CHAR_TYPE_WIND;
+  }else if(btnType4.checked){
+    userType = gameConfig.CHAR_TYPE_VISION;
+  }else{
+    userType = gameConfig.CHAR_TYPE_NATURAL;
+  }
+  socket.emit('reqStartGame', userType);
 };
 //game play on
 function game(){
@@ -123,6 +136,13 @@ function setBaseSetting(){
   ctx = canvas.getContext('2d');
 
   infoScene = document.getElementById('infoScene');
+  btnType1 = document.getElementById('type1');
+  btnType2 = document.getElementById('type2');
+  btnType3 = document.getElementById('type3');
+  btnType4 = document.getElementById('type4');
+  btnType5 = document.getElementById('type5');
+  btnType1.checked = true;
+
   gameScene = document.getElementById('gameScene');
   standingScene = document.getElementById('standingScene');
   startButton = document.getElementById('startButton');
@@ -416,13 +436,13 @@ function drawGrid(){
  // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
  //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
   for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/32){
-    ctx.moveTo(x * gameConfig.scaleFactor, 0);
-    ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, gameConfig.canvasSize.height);
   }
 
   for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/20){
-    ctx.moveTo(0, y * gameConfig.scaleFactor);
-    ctx.lineTo(gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor, y * gameConfig.scaleFactor);
+    ctx.moveTo(0, y);
+    ctx.lineTo(gameConfig.canvasSize.width, y);
   }
 
   ctx.stroke();
@@ -518,5 +538,5 @@ function calcOffset(){
   return {
     x : Manager.user.center.x - gameConfig.canvasSize.width/(2 * gameConfig.scaleFactor),
     y : Manager.user.center.y - gameConfig.canvasSize.height/(2 * gameConfig.scaleFactor)
-  }
+  };
 };

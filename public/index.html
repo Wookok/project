@@ -5,6 +5,12 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>.io</title>
   <style>
+    html, body, canvas {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     .disable{
       display: none;
     }
@@ -18,6 +24,13 @@
     <h1>Info Scene</h1>
     <input type="text" placeholder="Enter Your Nickname" id="name" />
     <button id="startButton">start button</button>
+    <br>
+    <input type="radio" name="charType" id="type1"> type1<br>
+    <input type="radio" name="charType" id="type2"> type2<br>
+    <input type="radio" name="charType" id="type3"> type3<br>
+    <input type="radio" name="charType" id="type4"> type4<br>
+    <input type="radio" name="charType" id="type5"> type5<br>
+
   </div>
   <div id="gameScene" class="disable">
     <canvas id="canvas" height="1000" width="1000"></canvas>

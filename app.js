@@ -69,17 +69,14 @@ GM.onNeedInformCreateChest = function(chest){
 
 io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
-
-  var user = new User(socket.id, userBaseTable[0], 0);
-
-  socket.on('reqStartGame', function(){
+  var user;
+  socket.on('reqStartGame', function(userType){
+    var userData = util.findDataWithTwoColumns(userBaseTable, 'type', userType, 'level', 1);
+    user = new User(socket.id, userData, 0);
 
     // user init and join game
     GM.initializeUser(user);
     GM.joinUser(user);
-
-    //update user data
-
 
     var userData = GM.processUserDataSetting(user);
     //send users user joined game

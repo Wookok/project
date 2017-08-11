@@ -394,6 +394,7 @@ exports.calcTargetPosition = function(centerPosition, direction, range){
 
   return {x : addPosX, y : addPosY};
 };
+//find last coincident data
 exports.findData = function(table, columnName, value){
   var data = undefined;
   for(var index in table){
@@ -401,6 +402,25 @@ exports.findData = function(table, columnName, value){
     if(table[index][columnName] == value){
       data = table[index];
     }
+  }
+  return data;
+};
+exports.findDataWithTwoColumns = function(table, columnName1, value1, columnName2, value2){
+  var datas = [];
+  var data = null;
+  for(var index in table){
+    if(table[index][columnName1] == value1){
+      datas.push(table[index]);
+    }
+  }
+  if(datas.length > 0){
+    for(var index in datas){
+      if(datas[index][columnName2] == value2){
+        data = datas[index];
+      }
+    }
+  }else{
+    return null;
   }
   return data;
 }
