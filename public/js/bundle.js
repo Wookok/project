@@ -1199,8 +1199,8 @@ module.exports={
 module.exports={
   "INTERVAL" : 60,
 
-  "CANVAS_MAX_SIZE" : {"width" : 5600 , "height" : 3360},
-  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
+  "CANVAS_MAX_SIZE" : {"width" : 800 , "height" : 800},
+  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 600, "height" : 600},
 
   "OBJECT_STATE_IDLE" : 1,
   "OBJECT_STATE_MOVE" : 2,
@@ -1208,10 +1208,6 @@ module.exports={
   "OBJECT_STATE_CAST" : 4,
 
   "FPS" : 60,
-  "PLUS_SIZE_WIDTH" : 500,
-  "PLUS_SIZE_HEIGHT" : 500,
-
-  "OBJECT_STATE_MOVE_OFFSET" : 99,
 
   "GAME_STATE_LOAD" : 1,
   "GAME_STATE_START_SCENE" : 2,
@@ -1422,6 +1418,26 @@ exports.setTargetDirection = function(){
     }
   }
 };
+exports.setTargetPosition = function(clickPosition, user){
+  var targetX = clickPosition.x;
+  var targetY = clickPosition.y;
+  if(targetX < user.size.width/2){
+    targetX = user.size.width/2
+  }else if(targetX > gameConfig.CANVAS_MAX_SIZE.width - user.size.width/2){
+    targetX = gameConfig.CANVAS_MAX_SIZE.width - user.size.width/2;
+  }
+
+  if(targetY < user.size.height/2){
+    targetY = user.size.height/2
+  }else if(targetY > gameConfig.CANVAS_MAX_SIZE.height - user.size.height/2){
+    targetY = gameConfig.CANVAS_MAX_SIZE.height - user.size.height/2;
+  }
+  
+  return {
+    x : targetX,
+    y : targetY
+  };
+};
 //check obstacle collision
 exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   var returnVal = [];
@@ -1533,30 +1549,26 @@ exports.worldXCoordToLocalX = function(x, offsetX){
 exports.worldYCoordToLocalY = function(y, offsetY){
   return y - offsetY;
 };
-exports.isDrawX = function(x, gameConfig){
-  if(x <= gameConfig.userOffset.x - gameConfig.PLUS_SIZE_WIDTH){
-    return false;
-  }else if(x >= gameConfig.userOffset.x + gameConfig.canvasSize.width + gameConfig.PLUS_SIZE_WIDTH){
-    return false;
-  }else{
-    return true;
-  }
-};
-exports.isDrawY = function(y, gameConfig){
-  if(y <= gameConfig.userOffset.y - gameConfig.PLUS_SIZE_HEIGHT){
-    return false;
-  }else if(y >= gameConfig.userOffset.y + gameConfig.canvasSize.height + gameConfig.PLUS_SIZE_HEIGHT){
-    return false;
-  }else{
-    return true;
-  }
-};
 exports.calculateOffset = function(obj, canvasSize){
   var newOffset = {
     x : obj.position.x + obj.size.width/2 - canvasSize.width/2,
     y : obj.position.y + obj.size.height/2 - canvasSize.height/2
   };
   return newOffset;
+};
+exports.isXInCanvas = function(x, gameConfig){
+  var scaledX = x * gameConfig.scaleFactor;
+  if(scaledX>0 && scaledX<gameConfig.canvasSize.width){
+    return true;
+  }
+  return false;
+};
+exports.isYInCanvas = function(y, gameConfig){
+  var scaledY = y * gameConfig.scaleFactor;
+  if(scaledY>0 && scaledY<gameConfig.canvasSize.height){
+    return true;
+  }
+  return false;
 };
 
 //calcurate distance
@@ -1971,6 +1983,7 @@ function setupSocket(){
   socket.on('disconnect', function(){
     console.log('disconnected');
     changeState(gameConfig.GAME_STATE_END);
+    socket.emit('disconnect');
   });
   socket.on('pong', function(lat){
     latency = lat + 300;
@@ -2171,10 +2184,10 @@ function drawProjectile(){
 };
 function drawBackground(){
   ctx.fillStyle = "#11ff11";
-  var posX = -gameConfig.userOffset.x;
-  var posY = -gameConfig.userOffset.y;
-  var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor - posX;
-  var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor- posY;
+  var posX = -gameConfig.userOffset.x * gameConfig.scaleFactor;
+  var posY = -gameConfig.userOffset.y * gameConfig.scaleFactor;
+  var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor;
+  var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor;
   ctx.fillRect(posX, posY, sizeW, sizeH);
 };
 function drawGrid(){
@@ -2184,15 +2197,19 @@ function drawGrid(){
   ctx.beginPath();
  // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
  //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
-  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/32){
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, gameConfig.canvasSize.height);
-  }
+  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+    if(util.isXInCanvas(x, gameConfig)){
+      ctx.moveTo(x * gameConfig.scaleFactor, 0);
+      ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.canvasSize.height);
+    }
+  };
 
-  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/20){
-    ctx.moveTo(0, y);
-    ctx.lineTo(gameConfig.canvasSize.width, y);
-  }
+  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
+    if(util.isYInCanvas(y, gameConfig)){
+      ctx.moveTo(0, y * gameConfig.scaleFactor);
+      ctx.lineTo(gameConfig.canvasSize.width, y * gameConfig.scaleFactor);
+    }
+  };
 
   ctx.stroke();
   ctx.globalAlpha = 1;
@@ -2212,15 +2229,17 @@ function documentAddEvent(){
 update();
 
 var canvasEventHandler = function(e){
-  var targetPosition ={
+  var clickPosition ={
     x : e.clientX/gameConfig.scaleFactor,
     y : e.clientY/gameConfig.scaleFactor
   }
-  var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-  Manager.moveUser(worldTargetPosition);
+  var worldClickPosition = util.localToWorldPosition(clickPosition, gameConfig.userOffset);
+  var targetPosition = util.setTargetPosition(worldClickPosition, Manager.users[gameConfig.userID]);
+
+  Manager.moveUser(targetPosition);
 
   var userData = Manager.processUserData();
-  userData.targetPosition = worldTargetPosition;
+  userData.targetPosition = targetPosition;
   userData.latency = latency;
   socket.emit('userMoveStart', userData);
 };

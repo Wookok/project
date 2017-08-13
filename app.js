@@ -92,8 +92,10 @@ io.on('connection', function(socket){
     socket.emit('setSyncUser', userData);
     socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas, chestDatas);
   });
-
+  // var timeDelay = Date.now();
   socket.on('userDataUpdate', function(userData){
+    // console.log(userData.time - timeDelay);
+    // timeDelay = userData.time;
     var rand = Math.floor(Math.random() * serverConfig.CHEAT_CHECK_RATE);
     if(rand === 1){
       if(GM.checkCheat(userData)){

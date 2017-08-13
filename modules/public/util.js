@@ -134,6 +134,26 @@ exports.setTargetDirection = function(){
     }
   }
 };
+exports.setTargetPosition = function(clickPosition, user){
+  var targetX = clickPosition.x;
+  var targetY = clickPosition.y;
+  if(targetX < user.size.width/2){
+    targetX = user.size.width/2
+  }else if(targetX > gameConfig.CANVAS_MAX_SIZE.width - user.size.width/2){
+    targetX = gameConfig.CANVAS_MAX_SIZE.width - user.size.width/2;
+  }
+
+  if(targetY < user.size.height/2){
+    targetY = user.size.height/2
+  }else if(targetY > gameConfig.CANVAS_MAX_SIZE.height - user.size.height/2){
+    targetY = gameConfig.CANVAS_MAX_SIZE.height - user.size.height/2;
+  }
+  
+  return {
+    x : targetX,
+    y : targetY
+  };
+};
 //check obstacle collision
 exports.checkCircleCollision = function(tree, posX, posY, radius, id){
   var returnVal = [];
@@ -245,30 +265,26 @@ exports.worldXCoordToLocalX = function(x, offsetX){
 exports.worldYCoordToLocalY = function(y, offsetY){
   return y - offsetY;
 };
-exports.isDrawX = function(x, gameConfig){
-  if(x <= gameConfig.userOffset.x - gameConfig.PLUS_SIZE_WIDTH){
-    return false;
-  }else if(x >= gameConfig.userOffset.x + gameConfig.canvasSize.width + gameConfig.PLUS_SIZE_WIDTH){
-    return false;
-  }else{
-    return true;
-  }
-};
-exports.isDrawY = function(y, gameConfig){
-  if(y <= gameConfig.userOffset.y - gameConfig.PLUS_SIZE_HEIGHT){
-    return false;
-  }else if(y >= gameConfig.userOffset.y + gameConfig.canvasSize.height + gameConfig.PLUS_SIZE_HEIGHT){
-    return false;
-  }else{
-    return true;
-  }
-};
 exports.calculateOffset = function(obj, canvasSize){
   var newOffset = {
     x : obj.position.x + obj.size.width/2 - canvasSize.width/2,
     y : obj.position.y + obj.size.height/2 - canvasSize.height/2
   };
   return newOffset;
+};
+exports.isXInCanvas = function(x, gameConfig){
+  var scaledX = x * gameConfig.scaleFactor;
+  if(scaledX>0 && scaledX<gameConfig.canvasSize.width){
+    return true;
+  }
+  return false;
+};
+exports.isYInCanvas = function(y, gameConfig){
+  var scaledY = y * gameConfig.scaleFactor;
+  if(scaledY>0 && scaledY<gameConfig.canvasSize.height){
+    return true;
+  }
+  return false;
 };
 
 //calcurate distance

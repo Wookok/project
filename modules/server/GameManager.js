@@ -338,16 +338,16 @@ GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
   this.users[user.objectID].onMove = onMoveCalcCompelPos.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
-  this.objExpsCount += gameConfig.OBJ_EXP_ADD_PER_USER;
+  this.objExpsCount += serverConfig.OBJ_EXP_ADD_PER_USER;
   console.log(this.users);
   console.log(user.objectID + ' join in GameManager');
 };
 GameManager.prototype.kickUser = function(user){
   if(!(user.objectID in this.users)){
-    console.log("can`t find user`s ID. something is wrong");
+    console.log("can`t find user`s ID. user already out of game");
   }else{
     delete this.users[user.objectID];
-    this.objExpsCount -= gameConfig.OBJ_EXP_ADD_PER_USER;
+    this.objExpsCount -= serverConfig.OBJ_EXP_ADD_PER_USER;
   }
 };
 GameManager.prototype.stopUser = function(user){
@@ -699,6 +699,8 @@ function updateIntervalHandler(){
         console.log('check id' + collisionObjs[j].id);
       }
       removeOBJs.push(collisionObjs[j]);
+      // console.log('removeOBJs.length');
+      // console.log(removeOBJs.length);
     }
   }
 
@@ -720,7 +722,6 @@ function updateIntervalHandler(){
 
   for(var i=0; i<removeOBJs.length; i++){
     collectionTree.remove(removeOBJs[i]);
-
     var index = collectionEles.indexOf(removeOBJs[i]);
     if(index >= 0){
       collectionEles.splice(index, 1);
@@ -769,9 +770,12 @@ function updateIntervalHandler(){
   for(var i=0; i<this.addedObjSkills.length; i++){
     addedObjEles.push(this.addedObjSkills[i].collectionEle);
   }
+  this.addedObjExps = [];
+  this.addedObjSkills = [];
   for(var i=0; i<addedObjEles.length; i++){
     collectionEles.push(addedObjEles[i]);
   }
+
   // for(var i=0; i<this.objExps.length; i++){
   //   collectionEles.push(this.objExps[i].collectionEle);
   // }
@@ -781,24 +785,28 @@ function updateIntervalHandler(){
 
   //update projectiles array
   var i = this.projectiles.length;
-  while(i--){
-    if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
-      if(this.projectiles[i].isExplosive){
-        this.projectiles[i].explode();
-        this.onNeedInformProjectileExplode(this.projectiles[i]);
-        this.skills.push(this.projectiles[i]);
+  if(i > 0){
+    while(i--){
+      if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
+        if(this.projectiles[i].isExplosive){
+          this.projectiles[i].explode();
+          this.onNeedInformProjectileExplode(this.projectiles[i]);
+          this.skills.push(this.projectiles[i]);
+        }
+        this.projectiles.splice(i, 1);
+      }else{
+        this.projectiles[i].move();
+        colliderEles.push(this.projectiles[i]);
       }
-      this.projectiles.splice(i, 1);
-    }else{
-      this.projectiles[i].move();
-      colliderEles.push(this.projectiles[i]);
     }
   }
   //update skills array
   var skillsIndex = this.skills.length;
-  while(skillsIndex--){
-    colliderEles.push(this.skills[skillsIndex]);
-    this.skills.splice(skillsIndex, 1);
+  if(skillsIndex > 0){
+    while(skillsIndex--){
+      colliderEles.push(this.skills[skillsIndex]);
+      this.skills.splice(skillsIndex, 1);
+    }
   }
   //put users data to tree
   entityTree.pushAll(userEles);
@@ -837,33 +845,35 @@ function affectIntervalHandler(){
   var i = affectedEles.length;
   // console.log('affectedEles.length');
   // console.log(affectedEles.length);
-  while(i--){
-    if(affectedEles[i].type === 'hitObj'){
-      if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_USER){
-        if(affectedEles[i].hitObj in this.users){
-          //case hit user
-          this.users[affectedEles[i].hitObj].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
-          //buff and debuff apply
-          for(var j=0; j<affectedEles[i].buffsToTarget.length; j++){
-            this.users.addBuff(affectedEles[i].buffsToTarget[j]);
+  if(i > 0){
+    while(i--){
+      if(affectedEles[i].type === 'hitObj'){
+        if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_USER){
+          if(affectedEles[i].hitObj in this.users){
+            //case hit user
+            this.users[affectedEles[i].hitObj].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
+            //buff and debuff apply
+            for(var j=0; j<affectedEles[i].buffsToTarget.length; j++){
+              this.users.addBuff(affectedEles[i].buffsToTarget[j]);
+            }
+            for(var j=0; j<affectedEles[i].debuffsToTarget.length; j++){
+              this.users.addDebuff(affectedEles[i].debuffsToTarget[j]);
+            }
           }
-          for(var j=0; j<affectedEles[i].debuffsToTarget.length; j++){
-            this.users.addDebuff(affectedEles[i].debuffsToTarget[j]);
+        }else if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_CHEST){
+          //case hit chest
+          for(var i=0; i<this.chests.length; i++){
+            if(this.chests[i].objectID === affectedEles[i].hitObj){
+              this.chests[i].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
+              break;
+            }
           }
         }
-      }else if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_CHEST){
-        //case hit chest
-        for(var i=0; i<this.chests.length; i++){
-          if(this.chests[i].objectID === affectedEles[i].hitObj){
-            this.chests[i].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
-            break;
-          }
-        }
+      }else{
+        this.getObj(affectedEles[i]);
       }
-    }else{
-      this.getObj(affectedEles[i]);
+      affectedEles.splice(i, 1);
     }
-    affectedEles.splice(i, 1);
   }
 };
 // ({func : 'damageToUser', attackUser : tempCollider.id, hitObj : item.id, damage : tempCollider.damage })

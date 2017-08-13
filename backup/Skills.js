@@ -18,7 +18,7 @@ var Projectile = function(){
     id : ,
     objectID : ,
     x : ,
-    y : , 
+    y : ,
     width : ,
     height : ,
 
@@ -38,3 +38,6 @@ Projectile.prototype = {
 
 
 module.exports.Projectile = Projectile
+
+"PLUS_SIZE_WIDTH" : 500,
+"PLUS_SIZE_HEIGHT" : 500,

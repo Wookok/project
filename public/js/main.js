@@ -125,6 +125,7 @@ function game(){
 };
 //show end message and restart button
 function end(){
+  //should init variables
   canvasDisableEvent();
   documentDisableEvent();
   changeState(gameConfig.GAME_STATE_START_SCENE);
@@ -422,10 +423,10 @@ function drawProjectile(){
 };
 function drawBackground(){
   ctx.fillStyle = "#11ff11";
-  var posX = -gameConfig.userOffset.x;
-  var posY = -gameConfig.userOffset.y;
-  var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor - posX;
-  var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor- posY;
+  var posX = -gameConfig.userOffset.x * gameConfig.scaleFactor;
+  var posY = -gameConfig.userOffset.y * gameConfig.scaleFactor;
+  var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor;
+  var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor;
   ctx.fillRect(posX, posY, sizeW, sizeH);
 };
 function drawGrid(){
@@ -435,15 +436,19 @@ function drawGrid(){
   ctx.beginPath();
  // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
  //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
-  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/32){
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, gameConfig.canvasSize.height);
-  }
+  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+    if(util.isXInCanvas(x, gameConfig)){
+      ctx.moveTo(x * gameConfig.scaleFactor, 0);
+      ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.canvasSize.height);
+    }
+  };
 
-  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/20){
-    ctx.moveTo(0, y);
-    ctx.lineTo(gameConfig.canvasSize.width, y);
-  }
+  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
+    if(util.isYInCanvas(y, gameConfig)){
+      ctx.moveTo(0, y * gameConfig.scaleFactor);
+      ctx.lineTo(gameConfig.canvasSize.width, y * gameConfig.scaleFactor);
+    }
+  };
 
   ctx.stroke();
   ctx.globalAlpha = 1;
@@ -463,15 +468,17 @@ function documentAddEvent(){
 update();
 
 var canvasEventHandler = function(e){
-  var targetPosition ={
+  var clickPosition ={
     x : e.clientX/gameConfig.scaleFactor,
     y : e.clientY/gameConfig.scaleFactor
   }
-  var worldTargetPosition = util.localToWorldPosition(targetPosition, gameConfig.userOffset);
-  Manager.moveUser(worldTargetPosition);
+  var worldClickPosition = util.localToWorldPosition(clickPosition, gameConfig.userOffset);
+  var targetPosition = util.setTargetPosition(worldClickPosition, Manager.users[gameConfig.userID]);
+
+  Manager.moveUser(targetPosition);
 
   var userData = Manager.processUserData();
-  userData.targetPosition = worldTargetPosition;
+  userData.targetPosition = targetPosition;
   userData.latency = latency;
   socket.emit('userMoveStart', userData);
 };

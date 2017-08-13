@@ -23,21 +23,28 @@ function generateRandomID(prefix){
 
 exports.generateRandomPos = function(checkTree, minX, minY, maxX, maxY, radius, diffRangeWithOthers, objID, checkTree2){
   var isCollision = true;
+  var repeatCount = 1;
+
   while(isCollision){
-    isCollision = false;
-    var pos = {
-      x : Math.floor(Math.random()*(maxX - minX) + minX),
-      y : Math.floor(Math.random()*(maxY - minY) + minY)
-    }
-    var collisionObjs = util.checkCircleCollision(checkTree, pos.x, pos.y, radius + diffRangeWithOthers, objID);
-    if(collisionObjs.length > 0){
-      isCollision = true;
-    }else if(checkTree2){
-      var collisionObjs = util.checkCircleCollision(checkTree2, pos.x, pos.y, radius + diffRangeWithOthers, objID);
-      if(collisionObjs.length >0){
+    if (repeatCount > 20){
+      isCollision = false;
+    }else{
+      isCollision = false;
+      var pos = {
+        x : Math.floor(Math.random()*(maxX - minX) + minX),
+        y : Math.floor(Math.random()*(maxY - minY) + minY)
+      }
+      var collisionObjs = util.checkCircleCollision(checkTree, pos.x, pos.y, radius + diffRangeWithOthers, objID);
+      if(collisionObjs.length > 0){
         isCollision = true;
+      }else if(checkTree2){
+        var collisionObjs = util.checkCircleCollision(checkTree2, pos.x, pos.y, radius + diffRangeWithOthers, objID);
+        if(collisionObjs.length >0){
+          isCollision = true;
+        }
       }
     }
+    repeatCount++;
   }
   return pos;
 };
