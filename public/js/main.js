@@ -39,6 +39,9 @@ var latency = 0;
 var drawInterval = false;
 var userDataUpdateInterval = false;
 
+//draw skills range, explosionRadius.
+var drawMode = gameConfig.DRAW_MODE_NORMAL;
+
 //state changer
 function changeState(newState){
   clearInterval(drawInterval);
@@ -211,6 +214,9 @@ function drawGame(){
   drawUsers();
   drawEffect();
   drawProjectile();
+  if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
+    drawSkillRange();
+  }
 };
 
 // socket connect and server response configs
@@ -375,26 +381,17 @@ function drawUsers(){
     ctx.setTransform(1,0,0,1,0,0);
     var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
     ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
-    // console.log('user positionX : ' + (Manager.users[index].position.x  * gameConfig.scaleFactor));
-    // if(Manager.users[index].objectID === gameConfig.userID){
-    //   ctx.translate(Manager.users[index].center.x * gameConfig.scaleFactor, Manager.users[index].center.y * gameConfig.scaleFactor);
-    //   // ctx.translate(Manager.users[index].center.x, Manager.users[index].center.y);
-    // }else{
-    //   ctx.translate((Manager.users[index].center.x) * gameConfig.scaleFactor, (Manager.users[index].center.y) * gameConfig.scaleFactor);
-    // }
     ctx.rotate(radian);
     ctx.fillStyle = 'yellow';
     ctx.arc(0, 0, 64 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
-    // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
-    // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
 
     //draw cast effect
     if(Manager.users[index].skillCastEffectPlay){
       ctx.fillStyle ="#00ff00";
       ctx.beginPath();
-      ctx.arc(-Manager.users[index].size.width/2 * gameConfig.scaleFactor, -Manager.users[index].size.height/2 * gameConfig.scaleFactor, 100, 0, 2 * Math.PI);
+      ctx.arc(0, 0, 100, 0, 2 * Math.PI);
       ctx.fill();
       ctx.closePath();
     }
@@ -403,23 +400,40 @@ function drawUsers(){
 };
 function drawEffect(){
   for(var i=0; i<Manager.effects.length; i++){
+    ctx.beginPath();
     ctx.fillStyle ="#ff0000";
-    var pos = util.worldToLocalPosition(Manager.effects[i].position, gameConfig.userOffset);
-    // ctx.rotate(radian);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
-                 Manager.effects[i].radius * 2 * gameConfig.scaleFactor, Manager.effects[i].radius * 2 * gameConfig.scaleFactor);
-    // ctx.drawImage(userHand, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
-    // ctx.drawImage(userImage, 0, 0, 128, 128,-Manager.users[index].size.width/2, -Manager.users[index].size.height/2, 128 * gameConfig.scaleFactor, 128 * gameConfig.scaleFactor);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y, gameConfig.userOffset.y);
+    ctx.arc(centerX, centerY, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.closePath();
   }
 };
 function drawProjectile(){
   for(var i=0; i<Manager.projectiles.length; i++){
     ctx.fillStyle ="#ff0000";
     ctx.beginPath();
-    var pos = util.worldToLocalPosition(Manager.projectiles[i].position, gameConfig.userOffset);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor)
+    var centerX = util.worldXCoordToLocalX(Manager.projectiles[i].position.x + Manager.projectiles[i].radius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.projectiles[i].position.y + Manager.projectiles[i].radius, gameConfig.userOffset.y);
+    ctx.arc(centerX, centerY, Manager.projectiles[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    ctx.fill();
     ctx.closePath();
   }
+};
+function drawSkillRange(){
+  ctx.beginPath();
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = 0.8;
+  var center = util.worldToLocalPosition(Manager.users[gameConfig.userID].center, gameConfig.userOffset);
+  ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor, currentSkillData.range * gameConfig.scaleFactor, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.closePath();
+  //draw explosionRadius
+  ctx.beginPath();
+  ctx.globalAlpha = 0.9;
+  ctx.arc(mousePoint.x, mousePoint.y, currentSkillData.explosionRadius * gameConfig.scaleFactor, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1
 };
 function drawBackground(){
   ctx.fillStyle = "#11ff11";
@@ -442,14 +456,12 @@ function drawGrid(){
       ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.canvasSize.height);
     }
   };
-
   for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
     if(util.isYInCanvas(y, gameConfig)){
       ctx.moveTo(0, y * gameConfig.scaleFactor);
       ctx.lineTo(gameConfig.canvasSize.width, y * gameConfig.scaleFactor);
     }
   };
-
   ctx.stroke();
   ctx.globalAlpha = 1;
   ctx.closePath();
@@ -473,19 +485,24 @@ var canvasEventHandler = function(e){
     y : e.clientY/gameConfig.scaleFactor
   }
   var worldClickPosition = util.localToWorldPosition(clickPosition, gameConfig.userOffset);
-  var targetPosition = util.setTargetPosition(worldClickPosition, Manager.users[gameConfig.userID]);
 
-  Manager.moveUser(targetPosition);
+  if(drawMode === gameConfig.DRAW_MODE_NORMAL){
+    var targetPosition = util.setTargetPosition(worldClickPosition, Manager.users[gameConfig.userID]);
+    Manager.moveUser(targetPosition);
 
-  var userData = Manager.processUserData();
-  userData.targetPosition = targetPosition;
-  userData.latency = latency;
-  socket.emit('userMoveStart', userData);
+    var userData = Manager.processUserData();
+    userData.targetPosition = targetPosition;
+    userData.latency = latency;
+    socket.emit('userMoveStart', userData);
+  }else if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
+    useSkill(currentSkillData, worldClickPosition, Manager.users[gameConfig.userID]);
+    changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
+  }
 };
 
 var documentEventHandler = function(e){
   var keyCode = e.keyCode;
-  var tempPos = {x : 0, y : 0};
+  var userPosition = Manager.users[gameConfig.userID].center;
 
   var skillIndex = 0;
   if(keyCode === 69 || keyCode === 32){
@@ -505,26 +522,52 @@ var documentEventHandler = function(e){
   }
   //skills direction and targetPosition setting
   if(skillIndex){
-    skillData.targetPosition = util.calcSkillTargetPosition(skillData, tempPos, Manager.users[gameConfig.userID]);
-    skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, Manager.users[gameConfig.userID]);
-    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
-      skillData.projectileID = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+    if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
+      if(drawMode === gameConfig.DRAW_MODE_NORMAL){
+        currentSkillData = skillData;
+        changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
+      }
+    }else{
+      useSkill(skillData, userPosition, Manager.users[gameConfig.userID]);
     }
-    Manager.useSkill(gameConfig.userID, skillData);
   }
+};
+var currentSkillData = null;
+function changeDrawMode(mode){
+  if(mode === gameConfig.DRAW_MODE_NORMAL){
+    drawMode = gameConfig.DRAW_MODE_NORMAL;
+    currentSkillData = null;
+    canvas.removeEventListener('mousemove', mouseMoveHandler);
+  }else if(mode === gameConfig.DRAW_MODE_SKILL_RANGE){
+    drawMode = gameConfig.DRAW_MODE_SKILL_RANGE;
+    canvas.addEventListener('mousemove', mouseMoveHandler, false);
+  }
+};
+var mousePoint = {x : 0, y : 0};
+function mouseMoveHandler(e){
+  mousePoint.x = e.clientX/gameConfig.scaleFactor;
+  mousePoint.y = e.clientY/gameConfig.scaleFactor;
+};
+function useSkill(skillData, clickPosition, user){
+  skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
+  skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
+  if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+    skillData.projectileID = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+  }
+  Manager.useSkill(gameConfig.userID, skillData);
 
   var userData = Manager.processUserData();
-  userData.skillIndex = skillIndex;
+  userData.skillIndex = skillData.index;
   userData.skillDirection = skillData.direction;
-  userData.skillTargetPosition = tempPos;
+  userData.skillTargetPosition = skillData.targetPosition;
 
   socket.emit('userUseSkill', userData);
-};
+}
 function canvasDisableEvent(){
-  canvas.removeEventListener("click", canvasEventHandler);
+  canvas.removeEventListener('click', canvasEventHandler);
 };
 function documentDisableEvent(){
-  document.removeEventListener("keydown", documentEventHandler);
+  document.removeEventListener('keydown', documentEventHandler);
 };
 function setCanvasScale(gameConfig){
   gameConfig.scaleX = 1;

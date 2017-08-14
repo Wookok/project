@@ -78,11 +78,6 @@ exports.move = function(deltaTime){
     this.speed.y = distY;
   }
 
-  // this.setEntityEle();
-  // check collision with obstacle
-  // calculate compel add pos
-  // add compel pos to postion
-  // console.log(this.position);
   var addPos = this.onMove(this);
   if(addPos !== undefined){
     this.position.x += addPos.x;
@@ -90,6 +85,17 @@ exports.move = function(deltaTime){
   }
   this.position.x += this.speed.x * deltaTime;
   this.position.y += this.speed.y * deltaTime;
+
+  if(this.position.x < 0){
+    this.position.x = 0;
+  }else if(this.position.x > gameConfig.CANVAS_MAX_SIZE.width - this.size.width){
+    this.position.x = gameConfig.CANVAS_MAX_SIZE.width - this.size.width;
+  }
+  if(this.position.y < 0){
+    this.position.y = 0;
+  }else if(this.position.y > gameConfig.CANVAS_MAX_SIZE.height - this.size.height){
+    this.position.y = gameConfig.CANVAS_MAX_SIZE.height - this.size.height;
+  }
 
   this.setCenter();
 };
@@ -148,7 +154,7 @@ exports.setTargetPosition = function(clickPosition, user){
   }else if(targetY > gameConfig.CANVAS_MAX_SIZE.height - user.size.height/2){
     targetY = gameConfig.CANVAS_MAX_SIZE.height - user.size.height/2;
   }
-  
+
   return {
     x : targetX,
     y : targetY
@@ -312,7 +318,7 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
       };
     case gameConfig.SKILL_TYPE_INSTANT:
       var distSquare = exports.distanceSquare(user.center, clickPosition);
-      if(Math.pow(this.range,2) > distSquare){
+      if(Math.pow(skillData.range,2) > distSquare){
         return {
           x : clickPosition.x,
           y : clickPosition.y
@@ -338,7 +344,7 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
       };
     case gameConfig.SKILL_TYPE_TELEPORT :
       var distSquare = exports.distanceSquare(user.center, clickPosition);
-      if(Math.pow(this.range,2) > distSquare){
+      if(Math.pow(skillData.range,2) > distSquare){
         return {
           x : clickPosition.x,
           y : clickPosition.y

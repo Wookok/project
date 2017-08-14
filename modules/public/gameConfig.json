@@ -1,8 +1,11 @@
 {
   "INTERVAL" : 60,
 
-  "CANVAS_MAX_SIZE" : {"width" : 800 , "height" : 800},
-  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 600, "height" : 600},
+  "CANVAS_MAX_SIZE" : {"width" : 3200 , "height" : 3200},
+  "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
+
+  "DRAW_MODE_NORMAL" : 1,
+  "DRAW_MODE_SKILL_RANGE" : 2,
 
   "OBJECT_STATE_IDLE" : 1,
   "OBJECT_STATE_MOVE" : 2,
