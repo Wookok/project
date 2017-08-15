@@ -1,0 +1,348 @@
+
+element.style {
+}
+app.css?1502618629:1
+html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+}
+app.css?1502618629:20
+* {
+    box-sizing: border-box;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+html[Attributes Style] {
+    -webkit-locale: "en";
+}
+user agent stylesheet
+html {
+    display: block;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #111;
+}
+app.css?1502618629:20
+* {
+    box-sizing: border-box;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+user agent stylesheet
+body {
+    display: block;
+    margin: 8px;
+}
+html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+}
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+.hud .hud-top-left {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+}
+.hud-chat {
+    position: relative;
+    display: block;
+    width: 520px;
+    height: 220px;
+    margin: -10px 0 20px -10px !important;
+    padding: 0 0 40px;
+    background: rgba(0, 0, 0, 0);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    line-height: 24px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    z-index: 10;
+    transition: background 0.15s ease-in-out;
+}
+.hud-chat .hud-chat-input {
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 40px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.1);
+    color: #eee;
+    border: 0;
+    padding: 10px 15px;
+    line-height: 20px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    border-radius: 0 0 4px 4px;
+    transition: opacity 0.15s ease-in-out;
+}
+.hud-chat .hud-chat-messages {
+    display: block;
+    height: 180px;
+    padding: 10px;
+    overflow-y: auto;
+}
+.hud .hud-top-center {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+.hud .hud-top-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+.hud .hud-top-right > * {
+    margin: 0 0 20px;
+}
+.hud-leaderboard {
+    position: relative;
+    display: block;
+    width: 280px;
+    color: #eee;
+    font-family: 'Hammersmith One', sans-serif;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 10;
+}
+.hud-leaderboard .hud-leaderboard-player {
+    position: relative;
+    display: block;
+    margin: 0 0 8px;
+    padding: 0 90px 0 40px;
+    height: 20px;
+    line-height: 20px;
+    font-size: 13px;
+    font-family: 'Open Sans', sans-serif;
+}
+.hud .hud-bottom-left {
+    display: flex;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    flex-direction: column-reverse;
+}
+.hud .hud-bottom-left > * {
+    margin: 20px 0 0;
+}
+.hud-map {
+    display: block;
+    position: relative;
+    width: 140px;
+    height: 140px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+.hud .hud-bottom-left > * {
+    margin: 20px 0 0;
+}
+.hud-day-night-ticker {
+    display: block;
+    position: relative;
+    width: 140px;
+    height: 26px;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+.hud .hud-bottom-center {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+.hud .hud-bottom-center > * {
+    margin: 20px auto 0;
+}
+app.css?1502618629:1134
+.hud-toolbar {
+    display: block;
+    position: relative;
+    width: 740px;
+    z-index: 10;
+}
+.hud .hud-bottom-right {
+    display: flex;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    flex-direction: column-reverse;
+}
+.hud .hud-bottom-right > * {
+    margin: 20px 0 0;
+}
+app.css?1502618629:1353
+.hud-health-bar {
+    display: block;
+    position: relative;
+    width: 220px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 5px;
+    font-family: 'Hammersmith One', sans-serif;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+.hud-shield-bar {
+    display: none;
+    position: relative;
+    width: 220px;
+    height: 22px;
+    background: rgba(0, 0, 0, 0.4);
+    margin: 20px 0 -15px !important;
+    padding: 5px;
+    font-family: 'Hammersmith One', sans-serif;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+.hud-resources {
+    display: block;
+    position: relative;
+    width: 220px;
+    background: rgba(0, 0, 0, 0.4);
+    color: #eee;
+    font-family: 'Hammersmith One', sans-serif;
+    font-size: 14px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+.hud-party-icons {
+    display: block;
+    position: relative;
+    width: 220px;
+    height: 40px;
+    z-index: 10;
+}
+
+
+.hud-intro {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    text-align: center;
+    z-index: 30;
+}
+.hud-intro .hud-intro-wrapper {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative;
+    margin: -20px 0 0;
+    color: #eee;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.hud-intro h1 {
+    position: relative;
+    display: inline-block;
+    font-size: 36px;
+    margin: 0;
+    padding: 0;
+    text-transform: uppercase;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Hammersmith One', sans-serif;
+}
+.hud-intro h2 {
+    position: relative;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.4);
+}
+.hud-intro .hud-intro-main {
+    display: block;
+    width: auto;
+    margin: 50px auto;
+}
+.hud-intro .hud-intro-main .ad-unit-medrec, .hud-intro .hud-intro-main .hud-intro-form, .hud-intro .hud-intro-main .hud-intro-guide {
+    display: block;
+    float: left;
+    vertical-align: top;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+}
+app.css?1502618629:404
+.hud-intro .ad-unit-medrec {
+    width: 300px;
+    height: 250px;
+    margin: 0 20px 0 0;
+}
+.hud-intro .hud-intro-main .ad-unit-medrec, .hud-intro .hud-intro-main .hud-intro-form, .hud-intro .hud-intro-main .hud-intro-guide {
+    display: block;
+    float: left;
+    vertical-align: top;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+}
+app.css?1502618629:410
+.hud-intro .hud-intro-form {
+    width: 300px;
+    padding: 20px;
+}
+
+.hud-intro .hud-intro-main .ad-unit-medrec, .hud-intro .hud-intro-main .hud-intro-form, .hud-intro .hud-intro-main .hud-intro-guide {
+    display: block;
+    float: left;
+    vertical-align: top;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+}
+app.css?1502618629:487
+.hud-intro .hud-intro-guide {
+    width: 300px;
+    max-height: 320px;
+    margin: 0 0 0 20px;
+    padding: 20px;
+    text-align: left;
+    font-size: 14px;
+    overflow-y: auto;
+}
