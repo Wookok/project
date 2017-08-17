@@ -24,15 +24,29 @@ damage range colldown castspeed manaconsume effectchange or addeffect effectRate
 캐릭터 기본 스텟
 hp, mp, speed, rotateSpeed, castSpeed,
 hpregen, mpregen, damage, damageRate
-defence, damageReduction
+defence, damageReduction, 쿨다운 감소 초, 쿨다운 감소 %
 
 캐릭터 버프 스텟
 hp, mp, hpregen, mpregen, damage, damageRate, castSpeed, speed
-defence, defenceRate damageReducetion
+defence, defenceRate damageReducetion, 쿨다운 감소
 
 캐릭터 스킬(티어 : 드랍 확률, 높을 수록 낮은 확률)
 액티브
 5 ~ 6 * 3
+
+스킬 타입 :
+기본 공격 : SKILL_TYPE_BASIC (기본 공격도 레벨 업 가능)
+발사체    : SKILL_TYPE_PROJECTILE (타격 시 해당 캐릭에 데미지)
+발사체 (폭발) : SKILL_TYPE_PROJECTILE_EXPLOSION (타격 시 범위 폭발)
+발사체 (틱) : SKILL_TYPE_PROJECTILE_TICK (타격 시 폭발하지 않으며, 지속적으로 데미지)
+범위      : SKILL_TYPE_RANGE (범위 데미지)
+범위 (틱) : SKILL_TYPE_RANGE_TICK (범위 지속 데미지)
+자신      : SKILL_TYPE_SELF (자신에게 즉시 효과)
+자신 (폭발) : SKILL_TYPE_SELF_EXPLOSION (자신 주위 효과)
+자신 (트리거) : SKILL_TYPE_SELF_TRIGGER (일정 시간 뒤에 발동, 자신 포함)
+텔레포트  : SKILL_TYPE_TELEPORT
+
+패시브    : SKILL_TYPE_PASSIVE
 
 화염(지속 데미지, 확률)
 화염 액티브
@@ -54,6 +68,7 @@ defence, defenceRate damageReducetion
 화염 스킬 데미지 증가
 자신 화염 디버프 상태일 때 데미지 추가
 자신 화염 디버프 상태일 때 체력 재생 추가
+화염 스킬 사용 시 자신 화염 디버프 걸 확률 생성
 
 냉기(슬로우 100%)
 얼음 창 - 발사체 충돌 시 데미지(티어 1)
@@ -85,16 +100,19 @@ defence, defenceRate damageReducetion
 점멸 - 텔레포트 (티어 4)
 침묵 - 침묵 (티어 4)
 투명화 - 투명화(티어 3)
+디스펠 - (티어 3)
+
 비전 보호막 - 데미지 경감(모든 속성), 마나 회복 증가(티어 2)
 
 비전 패시브
 신비한 지능? - 데미지 증가, 마나 증가, 마나 회복 증가(티어 3)
-비전력 강화 - 데미지 증가
+비전력 강화 - 데미지 증가, 쿨다운 감소 %
 
 비전 캐릭터 패시브
 모든 스킬에 비전 데미지 추가
 비전 스킬 사용시 비전 축적
 비전 축적 최대 횟수 증가
+스킬 사용시, 쿨다운 감소
 
 스킬 레벨 최대 20
 캐릭터 패시브 스킬 최대 4렙
