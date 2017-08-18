@@ -24,11 +24,11 @@ damage range colldown castspeed manaconsume effectchange or addeffect effectRate
 캐릭터 기본 스텟
 hp, mp, speed, rotateSpeed, castSpeed,
 hpregen, mpregen, damage, damageRate
-defence, damageReduction, 쿨다운 감소 초, 쿨다운 감소 %
+resistFire, resistFrost, resistArcane, damageReduction, 쿨다운 감소 %
 
 캐릭터 버프 스텟
 hp, mp, hpregen, mpregen, damage, damageRate, castSpeed, speed
-defence, defenceRate damageReducetion, 쿨다운 감소
+resistance, defenceRate damageReducetion, 쿨다운 감소
 
 캐릭터 스킬(티어 : 드랍 확률, 높을 수록 낮은 확률)
 액티브

@@ -3,7 +3,7 @@
 
   "CANVAS_MAX_SIZE" : {"width" : 3200 , "height" : 3200},
   "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
-
+  
   "DRAW_MODE_NORMAL" : 1,
   "DRAW_MODE_SKILL_RANGE" : 2,
 

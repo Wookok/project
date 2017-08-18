@@ -360,13 +360,11 @@ GameManager.prototype.initializeUser = function(user){
   //initialize variables;
   user.assignID(randomID);
 
-  user.setSize(64,64);
+  user.setSize(resources.USER_BODY_SIZE,resources.USER_BODY_SIZE);
   user.setPosition(10, 10);
 
   user.initEntityEle();
   user.buffUpdate();
-  // user.setRotateSpeed(20);
-  // user.setMaxSpeed(5);
 };
 GameManager.prototype.applySkill = function(userID, skillData){
   if(userID in this.users){
@@ -854,10 +852,10 @@ function affectIntervalHandler(){
             this.users[affectedEles[i].hitObj].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
             //buff and debuff apply
             for(var j=0; j<affectedEles[i].buffsToTarget.length; j++){
-              this.users.addBuff(affectedEles[i].buffsToTarget[j]);
+              this.users.addBuffs(affectedEles[i].buffsToTarget[j]);
             }
             for(var j=0; j<affectedEles[i].debuffsToTarget.length; j++){
-              this.users.addDebuff(affectedEles[i].debuffsToTarget[j]);
+              this.users.addDebuffs(affectedEles[i].debuffsToTarget[j]);
             }
           }
         }else if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_CHEST){

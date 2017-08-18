@@ -14,10 +14,12 @@ var gameConfig = require('./modules/public/gameConfig.json');
 var serverConfig = require('./modules/server/serverConfig.json');
 
 var dataJson = require('./modules/public/data.json');
+var serverDataJson = require('./modules/server/serverData.json');
 var csvJsonOption = {delimiter : ',', quote : '"'};
 
+var userBaseTable = csvJson.toObject(serverDataJson.userBase, csvJsonOption);
 var skillTable = csvJson.toObject(dataJson.skillData, csvJsonOption);
-var userBaseTable = csvJson.toObject(dataJson.userBaseData, csvJsonOption);
+var userStatTable = csvJson.toObject(dataJson.userStatData, csvJsonOption);
 var buffTable = csvJson.toObject(dataJson.buffData, csvJsonOption);
 
 var util = require('./modules/public/util.js');
@@ -71,8 +73,9 @@ io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
   var user;
   socket.on('reqStartGame', function(userType){
-    var userData = util.findDataWithTwoColumns(userBaseTable, 'type', userType, 'level', 1);
-    user = new User(socket.id, userData, 0);
+    var userStat = util.findDataWithTwoColumns(userStatTable, 'type', userType, 'level', 1);
+    var userBase = util.findData(userBaseTable, 'type', userType);
+    user = new User(socket.id, userStat, userBase, 0);
 
     // user init and join game
     GM.initializeUser(user);

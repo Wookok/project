@@ -94,8 +94,7 @@ function toObject(data, opts){
                 hashItem[headerItem] = parseInt(tempItem);
               }else if(parseFloat(tempItem)){
                 hashItem[headerItem] = parseFloat(tempItem);
-              }
-              else{
+              }else{
                 hashItem[headerItem] = tempItem;
               }
           });
