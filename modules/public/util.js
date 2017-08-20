@@ -446,7 +446,7 @@ exports.findDataWithTwoColumns = function(table, columnName1, value1, columnName
   }
   return data;
 }
-exports.findAndSetBuffs = function(skillData, buffTable, columnName, length){
+exports.findAndSetBuffs = function(skillData, buffTable, columnName, length, actorID){
   var returnVal = [];
   for(var i=0; i<length; i++){
     var buffIndex = skillData[columnName + (i + 1)];
@@ -454,6 +454,7 @@ exports.findAndSetBuffs = function(skillData, buffTable, columnName, length){
       return returnVal;
     }else{
       var buffData = exports.findData(buffTable, 'index', buffIndex);
+      buffData.actorID = actorID;
       returnVal.push(buffData);
     }
   }

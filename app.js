@@ -60,10 +60,12 @@ GM.onNeedInformSkillData = function(socketID, possessSkills){
   io.to(socketID).emit('updateSkillPossessions', possessSkills);
   // socket.emit('updateSkillPossessions', possessSkills);
 };
-GM.onNeedInformProjectileExplode = function(projectileData){
-  io.sockets.emit('explodeProjectile', projectileData.objectID);
+GM.onNeedInformProjectileDelete = function(projectileData){
+  io.sockets.emit('deleteProjectile', projectileData.id, projectileData.objectID);
 };
-
+GM.onNeedInformProjectileExplode = function(projectileData){
+  io.sockets.emit('explodeProjectile', projectileData.id, projectileData.objectID);
+};
 GM.onNeedInformCreateChest = function(chest){
   var chestData = GM.processChestDataSetting(chest);
   io.sockets.emit('createChest', chestData);
@@ -131,10 +133,8 @@ io.on('connection', function(socket){
 
     skillData.targetPosition = data.skillTargetPosition;
 
-    skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3);
-    skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3);
-    skillData.debuffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'debuffToSelf', 3);
-    skillData.debuffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'debuffToTarget', 3);
+    skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3, user.objectID);
+    skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3, user.objectID);
 
     GM.applySkill(user.objectID, skillData);
   });
@@ -147,10 +147,8 @@ io.on('connection', function(socket){
     projectileData.startTime = data.startTime;
     projectileData.lifeTime = data.lifeTime;
 
-    projectileData.buffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'buffToSelf', 3);
-    projectileData.buffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'buffToTarget', 3);
-    projectileData.debuffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'debuffToSelf', 3);
-    projectileData.debuffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'debuffToTarget', 3);
+    projectileData.buffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'buffToSelf', 3, user.objectID);
+    projectileData.buffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'buffToTarget', 3, user.objectID);
 
     GM.applyProjectile(user.objectID, projectileData);
   });

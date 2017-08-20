@@ -231,7 +231,7 @@ function setupSocket(){
     changeState(gameConfig.GAME_STATE_END);
   });
   socket.on('pong', function(lat){
-    latency = lat + 300;
+    latency = lat;
   });
 
   socket.on('setSyncUser', function(user){
@@ -278,9 +278,12 @@ function setupSocket(){
     }
     Manager.useSkill(userData.objectID, skillData);
   });
-  socket.on('explodeProjectile', function(projectileID){
-    Manager.explodeProjectile(projectileID);
-  })
+  socket.on('deleteProjectile', function(projectileID){
+    Manager.deleteProjectile(projectileID);
+  });
+  socket.on('explodeProjectile', function(userID, projectileID){
+    Manager.explodeProjectile(userID, projectileID);
+  });
   socket.on('createOBJs', function(objDatas){
     Manager.createOBJs(objDatas);
   });

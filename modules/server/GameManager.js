@@ -4,6 +4,11 @@ var gameConfig = require('../public/gameConfig.json');
 var serverConfig = require('./serverConfig.json');
 var util = require('../public/util.js');
 var SUtil = require('./ServerUtil.js');
+
+var SkillColliders = require('./SkillCollider.js');
+var SkillCollider = SkillColliders.SkillCollider;
+var ProjectileCollider = SkillColliders.ProjectileCollider;
+
 var csvJson = require('../public/csvjson.js');
 
 var dataJson = require('../public/data.json');
@@ -75,6 +80,7 @@ function GameManager(){
   this.onNeedInformCreateChest = new Function();
 
   this.onNeedInformSkillData = new Function();
+  this.onNeedInformProjectileDelete = new Function();
   this.onNeedInformProjectileExplode = new Function();
 };
 
@@ -368,72 +374,78 @@ GameManager.prototype.initializeUser = function(user){
 };
 GameManager.prototype.applySkill = function(userID, skillData){
   if(userID in this.users){
+    this.users[userID].consumeMP(skillData.consumeMP);
     this.users[userID].addBuffs(skillData.buffsToSelf);
-    this.users[userID].addDebuffs(skillData.debuffsToSelf);
+    //doDamageToSelf
+    //healHP, MP
 
-    this.skills.push({
-      id : userID,
-      x : skillData.targetPosition.x,
-      y : skillData.targetPosition.y,
-      width : skillData.explosionRadius * 2,
-      height : skillData.explosionRadius * 2,
-      damage : skillData.damage,
-      buffsToTarget : skillData.buffsToTarget,
-      debuffsToTarget : skillData.debuffsToTarget,
+    var skillCollider = new SkillCollider(this.users[userID], skillData);
 
-      latency : this.users[userID].latency || 100
-    });
+    this.skills.push(skillCollider);
+    // this.skills.push({
+    //   id : userID,
+    //   x : skillData.targetPosition.x,
+    //   y : skillData.targetPosition.y,
+    //   width : skillData.explosionRadius * 2,
+    //   height : skillData.explosionRadius * 2,
+    //   damage : skillData.damage,
+    //   buffsToTarget : skillData.buffsToTarget,
+    //
+    //   latency : this.users[userID].latency || 100
+    // });
   }else{
     console.log('cant find user data');
   }
 };
 GameManager.prototype.applyProjectile = function(userID, projectileData){
-  var thisManager = this;
   if(userID in this.users){
-
+    this.users[userID].consumeMP(skillData.consumeMP);
     this.users[userID].addBuffs(projectileData.buffsToSelf);
-    this.users[userID].addDebuffs(projectileData.debuffsToSelf);
+    //doDamageToSelf
+    //healHP, MP
 
-    this.projectiles.push({
-      id : userID,
-      objectID : projectileData.objectID,
-      x : projectileData.position.x,
-      y : projectileData.position.y,
-      width : projectileData.radius * 2,
-      height : projectileData.radius * 2,
-      damage : projectileData.damage,
-      buffsToTarget : projectileData.buffsToTarget,
-      debuffsToTarget : projectileData.debuffsToTarget,
+    var projectileCollider = new ProjectileCollider(this.users[userID], projectileData);
 
-      startTime : projectileData.startTime,
-      lifeTime : projectileData.lifeTime,
-      explosionRadius : projectileData.explosionRadius,
-      isExplosive : true,
-      isCollide : false,
-
-      timer : Date.now(),
-
-      latency : this.users[userID].latency || 100,
-
-      move : function(){
-        var deltaTime = (Date.now() - this.timer)/1000;
-        this.x += projectileData.speed.x * deltaTime;
-        this.y += projectileData.speed.y * deltaTime;
-        this.timer = Date.now();
-      },
-      isExpired : function(){
-        if(Date.now() - this.startTime > this.lifeTime){
-          return true;
-        }
-        return false;
-      },
-      explode : function(){
-        this.width = this.explosionRadius * 2;
-        this.height = this.explosionRadius * 2;
-        this.isCollide = true;
-        console.log('projectile is explode');
-      }
-    });
+    this.projectiles.push(projectileCollider);
+    // this.projectiles.push({
+    //   id : userID,
+    //   objectID : projectileData.objectID,
+    //   x : projectileData.position.x,
+    //   y : projectileData.position.y,
+    //   width : projectileData.radius * 2,
+    //   height : projectileData.radius * 2,
+    //   damage : projectileData.damage,
+    //   buffsToTarget : projectileData.buffsToTarget,
+    //
+    //   startTime : projectileData.startTime,
+    //   lifeTime : projectileData.lifeTime,
+    //   explosionRadius : projectileData.explosionRadius,
+    //   isExplosive : true,
+    //   isCollide : false,
+    //
+    //   timer : Date.now(),
+    //
+    //   latency : this.users[userID].latency || 100,
+    //
+    //   move : function(){
+    //     var deltaTime = (Date.now() - this.timer)/1000;
+    //     this.x += projectileData.speed.x * deltaTime;
+    //     this.y += projectileData.speed.y * deltaTime;
+    //     this.timer = Date.now();
+    //   },
+    //   isExpired : function(){
+    //     if(Date.now() - this.startTime > this.lifeTime){
+    //       return true;
+    //     }
+    //     return false;
+    //   },
+    //   explode : function(){
+    //     this.width = this.explosionRadius * 2;
+    //     this.height = this.explosionRadius * 2;
+    //     this.isCollide = true;
+    //     console.log('projectile is explode');
+    //   }
+    // });
   }else{
     console.log('cant find user data');
   }
@@ -646,7 +658,7 @@ function updateIntervalHandler(){
   //check collision user with skill
   //colliderEle : skill, collisionObj : user, chest
   for(var i=0; i<colliderEles.length; i++){
-    //tempCollider == skill
+    //tempCollider == skill and projectile
     var tempCollider = colliderEles[i];
     //collision with user or chest
     if(tempCollider.latency >= 225){
@@ -660,22 +672,57 @@ function updateIntervalHandler(){
     }
     if(collisionObjs.length > 0){
       for(var j = 0; j<collisionObjs.length; j++){
-        //case projectile explosive skill
-        if(tempCollider.objectID && tempCollider.isExplosive){
-          if(tempCollider.isCollide){
-            affectedEles.push({type : 'hitObj', objectID : tempCollider.objectID, attackUser : tempCollider.id, hitObj : collisionObjs[j].id, damage : tempCollider.damage,
-                              buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
-          }else{
-            var index = this.projectiles.indexOf(tempCollider);
-            console.log('projectile collision with user or chest');
-            if(index !== -1){
-              this.projectiles[index].explode();
+        if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE){
+          if(!tempCollider.isCollide){
+            tempCollider.isCollide = true;
+            if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_WITH_USER));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_WITH_CHEST));
+            }else{
+              console.log('check id' + collisionObjs[j].id);
             }
           }
+        }else if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
+          if(!tempCollider.isCollide){
+            tempCollider.isCollide = true;
+          }
+        }else if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK && !tempCollider.isCollide){
+          if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
+            affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_WITH_USER));
+          }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
+            affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_WITH_CHEST));
+          }else{
+            console.log('check id' + collisionObjs[j].id);
+          }
+          if(collisionObjs.length - 1 === j){
+            tempCollider.isCollide = true;
+          }
         }else{
-          affectedEles.push({type : 'hitObj', attackUser : tempCollider.id, hitObj : collisionObjs[j].id, damage : tempCollider.damage,
-                            buffsToTarget : tempCollider.buffsToTarget, debuffsToTarget : tempCollider.debuffsToTarget});
+          if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
+            affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_WITH_USER));
+          }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
+            affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_WITH_CHEST));
+          }else{
+            console.log('check id' + collisionObjs[j].id);
+          }
         }
+        // //case projectile explosive skill
+        // if(tempCollider.objectID && tempCollider.isExplosive){
+        //   if(tempCollider.isCollide){
+        //     affectedEles.push({type : 'hitObj', objectID : tempCollider.objectID, attackUser : tempCollider.id, hitObj : collisionObjs[j].id, damage : tempCollider.damage,
+        //                       buffsToTarget : tempCollider.buffsToTarget});
+        //   }else{
+        //     var index = this.projectiles.indexOf(tempCollider);
+        //     console.log('projectile collision with user or chest');
+        //     if(index !== -1){
+        //       this.projectiles[index].explode();
+        //     }
+        //   }
+        // }else{
+        //   affectedEles.push({type : 'hitObj', attackUser : tempCollider.id, hitObj : collisionObjs[j].id, damage : tempCollider.damage,
+        //                     buffsToTarget : tempCollider.buffsToTarget});
+        // }
       }
     }
   }
@@ -689,16 +736,16 @@ function updateIntervalHandler(){
     for(var j=0; j<collisionObjs.length;j++){
       if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
         //case objExp
-        affectedEles.push({type : 'getExpObj',user : tempUser.id, colObj : collisionObjs[j].id, addExp : collisionObjs[j].exp});
+        affectedEles.push(SUtil.setAffectedEleColUserWithCollection(tempUser.id, collisionObjs[j], serverConfig.COLLISION_USER_WITH_COLLECTION_EXP);
+        // affectedEles.push({type : 'getExpObj',user : tempUser.id, colObj : collisionObjs[j].id, addExp : collisionObjs[j].exp});
       }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
         //case objSkill
-        affectedEles.push({type : 'getSkillObj',user : tempUser.id, colObj : collisionObjs[j].id, skillIndex : collisionObjs[j].skillIndex});
+        affectedEles.push(SUtil.setAffectedEleColUserWithCollection(tempUser.id, collisionObjs[j], serverConfig.COLLISION_USER_WITH_COLLECTION_SKILL));
+        // affectedEles.push({type : 'getSkillObj',user : tempUser.id, colObj : collisionObjs[j].id, skillIndex : collisionObjs[j].skillIndex});
       }else{
         console.log('check id' + collisionObjs[j].id);
       }
       removeOBJs.push(collisionObjs[j]);
-      // console.log('removeOBJs.length');
-      // console.log(removeOBJs.length);
     }
   }
 
@@ -725,9 +772,6 @@ function updateIntervalHandler(){
       collectionEles.splice(index, 1);
     }
   }
-  // for(var i=0; i<collectionEles.length; i++){
-  //   collectionTree.remove(collectionEles[i]);
-  // }
 
   userEles = [];
   userBefore150msEles = [];
@@ -774,28 +818,39 @@ function updateIntervalHandler(){
     collectionEles.push(addedObjEles[i]);
   }
 
-  // for(var i=0; i<this.objExps.length; i++){
-  //   collectionEles.push(this.objExps[i].collectionEle);
-  // }
-  // for(var i=0; i<this.objSkills.length; i++){
-  //   collectionEles.push(this.objSkills[i].collectionEle);
-  // }
-
   //update projectiles array
   var i = this.projectiles.length;
   if(i > 0){
     while(i--){
-      if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
-        if(this.projectiles[i].isExplosive){
+      if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE){
+        if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
+          this.onNeedInformProjectileDelete(this.projectiles[i]);
+          this.projectiles.splice(i, 1);
+        }
+      }else if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
+        if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
           this.projectiles[i].explode();
           this.onNeedInformProjectileExplode(this.projectiles[i]);
           this.skills.push(this.projectiles[i]);
+          this.projectiles.splice(i, 1);
         }
-        this.projectiles.splice(i, 1);
-      }else{
-        this.projectiles[i].move();
-        colliderEles.push(this.projectiles[i]);
+      }else if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+        if(this.projectiles[i].isExpired()){
+          this.onNeedInformProjectileDelete(this.projectiles[i]);
+          this.projectiles.splice(i, 1);
+        }
       }
+      // if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
+      //   if(this.projectiles[i].isExplosive){
+      //     this.projectiles[i].explode();
+      //     this.onNeedInformProjectileExplode(this.projectiles[i]);
+      //     this.skills.push(this.projectiles[i]);
+      //   }
+      //   this.projectiles.splice(i, 1);
+      // }else{
+      //   this.projectiles[i].move();
+      //   colliderEles.push(this.projectiles[i]);
+      // }
     }
   }
   //update skills array
@@ -825,14 +880,9 @@ function staticIntervalHandler(){
     var projectileCollider = this.projectiles[i];
     var collisionObjs = util.checkCircleCollision(staticTree, projectileCollider.x, projectileCollider.y, projectileCollider.width/2, projectileCollider.id);
     if(collisionObjs.length > 0 ){
-      if(!projectileCollider.isCollide){
-        var index = this.projectiles.indexOf(projectileCollider);
-        console.log('projectile collision with obstacle');
-        if(index !== -1){
-          this.projectiles[index].explode();
-          this.skills.push(this.projectiles[index]);
-          this.onNeedInformProjectileExplode(this.projectiles[index]);
-          this.projectiles.splice(index,1);
+      if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
+        if(!tempCollider.isCollide){
+          tempCollider.isCollide = true;
         }
       }
     }
@@ -845,36 +895,48 @@ function affectIntervalHandler(){
   // console.log(affectedEles.length);
   if(i > 0){
     while(i--){
-      if(affectedEles[i].type === 'hitObj'){
-        if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_USER){
-          if(affectedEles[i].hitObj in this.users){
-            //case hit user
-            this.users[affectedEles[i].hitObj].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
-            //buff and debuff apply
-            for(var j=0; j<affectedEles[i].buffsToTarget.length; j++){
-              this.users.addBuffs(affectedEles[i].buffsToTarget[j]);
-            }
-            for(var j=0; j<affectedEles[i].debuffsToTarget.length; j++){
-              this.users.addDebuffs(affectedEles[i].debuffsToTarget[j]);
-            }
-          }
-        }else if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_CHEST){
-          //case hit chest
-          for(var i=0; i<this.chests.length; i++){
-            if(this.chests[i].objectID === affectedEles[i].hitObj){
-              this.chests[i].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
-              break;
-            }
-          }
+      if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_USER){
+        if(affectedEles[i].affectedID in this.users){
+
         }
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_CHEST){
+
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_EXP){
+
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_SKILL){
+
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_GOLD){
+
       }else{
-        this.getObj(affectedEles[i]);
+        console.log('affectedEle is not specified');
+        console.log(affectedEles[i]);
       }
+      // if(affectedEles[i].type === 'hitObj'){
+      //   if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_USER){
+      //     if(affectedEles[i].hitObj in this.users){
+      //       //case hit user
+      //       this.users[affectedEles[i].hitObj].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
+      //       //buff and debuff apply
+      //       this.users[affectedEles[i].hitObj].addBuffs(affectedEles[i].buffsToTarget);
+      //     }
+      //   }else if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_CHEST){
+      //     //case hit chest
+      //     for(var i=0; i<this.chests.length; i++){
+      //       if(this.chests[i].objectID === affectedEles[i].hitObj){
+      //         SUtil.handlingAffectedEleColSkillWithChest();
+      //         this.chests[i].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
+      //         break;
+      //       }
+      //     }
+      //   }
+      // }else{
+      //   this.getObj(affectedEles[i]);
+      // }
       affectedEles.splice(i, 1);
     }
   }
 };
-// ({func : 'damageToUser', attackUser : tempCollider.id, hitObj : item.id, damage : tempCollider.damage })
+
 var onMoveCalcCompelPos = function(user){
   var collisionObjs = util.checkCircleCollision(staticTree, user.entityTreeEle.x, user.entityTreeEle.y, user.entityTreeEle.width/2, user.entityTreeEle.id);
   if(collisionObjs.length > 0 ){

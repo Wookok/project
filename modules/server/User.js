@@ -13,7 +13,7 @@ var serverConfig = require('./serverConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
-function User(id, userStat, userBase, Exp){
+function User(socketID, userStat, userBase, exp){
   LivingEntity.call(this);
   // base setting;
   this.type = userStat.type;
@@ -22,9 +22,9 @@ function User(id, userStat, userBase, Exp){
   this.baseIntellect = userStat.intellect;
   this.basePerception = userStat.perception;
 
-  this.Might = 0;
-  this.Intellect = 0;
-  this.Perception = 0;
+  this.might = 0;
+  this.intellect = 0;
+  this.perception = 0;
 
   this.baseHP = userBase.baseHP;
   this.baseMP = userBase.baseMP;
@@ -53,24 +53,30 @@ function User(id, userStat, userBase, Exp){
   this.baseReductionArcane = userBase.baseReductionArcane;
 
   this.level = 1;
-  this.Exp = Exp;
+  this.exp = exp;
 
-  this.condition = [];
+  this.conditions = {};
+  this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = false;
+  this.conditions[gameConfig.USER_CONDITION_CHILL] = false;
+  this.conditions[gameConfig.USER_CONDITION_FREEZE] = false;
+  this.conditions[gameConfig.USER_CONDITION_SILENCE] = false;
+  this.conditions[gameConfig.USER_CONDITION_IGNITE] = false;
+
   this.buffList = [];
-  this.debuffList = [];
 
   //current stat
-  this.MaxHP = 0;  this.MaxMP = 0;  this.HP = 0;  this.MP = 0;  this.HPRegen = 0;
-  this.MoveSpeed = 0; this.RotateSpeed = 0;
-  this.MPRegen = 0;  this.MoveSpeed = 0;  this.RotateSpeed = 0;  this.CastSpeed = 0;
-  this.Damage = 0;  this.FireDamage = 0;  this.FrostDamage = 0;  this.ArcaneDamage = 0;
-  this.ResistAll = 0;  this.ResistFire = 0;  this.ResistFrost = 0;  this.ResistArcane = 0;
-  this.ReductionAll = 0;  this.ReductionFire = 0;  this.ReductionFrost = 0;  this.ReductionArcane = 0;
+  this.maxHP = 0;  this.maxMP = 0;  this.HP = 0;  this.MP = 0;  this.HPRegen = 0;
+  this.moveSpeed = 0; this.rotateSpeed = 0;
+  this.MPRegen = 0;  this.moveSpeed = 0;  this.rotateSpeed = 0;  this.castSpeed = 0;
+  this.damage = 0;  this.fireDamage = 0;  this.frostDamage = 0;  this.arcaneDamage = 0;
+  this.damageRate = 0; this.fireDamageRate = 0; this.frostDamageRate = 0; this.arcaneDamageRate = 0;
+  this.resistAll = 0;  this.resistFire = 0;  this.resistFrost = 0;  this.resistArcane = 0;
+  this.reductionAll = 0;  this.reductionFire = 0;  this.reductionFrost = 0;  this.reductionArcane = 0;
 
   this.equipSkills = [];
   this.possessSkills = [];
 
-  this.socketID = id;
+  this.socketID = socketID;
 
   this.currentSkill = undefined;
 
@@ -80,7 +86,7 @@ function User(id, userStat, userBase, Exp){
   this.onDeath = new Function();
 
   this.getExp(0);
-  this.setUserStatToMaxOfBase();
+  this.initStat();
 };
 User.prototype = Object.create(LivingEntity.prototype);
 User.prototype.constructor = User;
@@ -91,38 +97,42 @@ User.prototype.initStat = function(){
   this.Intellect = this.baseIntellect;
   this.Perception = this.basePerception;
 
-  this.MaxHP = this.baseHP + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP * this.Might;
-  this.MaxMP = this.baseMP + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP * this.Intellect;
-  this.HPRegen = this.baseHPRegen + this.MaxHP * this.baseHPRegenRate/100 + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP_REGEN * this.Might;
-  this.MPRegen = this.baseMPRegen + this.MaxMP * this.baseMPRegenRate/100 + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP_REGEN * this.Intellect;
-  this.CastSpeed = this.baseCastSpeed;
-  this.Damage = this.baseDamage + this.baseDamageRate/100;
-  this.FireDamage = this.baseFireDamage + this.baseFireDamageRate/100;
-  this.FrostDamage = this.baseFrostDamage + this.baseFrostDamageRate/100;
-  this.ArcaneDamage = this.baseArcaneDamage + this.baseArcaneDamageRate/100;
-  this.ResistAll = this.baseResistAll;
-  this.ResistFire = this.baseResistFire;
-  this.ResistFrost = this.baseResistFrost;
-  this.ResistArcane = this.baseResistArcane;
-  this.ReductionAll = this.baseReductionAll;
-  this.ReductionFire = this.baseReductionFire;
-  this.ReductionFrost = this.baseReductionFrost;
-  this.ReductionArcane = this.baseReductionArcane;
+  this.maxHP = this.baseHP + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP * this.Might;
+  this.maxMP = this.baseMP + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP * this.Intellect;
+  this.HPRegen = this.baseHPRegen + this.maxHP * this.baseHPRegenRate/100 + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP_REGEN * this.Might;
+  this.MPRegen = this.baseMPRegen + this.maxMP * this.baseMPRegenRate/100 + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP_REGEN * this.Intellect;
+  this.castSpeed = this.baseCastSpeed;
+  this.damage = this.baseDamage;
+  this.fireDamage = this.baseFireDamage;
+  this.frostDamage = this.baseFrostDamage;
+  this.arcaneDamage = this.baseArcaneDamage;
+  this.damageRate = this.baseDamageRate;
+  this.fireDamageRate = this.baseFireDamageRate;
+  this.frostDamageRate = this.baseFrostDamageRate;
+  this.arcaneDamageRate = this.baseArcaneDamageRate;
+  this.resistAll = this.baseResistAll;
+  this.resistFire = this.baseResistFire;
+  this.resistFrost = this.baseResistFrost;
+  this.resistArcane = this.baseResistArcane;
+  this.reductionAll = this.baseReductionAll;
+  this.reductionFire = this.baseReductionFire;
+  this.reductionFrost = this.baseReductionFrost;
+  this.reductionArcane = this.baseReductionArcane;
 
   this.HP = this.maxHP;
   this.MP = this.maxMP;
 
-  this.MoveSpeed = this.baseMoveSpeed;
-  this.RotateSpeed = this.baseRotateSpeed;
+  this.moveSpeed = this.baseMoveSpeed;
+  this.rotateSpeed = this.baseRotateSpeed;
 
-  this.setMaxSpeed(this.MoveSpeed);
-  this.setRotateSpeed(this.RotateSpeed);
+  this.setMaxSpeed(this.moveSpeed);
+  this.setRotateSpeed(this.rotateSpeed);
 };
 User.prototype.updateStatAndCondition = function(){
   var additionalMight = 0, additionalIntellect = 0, additionalPerception = 0,
-      additionalMaxHP = 0, additionalMaxMp = 0, additionalMaxHPRate = 100, additionalMaxMpRate = 100,
-      additionalHPRegen = 0, additionalHPRegenRate = 0, additionalMPRegen = 0, additionalMPregenRate = 0,
-      additionalMovespeedRate = 100, additionalRotateSpeedRate = 100, additionalCastSpeedRate = 100,
+      additionalMaxHP = 0, additionalMaxMP = 0, additionalMaxHPRate = 100, additionalMaxMPRate = 100,
+      additionalHPRegen = 0, additionalHPRegenRate = 0, additionalMPRegen = 0, additionalMPRegenRate = 0,
+      additionalMoveSpeedRate = 100, additionalRotateSpeedRate = 100, additionalCastSpeedRate = 0,
       additionalDamage = 0, additionalFireDamage = 0, additionalFrostDamage = 0, additionalArcaneDamage = 0,
       additionalDamageRate = 100, additionalFireDamageRate = 100, additionalFrostDamageRate = 100, additionalArcaneDamageRate = 100,
       additionalResistAll = 0, additionalResistFire = 0, additionalResistFrost = 0, additionalResistArcane = 0,
@@ -130,94 +140,215 @@ User.prototype.updateStatAndCondition = function(){
 
   var additionalHP = 0; additionalMP = 0;
 
+  var disperBuffCount = 0;
+  var disperDebuffCount = 0;
+
+  this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = false;
+  this.conditions[gameConfig.USER_CONDITION_CHILL] = false;
+  this.conditions[gameConfig.USER_CONDITION_FREEZE] = false;
+  this.conditions[gameConfig.USER_CONDITION_SILENCE] = false;
+  this.conditions[gameConfig.USER_CONDITION_IGNITE] = false;
+
   var buffIndex = this.buffList.length;
   if(buffIndex > 0){
     while(buffIndex--){
       if(Date.now() - this.buffList[buffIndex].startTime > this.buffList[buffIndex].buffLifeTime){
         this.buffList.splice(buffIndex, 1);
       }else if(Date.now() - this.buffList[buffIndex].tickStartTime > this.buffList[buffIndex].buffTickTime){
-        switch (this.buffList.buffType) {
-          case expression:
-
+        switch (this.buffList[buffIndex].buffType) {
+          case serverConfig.BUFF_TYPE_ADD_STAT:
+            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_MIGHT){
+              additionalMight += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_INTELLECT){
+              additionalIntellect += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_PERCEPTION){
+              additionalPerception += this.buffList[buffIndex].buffAmount;
+            }else{
+              console.log('check buff index : ' + this.buffList[buffIndex]);
+            }
+            break;
+          case serverConfig.BUFF_TYPE_ADD_SECONDARY_STAT:
+            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_HP){
+              additionalMaxHP += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_MP){
+              additionalMaxMP += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_HP_RATE){
+              additionalMaxHPRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_MP_RATE){
+              additionalMaxMPRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_HP_REGEN){
+              additionalHPRegen += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_HP_REGEN_RATE){
+              additionalHPRegenRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MP_REGEN){
+              additionalMPRegen += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MP_REGEN_RATE){
+              additionalMPRegenRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MOVE_SPEED_RATE){
+              //add MoveSpeed and RotateSpeed
+              additionalMoveSpeedRate += this.buffList[buffIndex].buffAmount;
+              additionalRotateSpeedRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_CAST_SPEED_RATE){
+              additionalCastSpeedRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE){
+              additionalDamage += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE){
+              additionalFireDamage += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE){
+              additionalFrostDamage += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE){
+              additionalArcaneDamage += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE_RATE){
+              additionalDamageRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE_RATE){
+              additionalFireDamageRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE_RATE){
+              additionalFrostDamageRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE_RATE){
+              additionalArcaneDamageRate += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_ALL){
+              additionalResistAll += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_FIRE){
+              additionalResistFire += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_FROST){
+              additionalResistFrost += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_ARCANE){
+              additionalResistArcane += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_ALL){
+              additionalReductionAll += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_FIRE){
+              additionalReductionFire += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_FROST){
+              additionalReductionFrost += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_ARCANE){
+              additionalReductionArcane += this.buffList[buffIndex].buffAmount;
+            }else{
+              console.log('check buff index : ' + this.buffList[buffIndex]);
+            }
+            break;
+          case serverConfig.BUFF_TYPE_HEAL:
+            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_HP){
+              additionalHP += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_HP_RATE){
+              additionalHP += this.maxHP * this.buffList[buffIndex].buffAmount/100;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_MP){
+              additionalMP += this.buffList[buffIndex].buffAmount/100;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_MP_RATE){
+              additionalMP += this.maxMP * this.buffList[buffIndex].buffAmount/100;
+            }else{
+              console.log('check buff index : ' + this.buffList[buffIndex]);
+            }
+            break;
+          case serverConfig.BUFF_TYPE_DISPEL:
+            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_BUFF){
+              disperBuffCount += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_DEBUFF){
+              disperDebuffCount += this.buffList[buffIndex].buffAmount;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_ALL){
+              disperBuffCount += this.buffList[buffIndex].buffAmount;
+              disperDebuffCount += this.buffList[buffIndex].buffAmount;
+            }else{
+              console.log('check buff index : ' + this.buffList[buffIndex]);
+            }
+            break;
+          case serverConfig.BUFF_TYPE_SET_CONDITION:
+            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IMMORTAL){
+              this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = this.buffList[buffIndex].actorID;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_CHILL){
+              this.conditions[gameConfig.USER_CONDITION_CHILL] = this.buffList[buffIndex].actorID;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_FREEZE){
+              this.conditions[gameConfig.USER_CONDITION_FREEZE] = this.buffList[buffIndex].actorID;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_SILENCE){
+              this.conditions[gameConfig.USER_CONDITION_SILENCE] = this.buffList[buffIndex].actorID;
+            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IGNITE){
+              this.conditions[gameConfig.USER_CONDITION_IGNITE] = this.buffList[buffIndex].actorID;
+            }else{
+              console.log('check buff index : ' + this.buffList[buffIndex]);
+            }
             break;
           default:
-
+            console.log('check buff index : ' + this.buffList[buffIndex]);
+            break;
         }
         this.buffList[buffIndex].tickStartTime = Date.now();
       }
     }
   }
-  var debuffIndex = this.debuffList.length;
-  if(debuffIndex < 0){
-    while(debuffIndex--){
-      if(Date.now() - this.debuffList[debuffIndex].startTime > this.debuffList[debuffIndex].buffLifeTime){
-        this.debuffList.splice(debuffIndex, 1);
-      }else if(Date.now() - this.debuffList[debuffIndex].tickStartTime > this.debuffList[debuffIndex].buffTickTime){
 
-        this.debuffList[debuffIndex].tickStartTime = Date.now();
+  //disper apply
+  for(var i=0; i<disperBuffCount; i++){
+    for(var j=0; j<buffList.length; j++){
+      if(buffList[j].isBuff){
+        buffList.splice(j, 1);
+        break;
+      }
+    }
+  }
+  for(var i=0; i<disperDebuffCount; i++){
+    for(var j=0; j<buffList.length; j++){
+      if(!buffList[j].isBuff){
+        buffList.splice(j, 1);
+        break;
       }
     }
   }
 
-  additionalMight = 0, additionalIntellect = 0, additionalPerception = 0,
-  additionalMaxHP = 0, additionalMaxMp = 0, additionalMaxHPRate = 100, additionalMaxMpRate = 100,
-  additionalHPRegen = 0, additionalHPRegenRate = 0, additionalMPRegen = 0, additionalMPregenRate = 0,
-  additionalMovespeedRate = 0, additionalRotateSpeedRate = 0, additionalCastSpeedRate = 0,
-  additionalDamage = 0, additionalFireDamage = 0, additionalFrostDamage = 0, additionalArcaneDamage = 0,
-  additionalDamageRate = 0, additionalFireDamageRate = 0, additionalFrostDamageRate = 0, additionalArcaneDamageRate = 0,
-  additionalResistAll = 0, additionalResistFire = 0, additionalResistFrost = 0, additionalResistArcane = 0,
-  additionalReductionAll = 0, additionalReductionFire = 0, additionalReductionFrost = 0, additionalReductionArcane = 0;
+  this.might = this.baseMight + additionalMight;
+  this.intellect = this.baseIntellect + additionalIntellect;
+  this.perception = this.basePerception + additionalPerception;
 
-  additionalHP = 0; additionalMP = 0;
-
-  this.Might = this.baseMight + additionalMight;
-  this.Intellect = this.baseIntellect + additionalIntellect;
-  this.Perception = this.basePerception + additionalPerception;
-
-  this.MaxHP = (this.baseHP + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP * this.Might + additionalMaxHP) * additionalMaxHPRate/100;
-  this.MaxMP = (this.baseMP + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP * this.Intellect + additionalMaxMp) * additionalMaxMPRate/100;
+  this.maxHP = (this.baseHP + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP * this.might + additionalMaxHP) * additionalMaxHPRate/100;
+  this.maxMP = (this.baseMP + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP * this.intellect + additionalMaxMP) * additionalMaxMPRate/100;
   var HPRegenRate = this.baseHPRegenRate + additionalHPRegenRate;
   var MPRegenRate = this.baseMPRegenRate + additionalMPRegenRate;
-  this.HPRegen = this.baseHPRegen + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP_REGEN * this.Might + additionalHPRegen + this.MaxHP * HPRegenRate/100;
-  this.MPRegen = this.baseMPRegen + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP_REGEN * this.Intellect + additionalMPRegen + this.MaxMP * MPRegenRate/100;
-  this.CastSpeed = this.baseCastSpeed * additionalCastSpeedRate/100;
-  //do
-  this.Damage = this.baseDamage + this.baseDamageRate/100;
-  this.FireDamage = this.baseFireDamage + this.baseFireDamageRate/100;
-  this.FrostDamage = this.baseFrostDamage + this.baseFrostDamageRate/100;
-  this.ArcaneDamage = this.baseArcaneDamage + this.baseArcaneDamageRate/100;
-  this.ResistAll = this.baseResistAll;
-  this.ResistFire = this.baseResistFire;
-  this.ResistFrost = this.baseResistFrost;
-  this.ResistArcane = this.baseResistArcane;
-  this.ReductionAll = this.baseReductionAll;
-  this.ReductionFire = this.baseReductionFire;
-  this.ReductionFrost = this.baseReductionFrost;
-  this.ReductionArcane = this.baseReductionArcane;
+  this.HPRegen = this.baseHPRegen + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP_REGEN * this.might + additionalHPRegen + this.maxHP * HPRegenRate/100;
+  this.MPRegen = this.baseMPRegen + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP_REGEN * this.intellect + additionalMPRegen + this.maxMP * MPRegenRate/100;
+  this.castSpeed = this.baseCastSpeed + additionalCastSpeedRate;
+  this.damage = this.baseDamage + additionalDamage;
+  this.fireDamage = this.baseFireDamage + additionalFireDamage;
+  this.frostDamage = this.baseFrostDamage + additionalFrostDamage;
+  this.arcaneDamage = this.baseArcaneDamage + additionalArcaneDamage;
+  this.damageRate = this.baseDamageRate + additionalDamageRate;
+  this.fireDamageRate = this.baseFireDamageRate + additionalFireDamageRate;
+  this.frostDamageRate = this.baseFrostDamageRate + additionalFrostDamageRate;
+  this.arcaneDamageRate = this.baseArcaneDamageRate + additionalArcaneDamageRate;
+  this.resistAll = this.baseResistAll + additionalResistAll;
+  this.resistFire = this.baseResistFire + additionalResistFire;
+  this.resistFrost = this.baseResistFrost + additionalResistFrost;
+  this.resistArcane = this.baseResistArcane + additionalResistArcane;
+  this.reductionAll = this.baseReductionAll + additionalReductionAll;
+  this.reductionFire = this.baseReductionFire + additionalReductionFire;
+  this.reductionFrost = this.baseReductionFrost + additionalReductionFrost;
+  this.reductionArcane = this.baseReductionArcane + additionalReductionArcane;
 
-  this.MoveSpeed = this.baseMoveSpeed;
-  this.RotateSpeed = this.baseRotateSpeed;
+  this.moveSpeed = this.baseMoveSpeed * additionalMoveSpeedRate/100;
+  this.rotateSpeed = this.baseRotateSpeed * additionalRotateSpeedRate/100;
 
-  this.HP = this.maxHP;
-  this.MP = this.maxMP;
+  if(additionalHP){
+    this.healHP(additionalHP);
+  }
+  if(additionalMP){
+    this.healMP(additionalMP);
+  }
 
-  this.setMaxSpeed(this.MoveSpeed);
-  this.setRotateSpeed(this.RotateSpeed);
+  this.setMaxSpeed(this.moveSpeed);
+  this.setRotateSpeed(this.rotateSpeed);
 };
 User.prototype.regenHPMP = function(){
-  this.healHP(this.regenHP);
-  this.healMP(this.regenMP);
+  this.healHP(this.HPRegen);
+  this.healMP(this.MPRegen);
 };
-user.prototype.igniteHP = function(){
+User.prototype.igniteHP = function(){
   var igniteDamage = this.maxHP * serverConfig.IGNITE_DAMAGE_RATE;
-  this.takeDamage(igniteDamage);
+  console.log('ignite ' + this.objectID + ' : ' + igniteDamage);
+  // this.takeDamage(igniteDamage);
 };
 User.prototype.buffUpdate = function(){
   if(!this.buffUpdateInterval){
     this.buffUpdateInterval = setInterval(buffUpdateHandler.bind(this), INTERVAL_TIMER);
   }
   if(!this.regenInterval){
-    this.regenInterval = setInterval(regenIntervalHandler.bind(this). serverConfig.USER_REGEN_TIMER);
+    this.regenInterval = setInterval(regenIntervalHandler.bind(this), serverConfig.USER_REGEN_TIMER);
   }
 };
 function buffUpdateHandler(){
@@ -225,17 +356,36 @@ function buffUpdateHandler(){
 };
 function regenIntervalHandler(){
   this.regenHPMP();
-  this.igniteHP();
+  if(this.conditions[serverConfig.USER_CONDITION_IGNITE]){
+    this.igniteHP();
+  }
 };
 User.prototype.addBuffs = function(buffs){
   //check apply rate with resist
+  var applyBuffs = [];
+  for(var i=0; i<buffs.length; i++){
+    var rate = Math.floor(Math.random() * 101);
+    if(buffs[i].buffApplyRate > rate){
+      applyBuffs.push(buffs[i]);
+    }
+  }
   //set duration and startTime
+  //if duplicate condition, set as later condition buff. delete before buff and debuff
   //set buffTickTime
-};
-User.prototype.addDebuffs = function(debuffs){
-  //check apply rate with resist
-  //set duration and startTime
-  //set buffTickTime
+  for(var i=0; i<applyBuffs.length; i++){
+    applyBuffs[i].startTime = Date.now();
+    applyBuffs[i].buffTickTime = Date.now();
+    if(applyBuffs[i].buffType === serverConfig.BUFF_TYPE_SET_CONDITION){
+      //if same set condition delete before buff
+      for(var j=0; j<this.buffList.length; j++){
+        if(this.buffList[j].buffType === serverConfig.BUFF_TYPE_SET_CONDITION &&
+           this.buffList[j].buffEffectType === applyBuffs[i].buffEffectType){
+             this.buffList.splice(j, 1);
+           }
+      }
+    }
+    this.buffList.push(applyBuffs[i]);
+  }
 };
 
 //Instantiate base attack
@@ -302,22 +452,26 @@ User.prototype.stop = function(){
   }
 };
 User.prototype.takeDamage = function(attackUserID, dmg){
+  console.log(this);
   this.HP -= dmg;
   console.log(this.objectID + ' : ' + this.HP);
   if(this.HP <= 0){
     this.death(attackUserID);
   }
 };
+User.prototype.takeDamageToMana = function(){
+
+};
 User.prototype.healHP = function(amount){
-  if(this.MaxHP < this.HP + amount){
-    this.HP = this.MaxHP;
+  if(this.maxHP < this.HP + amount){
+    this.HP = this.maxHP;
   }else{
     this.HP += amount;
   }
 };
 User.prototype.healMP = function(amount){
-  if(this.MaxMP < this.MP + amount){
-    this.MP = this.MaxMP;
+  if(this.maxMP < this.MP + amount){
+    this.MP = this.maxMP;
   }else{
     this.MP += amount;
   }
@@ -331,11 +485,11 @@ User.prototype.death = function(attackUserID){
 
 
 User.prototype.getExp = function(exp){
-  this.Exp += exp;
+  this.exp += exp;
   var userLevelData = util.findDataWithTwoColumns(userStatTable, 'type', this.type, 'level', this.level);
   if(userLevelData.needExp === -1){
     console.log('user reach max level');
-  }else if(this.Exp >= userLevelData.needExp){
+  }else if(this.exp >= userLevelData.needExp){
     this.levelUp();
   }
 };
@@ -353,135 +507,9 @@ User.prototype.levelUp = function(){
 User.prototype.updateUserBaseStat = function(){
   var userLevelData = util.findDataWithTwoColumns(userStatTable, 'type', this.type, 'level', this.level);
 
-  this.baseHP = userLevelData.baseHP;
-  this.baseMP = userLevelData.baseMP;
-  this.baseHPRegen = userLevelData.baseHPRegen;
-  this.baseMPRegen = userLevelData.baseMPRegen;
-  this.baseMaxSpeed = userLevelData.baseMaxSpeed;
-  this.baseRotateSpeed = userLevelData.baseRotateSpeed;
-  this.baseCastSpeed = userLevelData.baseCastSpeed;
-  this.baseDamage = userLevelData.baseDamage;
-  this.baseDamageRate = userLevelData.baseDamageRate;
-
-  this.setUserStatToMaxOfBase();
+  this.baseMight = userLevelData.might;
+  this.baseIntellect = userLevelData.intellect;
+  this.basePerception = userLevelData.perception;
 };
-User.prototype.setUserStatToMaxOfBase = function(){
-  this.currentHp    = this.maxHP            ;
-  this.currentMP    = this.maxMP            ;
-  this.HPRegen      = this.baseHPRegen      ;
-  this.MPRegen      = this.baseMPRegen      ;
-  this.maxHP        = this.baseHP           ;
-  this.maxMP        = this.baseMP           ;
-  this.maxSpeed     = this.baseMaxSpeed     ;
-  this.rotateSpeed  = this.baseRotateSpeed  ;
-  this.castSpeed    = this.baseCastSpeed    ;
-  this.addDamageAmount = this.baseDamage    ;
-  this.addDamageRate = this.baseDamageRate  ;
-};
-//execute every frame?
-User.prototype.updateUserStat = function(){
 
-  this.condition = [];
-
-  var addStat = {
-    additionalHP                  : 0,
-    additionalMP                  : 0,
-    additionalHPRegenAmount       : 0,
-    additionalHPRegenRate         : 1,
-    additionalMaxHpAmount         : 0,
-    additionalMaxHpRate           : 1,
-    additionalMaxMPAmount         : 0,
-    additionalMaxMpRate           : 1,
-    additionalMPRegenAmount       : 0,
-    additionalMPRegenRate         : 1,
-    additionalMoveSpeedAmount     : 0,
-    additionalMoveSpeedRate       : 1,
-    additionalRotateSpeedAmount   : 0,
-    additionalRotateSpeedRate     : 1,
-    additionalCastSpeedAmount     : 0,
-    additionalCastSpeedRate       : 1,
-    additionalDamageAmount        : 0,
-    additionalDamageRate          : 1
-  }
-
-  for(var i=0; i<this.buffList.length; i++){
-    if(this.buffList[i].buffTickTime){
-      //case tick damage or heal
-      if(!this.buffList[i].startTickTime){
-        this.buffList[i].startTickTime = Date.now();
-      }else{
-        var timeSpan = Date.now() - this.buffList[i].startTickTime;
-        if(timeSpan >= this.buffList[i].buffTickTime){
-          //apply buff
-          applyBuff(this.buffList, i, this.condition, addStat, true);
-          //reset startTickTime
-          this.buffList[i].startTickTime = Date.now();
-        }
-      }
-    }else{
-      applyBuff(this.buffList, i, this.condition, addStat, true);
-      //apply buff
-    }
-  }
-  for(var i=0; i<this.debuffList.length; i++){
-    if(this.debuffList[i].buffTickTime){
-      if(!this.debuffList[i].startTickTime){
-        this.debuffList[i].startTickTime = Date.now();
-      }else{
-        var timeSpan = Date.now() = this.debuffList[i].startTickTime;
-        if(timeSpan >= this.debuffList[i].buffTickTime){
-          //apply debuff
-          applyBuff(this.debuffList, i, this.condition, addStat, false);
-          //reset startTickTime
-          this.debuffList[i].startTickTime = Date.now();
-        }
-      }
-    }else{
-      //apply buff
-      applyBuff(this.debuffList, i, this.condition, addStat, false);
-    }
-  }
-
-  this.HPRegen = (this.baseHPRegen * addStat.additionalHPRegenRate) + addStat.additionalHPRegenAmount;
-  this.MPRegen = (this.baseMPRegen * addStat.additionalMPRegenRate) + addStat.additionalMPRegenAmount;
-  this.maxHP = (this.baseHP * addStat.additionalMaxHpRate) + addStat.additionalMaxHpAmount;
-  this.maxMP = (this.baseMP * addStat.additionalMaxMpRate) + addStat.additionalMaxMPAmount;
-  this.castSpeed = (this.baseCastSpeed * addStat.additionalCastSpeedRate) + addStat.additionalCastSpeedAmount;
-  this.maxSpeed = (this.baseMaxSpeed * addStat.additionalMoveSpeedRate) + addStat.additionalMoveSpeedAmount;
-  this.rotateSpeed = (this.baseRotateSpeed * addStat.additionalRotateSpeedRate) + addStat.additionalRotateSpeedAmount;
-  this.addDamageAmount = addStat.additionalDamageAmount;
-  this.addDamageRate = addStat.additionalDamageRate;
-
-  this.currentHP += addStat.additionalHP;
-  this.currentMP += addStat.additionalMP;
-  this.currentHP += this.HPRegen;
-  this.currentMP += this.MPRegen;
-
-  if(this.currentHP <= 0){
-
-  }else if(this.currentHP >= this.maxHP){
-    this.currentHP = this.maxHP;
-  }
-  if(this.currentMP <= 0){
-
-  }else if(this.currentMP >= this.maxMP){
-    this.currentMP = this.maxMP;
-  }
-};
-function applyBuff(buffList, index, condition, addStat, isBuff){
-  switch (buffList[index].buffType) {
-    case '':
-      //special effect apply
-      //user condition exchange
-      break;
-    default:
-      //stat apply. table column name and variable name must same
-      if(isBuff){
-        addStat[buffList[index].buffType] += buffList[index].buffAmount;
-      }else{
-        addStat[buffList[index].buffType] -= buffList[index].buffAmount;
-      }
-      break;
-  }
-};
 module.exports = User;

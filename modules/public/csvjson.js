@@ -90,7 +90,7 @@ function toObject(data, opts){
           var hashItem = { };
           headers.forEach(function(headerItem, index){
               var tempItem = _trimQuote(item[index]);
-              if(parseInt(tempItem)){
+              if(parseInt(tempItem) || parseInt(tempItem) === 0){
                 hashItem[headerItem] = parseInt(tempItem);
               }else if(parseFloat(tempItem)){
                 hashItem[headerItem] = parseFloat(tempItem);

@@ -69,3 +69,31 @@ exports.onUserDeath = function(attackUserID, exp, deadUser){
     console.log(attackUserID + ' is not exists');
   }
 };
+exports.setAffectedEleColSkillWithEntity = function(skill, affectedID, collisionType){
+  return {
+    collisionType : collisionType,
+    skillType : skill.type,
+
+    projectileID : skill.objectID || 0,
+    actorID : skill.id,
+    affectedID : affectedID,
+
+    fireDamage : skill.fireDamage || 0,
+    frostDamage : skill.frostDamage || 0,
+    arcaneDamage : skill.arcaneDamage || 0,
+    damageToMP : skill.damageToMP || 0,
+
+    buffsToTarget : skill.buffsToTarget
+  }
+};
+exports.setAffectedEleColUserWithCollection = function(userID, affectedObj, collisionType){
+  return{
+    collisionType : collisionType,
+    actorID : userID,
+    affectedID : affectedObj.id,
+
+    expAmount : affectedObj.expAmount || 0,
+    goldAmount : affectedObj.goldAmount || 0,
+    skillIndex : affectedObj.skillIndex || 0
+  }
+};
