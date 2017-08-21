@@ -70,3 +70,9 @@ deleteObj function 삭제
 버프 추가 확인
 시작 타입 변경
 projectiel 화살표 이미지로 변경
+
+테스트(스킬 버프, startTime 중복)
+css 중앙 정렬
+메인 화면 기획
+일러스트 애니메이션
+스킬 데이터 추가

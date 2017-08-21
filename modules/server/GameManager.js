@@ -423,7 +423,6 @@ GameManager.prototype.applySkill = function(userID, skillData){
       this.users[userID].healHPMP(healHPAmount, healMPAmount);
     }
     var skillCollider = new SkillCollider(this.users[userID], skillData);
-
     this.skills.push(skillCollider);
     // this.skills.push({
     //   id : userID,
@@ -742,9 +741,9 @@ function updateIntervalHandler(){
           if(!tempCollider.isCollide){
             tempCollider.isCollide = true;
             if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
-              affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
+              affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
             }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
-              affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
+              affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
             }else{
               console.log('check id' + collisionObjs[j].id);
             }
@@ -755,9 +754,9 @@ function updateIntervalHandler(){
           }
         }else if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK && !tempCollider.isCollide){
           if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
-            affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
+            affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
           }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
-            affectedEles.push(SUtil.setAffectedEleColSkillWithUser(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
+            affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
           }else{
             console.log('check id' + collisionObjs[j].id);
           }

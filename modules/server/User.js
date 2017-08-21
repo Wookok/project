@@ -362,7 +362,7 @@ User.prototype.regenHPMP = function(){
   this.healMP(this.MPRegen);
 };
 User.prototype.igniteHP = function(attackUserID){
-  var igniteDamage = this.maxHP * serverConfig.IGNITE_DAMAGE_RATE;
+  var igniteDamage = this.maxHP * serverConfig.IGNITE_DAMAGE_RATE/100;
   console.log('ignite ' + this.objectID + ' : ' + igniteDamage);
   this.takeDamage(attackUserID, igniteDamage);
   // this.takeDamage(igniteDamage);
@@ -380,8 +380,8 @@ function buffUpdateHandler(){
 };
 function regenIntervalHandler(){
   this.regenHPMP();
-  if(this.conditions[serverConfig.USER_CONDITION_IGNITE]){
-    this.igniteHP(this.conditions[serverConfig.USER_CONDITION_IGNITE]);
+  if(this.conditions[gameConfig.USER_CONDITION_IGNITE]){
+    this.igniteHP(this.conditions[gameConfig.USER_CONDITION_IGNITE]);
   }
 };
 User.prototype.addBuffs = function(buffs){
@@ -398,7 +398,7 @@ User.prototype.addBuffs = function(buffs){
   //set buffTickTime
   for(var i=0; i<applyBuffs.length; i++){
     applyBuffs[i].startTime = Date.now();
-    applyBuffs[i].buffTickTime = Date.now();
+    applyBuffs[i].tickStartTime = Date.now();
     if(applyBuffs[i].buffType === serverConfig.BUFF_TYPE_SET_CONDITION){
       //if same set condition delete before buff
       for(var j=0; j<this.buffList.length; j++){
@@ -409,6 +409,7 @@ User.prototype.addBuffs = function(buffs){
       }
     }
     this.buffList.push(applyBuffs[i]);
+    console.log(this.buffList);
   }
 };
 
