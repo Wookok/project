@@ -44,6 +44,14 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var io = socketio.listen(server);
 
+GM.onNeedInformUserChangeStat = function(user){
+  var userData = GM.processChangedUserStat(user)
+  io.sockets.emit('changeUserStat', userData);
+};
+GM.onNeedInformCreateChest = function(chest){
+  var chestData = GM.processChestDataSetting(chest);
+  io.sockets.emit('createChest', chestData);
+};
 GM.onNeedInformCreateObjs = function(objs){
   var objDatas = [];
   for(var i=0; i<Object.keys(objs).length; i++){
@@ -51,7 +59,7 @@ GM.onNeedInformCreateObjs = function(objs){
   }
   io.sockets.emit('createOBJs', objDatas);
   console.log('createObjs executed');
-}
+};
 GM.onNeedInformDeleteObj = function(objID){
   console.log('onNeedInformDeleteObj : ' + objID);
   io.sockets.emit('deleteOBJ', objID)
@@ -61,14 +69,10 @@ GM.onNeedInformSkillData = function(socketID, possessSkills){
   // socket.emit('updateSkillPossessions', possessSkills);
 };
 GM.onNeedInformProjectileDelete = function(projectileData){
-  io.sockets.emit('deleteProjectile', projectileData.id, projectileData.objectID);
+  io.sockets.emit('deleteProjectile', projectileData.objectID);
 };
 GM.onNeedInformProjectileExplode = function(projectileData){
-  io.sockets.emit('explodeProjectile', projectileData.id, projectileData.objectID);
-};
-GM.onNeedInformCreateChest = function(chest){
-  var chestData = GM.processChestDataSetting(chest);
-  io.sockets.emit('createChest', chestData);
+  io.sockets.emit('explodeProjectile', projectileData.objectID);
 };
 
 io.on('connection', function(socket){
@@ -151,6 +155,11 @@ io.on('connection', function(socket){
     projectileData.buffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'buffToTarget', 3, user.objectID);
 
     GM.applyProjectile(user.objectID, projectileData);
+  });
+  socket.on('castCanceled', function(userData){
+    GM.updateUserData(userData);
+
+    socket.broadcast.emit('castCanceled', userData.objectID);
   });
   socket.on('disconnect', function(){
     if(user){

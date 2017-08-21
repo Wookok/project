@@ -53,80 +53,80 @@ LivingEntity.prototype = Object.create(GameObject.prototype);
 LivingEntity.prototype.constructor = LivingEntity;
 
 //state changer. change update listener
-LivingEntity.prototype.changeState = function(newState){
-  this.currentState = newState;
-
-  this.stop();
-  switch(this.currentState){
-    case gameConfig.OBJECT_STATE_IDLE :
-      this.updateFunction = this.idle;
-      break;
-    case gameConfig.OBJECT_STATE_MOVE :
-      this.updateFunction = this.rotate.bind(this);
-      break;
-    case gameConfig.OBJECT_STATE_ATTACK :
-      this.updateFunction = this.attack.bind(this);
-      break;
-    case gameConfig.OBJECT_STATE_CAST :
-      this.updateFunction = this.rotate.bind(this);
-      break;
-    }
-  this.update();
-};
-LivingEntity.prototype.update = function(){
-  if(!this.updateInterval){
-    this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
-  }
-};
-//rotate before move or fire skill etc..
-LivingEntity.prototype.rotate = function(){
-  util.rotate.call(this);
-};
-//move after rotate
-LivingEntity.prototype.move = function(){
-  util.move.call(this);
-};
-LivingEntity.prototype.idle = function(){
-  //do nothing or send current stat to client;
-};
-LivingEntity.prototype.moveDirect = function(newPosition){
-  this.position = newPosition;
-  this.setCenter();
-};
-//interval clear
-LivingEntity.prototype.stop = function(){
-  if(this.updateInterval){
-    clearInterval(this.updateInterval);
-    this.updateInterval = false;
-  }
-};
-
-// setup when click canvas for move
-LivingEntity.prototype.setTargetPosition = function(newPosition){
-  console.log(newPosition);
-  if(newPosition.x <= this.size.width/2){
-    this.targetPosition.x = this.size.width/2;
-  }else if(newPosition.x >= gameConfig.CANVAS_MAX_SIZE.width - this.size.width/2){
-    this.targetPosition.x = gameConfig.CANVAS_MAX_SIZE.width - this.size.width/2;
-  }else{
-    this.targetPosition.x = newPosition.x;
-  }
-
-  if(newPosition.y <=this.size.height/2){
-    this.targetPosition.y = this.size.height/2;
-  }else if(newPosition.y >= gameConfig.CANVAS_MAX_SIZE.height - this.size.height/2){
-    this.targetPosition.y = gameConfig.CANVAS_MAX_SIZE.height - this.size.height/2;
-  }else{
-    this.targetPosition.y = newPosition.y;
-  }
-  console.log(this.targetPosition);
-};
-LivingEntity.prototype.setSpeed = function(){
-  util.setSpeed.call(this);
-};
-LivingEntity.prototype.setTargetDirection = function(){
-  util.setTargetDirection.call(this);
-};
+// LivingEntity.prototype.changeState = function(newState){
+//   this.currentState = newState;
+//
+//   this.stop();
+//   switch(this.currentState){
+//     case gameConfig.OBJECT_STATE_IDLE :
+//       this.updateFunction = this.idle;
+//       break;
+//     case gameConfig.OBJECT_STATE_MOVE :
+//       this.updateFunction = this.rotate.bind(this);
+//       break;
+//     case gameConfig.OBJECT_STATE_ATTACK :
+//       this.updateFunction = this.attack.bind(this);
+//       break;
+//     case gameConfig.OBJECT_STATE_CAST :
+//       this.updateFunction = this.rotate.bind(this);
+//       break;
+//     }
+//   this.update();
+// };
+// LivingEntity.prototype.update = function(){
+//   if(!this.updateInterval){
+//     this.updateInterval = setInterval(this.updateFunction, INTERVAL_TIMER);
+//   }
+// };
+// //rotate before move or fire skill etc..
+// LivingEntity.prototype.rotate = function(){
+//   util.rotate.call(this);
+// };
+// //move after rotate
+// LivingEntity.prototype.move = function(){
+//   util.move.call(this);
+// };
+// LivingEntity.prototype.idle = function(){
+//   //do nothing or send current stat to client;
+// };
+// LivingEntity.prototype.moveDirect = function(newPosition){
+//   this.position = newPosition;
+//   this.setCenter();
+// };
+// //interval clear
+// LivingEntity.prototype.stop = function(){
+//   if(this.updateInterval){
+//     clearInterval(this.updateInterval);
+//     this.updateInterval = false;
+//   }
+// };
+//
+// // setup when click canvas for move
+// LivingEntity.prototype.setTargetPosition = function(newPosition){
+//   console.log(newPosition);
+//   if(newPosition.x <= this.size.width/2){
+//     this.targetPosition.x = this.size.width/2;
+//   }else if(newPosition.x >= gameConfig.CANVAS_MAX_SIZE.width - this.size.width/2){
+//     this.targetPosition.x = gameConfig.CANVAS_MAX_SIZE.width - this.size.width/2;
+//   }else{
+//     this.targetPosition.x = newPosition.x;
+//   }
+//
+//   if(newPosition.y <=this.size.height/2){
+//     this.targetPosition.y = this.size.height/2;
+//   }else if(newPosition.y >= gameConfig.CANVAS_MAX_SIZE.height - this.size.height/2){
+//     this.targetPosition.y = gameConfig.CANVAS_MAX_SIZE.height - this.size.height/2;
+//   }else{
+//     this.targetPosition.y = newPosition.y;
+//   }
+//   console.log(this.targetPosition);
+// };
+// LivingEntity.prototype.setSpeed = function(){
+//   util.setSpeed.call(this);
+// };
+// LivingEntity.prototype.setTargetDirection = function(){
+//   util.setTargetDirection.call(this);
+// };
 
 // initialize method
 LivingEntity.prototype.setRotateSpeed = function(x){

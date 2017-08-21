@@ -4,7 +4,7 @@ var User = require('./CUser.js');
 var util = require('../public/util.js');
 
 var gameConfig = require('../public/gameConfig.json');
-var resources = require('../public/resource.json');
+var resources = require('../public/resources.json');
 var map = require('../public/map.json');
 
 var QuadTree = require('../public/quadtree.min.js');
@@ -31,6 +31,7 @@ var CManager = function(){
 
 	this.onSkillFire = new Function();
 	this.onProjectileSkillFire = new Function();
+	this.onCancelCasting = new Function();
 
 	this.staticInterval = null;
 	this.affectInterval = null;
@@ -104,7 +105,7 @@ CManager.prototype = {
 		}
 	},
 	setUsers : function(userDatas){
-		for(var i=0; i<Object.keys(userDatas).length; i++){
+		for(var i=0; i<userDatas.length; i++){
 			var tempUser = new User(userDatas[i]);
 			this.users[userDatas[i].objectID] = tempUser;
 			this.users[userDatas[i].objectID].onMove = onMoveCalcCompelPos.bind(this);
@@ -112,14 +113,14 @@ CManager.prototype = {
 		}
 	},
 	setUsersSkills : function(skillDatas){
-		for(var i=0; i<Object.keys(skillDatas).length; i++){
+		for(var i=0; i<skillDatas.length; i++){
 			if(skillDatas[i].fireTime > 0){
 				this.userSkill(skillDatas[i].userID, skillDatas[i]);
 			}
 		}
 	},
 	setObjs : function(objDatas){
-		for(var i=0; i<Object.keys(objDatas).length; i++){
+		for(var i=0; i<objDatas.length; i++){
 			if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_EXP){
 				this.objExps.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
 			}else if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
@@ -128,7 +129,7 @@ CManager.prototype = {
 		}
 	},
 	createOBJs : function(objDatas){
-		for(var i=0; i<Object.keys(objDatas).length; i++){
+		for(var i=0; i<objDatas.length; i++){
 			if(objDatas[i].objectID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
 				this.objExps.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
 			}else if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
@@ -274,6 +275,22 @@ CManager.prototype = {
 		}
 		this.users[userID].setSkill(skillInstance);
 	},
+	cancelCasting : function(userID){
+		if(userID in this.users){
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_IDLE);
+			if(userID === this.user.objectID){
+				this.onCancelCasting();
+			}
+		}
+	},
+	deleteProjectile : function(projectileID){
+		for(var i=0; i<this.projectiles.length; i++){
+			if(this.projectiles[i].objectID === projectileID){
+				this.projectiles.splice(i, 1);
+				break;
+			}
+		}
+	},
 	explodeProjectile : function(projectileID){
 		for(var i=0; i<this.projectiles.length; i++){
 			if(this.projectiles[i].objectID === projectileID){
@@ -283,6 +300,22 @@ CManager.prototype = {
 				this.projectiles.splice(i, 1);
 				break;
 			}
+		}
+	},
+	changeUserStat : function(userData){
+		this.users[userData.objectID].maxHP = userData.maxHP;
+		this.users[userData.objectID].maxMP = userData.maxMP;
+		this.users[userData.objectID].HP = userData.HP;
+		this.users[userData.objectID].MP = userData.MP;
+		this.users[userData.objectID].castSpeed = userData.castSpeed;
+		this.users[userData.objectID].maxSpeed = userData.maxSpeed;
+		this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+		this.users[userData.objectID].conditions = userData.conditions;
+
+		//apply maxSpeed
+		this.users[userData.objectID].setSpeed();
+		if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
+
 		}
 	},
 	updateSkillPossessions : function(userID, possessSkills){
@@ -322,6 +355,7 @@ CManager.prototype = {
 			currentState : this.user.currentState,
 			position : this.user.position,
 			direction : this.user.direction,
+
 			time : this.user.timer
 		};
 	},
@@ -375,7 +409,7 @@ var onMoveCalcCompelPos = function(user){
 };
 module.exports = CManager;
 
-},{"../public/gameConfig.json":7,"../public/map.json":8,"../public/quadtree.min.js":9,"../public/resource.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CUser.js":4}],2:[function(require,module,exports){
+},{"../public/gameConfig.json":7,"../public/map.json":8,"../public/quadtree.min.js":9,"../public/resources.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CUser.js":4}],2:[function(require,module,exports){
 function CObstacle(posX, posY, sizeW, sizeH, id, src){
   this.objectID = id;
   this.src = src;
@@ -563,12 +597,20 @@ module.exports = CSkill;
 },{"../public/util.js":11}],4:[function(require,module,exports){
 var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
+var resources = require('../public/resources.json');
 var gameConfig = require('../public/gameConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var User = function(userData){
   this.objectID = userData.objectID;
+
+  this.maxHP = userData.maxHP;
+  this.maxMP = userData.maxMP;
+  this.HP = userData.HP;
+  this.MP = userData.MP;
+  this.castSpeed = userData.castSpeed;
+  this.conditions = userData.conditions;
 
   this.currentState = null;
   this.currentSkill = undefined;
@@ -738,7 +780,7 @@ function onCastSkillHandler(skillInstance){
 };
 module.exports = User;
 
-},{"../public/gameConfig.json":7,"../public/util.js":11,"./CSkill.js":3}],5:[function(require,module,exports){
+},{"../public/gameConfig.json":7,"../public/resources.json":10,"../public/util.js":11,"./CSkill.js":3}],5:[function(require,module,exports){
 
 module.exports = {
     toObject        : toObject,
@@ -831,7 +873,7 @@ function toObject(data, opts){
           var hashItem = { };
           headers.forEach(function(headerItem, index){
               var tempItem = _trimQuote(item[index]);
-              if(parseInt(tempItem)){
+              if(parseInt(tempItem) || parseInt(tempItem) === 0){
                 hashItem[headerItem] = parseInt(tempItem);
               }else if(parseFloat(tempItem)){
                 hashItem[headerItem] = parseFloat(tempItem);
@@ -1200,7 +1242,7 @@ module.exports={
 
   "CANVAS_MAX_SIZE" : {"width" : 3200 , "height" : 3200},
   "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
-  
+
   "DRAW_MODE_NORMAL" : 1,
   "DRAW_MODE_SKILL_RANGE" : 2,
 
@@ -1229,6 +1271,7 @@ module.exports={
   "PREFIX_OBSTACLE_ROCK" : "OTR",
   "PREFIX_OBJECT_EXP" : "OXP",
   "PREFIX_OBJECT_SKILL" : "OSK",
+  "PREFIX_OBJECT_GOLD" : "OGD",
 
   "USER_CONDITION_IMMORTAL" : 1,
   "USER_CONDITION_CHILL" : 2,
@@ -1808,7 +1851,7 @@ var grid;
 
 // game state var
 var gameState = gameConfig.GAME_STATE_LOAD;
-var gameSetupFunc = load;
+var gameSetupFunc = stateFuncLoad;
 var gameUpdateFunc = null;
 
 var latency = 0;
@@ -1817,6 +1860,9 @@ var userDataUpdateInterval = false;
 
 //draw skills range, explosionRadius.
 var drawMode = gameConfig.DRAW_MODE_NORMAL;
+//use when draw mode skill.
+var mousePoint = {x : 0, y : 0};
+var currentSkillData = null;
 
 //state changer
 function changeState(newState){
@@ -1828,28 +1874,28 @@ function changeState(newState){
   switch (newState) {
     case gameConfig.GAME_STATE_LOAD:
       gameState = newState;
-      gameSetupFunc = load;
+      gameSetupFunc = stateFuncLoad;
       gameUpdateFunc = null;
       break;
     case gameConfig.GAME_STATE_START_SCENE:
       gameState = newState;
       gameSetupFunc = null
-      gameUpdateFunc = standby;
+      gameUpdateFunc = stateFuncStandby;
       break;
     case gameConfig.GAME_STATE_GAME_START:
       gameState = newState;
-      gameSetupFunc = start;
+      gameSetupFunc = stateFuncStart;
       gameUpdateFunc = null;
       break;
     case gameConfig.GAME_STATE_GAME_ON:
       gameState = newState;
       gameSetupFunc = null
-      gameUpdateFunc = game;
+      gameUpdateFunc = stateFuncGame;
       break;
     case gameConfig.GAME_STATE_END:
       gameSate = newState;
       gameSetupFunc = null;
-      gameUpdateFunc = end;
+      gameUpdateFunc = stateFuncEnd;
       break;
   }
   update();
@@ -1864,7 +1910,7 @@ function update(){
 };
 
 //load resource, base setting
-function load(){
+function stateFuncLoad(){
   setBaseSetting();
   setCanvasSize();
   //event handle config
@@ -1877,12 +1923,12 @@ function load(){
   changeState(gameConfig.GAME_STATE_START_SCENE);
 };
 //when all resource loaded. just draw start scene
-function standby(){
+function stateFuncStandby(){
   drawStartScene();
 };
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
-function start(){
+function stateFuncStart(){
   setupSocket();
   var userType = 1;
   if(btnType1.checked){
@@ -1899,11 +1945,11 @@ function start(){
   socket.emit('reqStartGame', userType);
 };
 //game play on
-function game(){
+function stateFuncGame(){
   drawGame();
 };
 //show end message and restart button
-function end(){
+function stateFuncEnd(){
   //should init variables
   canvasDisableEvent();
   documentDisableEvent();
@@ -1936,8 +1982,9 @@ function setBaseSetting(){
   Manager = new CManager(gameConfig);
   Manager.onSkillFire = onSkillFireHandler;
   Manager.onProjectileSkillFire = onProjectileSkillFireHandler;
+  Manager.onCancelCasting = onCancelCastingHandler;
   // resource 관련
-  resources = require('../../modules/public/resource.json');
+  resources = require('../../modules/public/resources.json');
 
   userImage = new Image();
   userHand = new Image();
@@ -1953,6 +2000,10 @@ function onSkillFireHandler(rawSkillData){
 function onProjectileSkillFireHandler(rawProjectileData){
   var projectileData = Manager.processProjectileData(rawProjectileData);
   socket.emit('projectileFired', projectileData);
+};
+function onCancelCastingHandler(){
+  var userData = Manager.processUserData();
+  socket.emit('castCanceled', userData);
 };
 function setCanvasSize(){
   canvas.width = window.innerWidth;
@@ -2007,7 +2058,7 @@ function setupSocket(){
     changeState(gameConfig.GAME_STATE_END);
   });
   socket.on('pong', function(lat){
-    latency = lat + 300;
+    latency = lat;
   });
 
   socket.on('setSyncUser', function(user){
@@ -2054,9 +2105,15 @@ function setupSocket(){
     }
     Manager.useSkill(userData.objectID, skillData);
   });
+  socket.on('deleteProjectile', function(projectileID){
+    Manager.deleteProjectile(projectileID);
+  });
   socket.on('explodeProjectile', function(projectileID){
     Manager.explodeProjectile(projectileID);
-  })
+  });
+  socket.on('castCanceled', function(userID){
+    Manager.cancelCasting(userID);
+  });
   socket.on('createOBJs', function(objDatas){
     Manager.createOBJs(objDatas);
   });
@@ -2067,9 +2124,8 @@ function setupSocket(){
     console.log(chestData);
     Manager.createChest(chestData);
   });
-  socket.on('updateUser', function(userData){
-    console.log('in updateUser')
-    console.log(userData);
+  socket.on('changeUserStat', function(userData){
+    Manager.changeUserStat(userData);
   });
   socket.on('updateSkillPossessions', function(possessSkills){
     Manager.updateSkillPossessions(gameConfig.userID, possessSkills);
@@ -2178,9 +2234,9 @@ function drawEffect(){
   for(var i=0; i<Manager.effects.length; i++){
     ctx.beginPath();
     ctx.fillStyle ="#ff0000";
-    var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y, gameConfig.userOffset.y);
-    ctx.arc(centerX, centerY, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x + Manager.effects[i].radius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y + Manager.effects[i].radius, gameConfig.userOffset.y);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
   }
@@ -2191,7 +2247,7 @@ function drawProjectile(){
     ctx.beginPath();
     var centerX = util.worldXCoordToLocalX(Manager.projectiles[i].position.x + Manager.projectiles[i].radius, gameConfig.userOffset.x);
     var centerY = util.worldYCoordToLocalY(Manager.projectiles[i].position.y + Manager.projectiles[i].radius, gameConfig.userOffset.y);
-    ctx.arc(centerX, centerY, Manager.projectiles[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.projectiles[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
   }
@@ -2296,19 +2352,22 @@ var documentEventHandler = function(e){
   }else if(keyCode === 52){
 
   }
-  //skills direction and targetPosition setting
-  if(skillIndex){
-    if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
-      if(drawMode === gameConfig.DRAW_MODE_NORMAL){
-        currentSkillData = skillData;
-        changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
+  //check mp
+  if(Manager.user.MP > skillData.consumeMP){
+    if(skillIndex){
+      if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
+        if(drawMode === gameConfig.DRAW_MODE_NORMAL){
+          currentSkillData = skillData;
+          changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
+        }
+      }else{
+        useSkill(skillData, userPosition, Manager.users[gameConfig.userID]);
       }
-    }else{
-      useSkill(skillData, userPosition, Manager.users[gameConfig.userID]);
     }
   }
+  //check conditions
+
 };
-var currentSkillData = null;
 function changeDrawMode(mode){
   if(mode === gameConfig.DRAW_MODE_NORMAL){
     drawMode = gameConfig.DRAW_MODE_NORMAL;
@@ -2319,7 +2378,6 @@ function changeDrawMode(mode){
     canvas.addEventListener('mousemove', mouseMoveHandler, false);
   }
 };
-var mousePoint = {x : 0, y : 0};
 function mouseMoveHandler(e){
   mousePoint.x = e.clientX/gameConfig.scaleFactor;
   mousePoint.y = e.clientY/gameConfig.scaleFactor;
@@ -2327,7 +2385,8 @@ function mouseMoveHandler(e){
 function useSkill(skillData, clickPosition, user){
   skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
   skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
-  if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+  if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+     skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
     skillData.projectileID = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
   }
   Manager.useSkill(gameConfig.userID, skillData);
@@ -2367,4 +2426,4 @@ function calcOffset(){
   };
 };
 
-},{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/csvjson.js":5,"../../modules/public/data.json":6,"../../modules/public/gameConfig.json":7,"../../modules/public/resource.json":10,"../../modules/public/util.js":11}]},{},[12]);
+},{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/csvjson.js":5,"../../modules/public/data.json":6,"../../modules/public/gameConfig.json":7,"../../modules/public/resources.json":10,"../../modules/public/util.js":11}]},{},[12]);

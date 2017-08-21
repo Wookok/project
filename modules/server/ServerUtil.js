@@ -62,6 +62,9 @@ exports.expToRadius = function(exp){
   return 4 + Math.sqrt(exp) * 6;
 };
 
+exports.onUserChangeStat = function(user){
+  this.onNeedInformUserChangeStat(user);
+};
 exports.onUserDeath = function(attackUserID, exp, deadUser){
   if(attackUserID in this.users){
     this.users[attackUserID].getExp(exp);

@@ -83,6 +83,8 @@ function User(socketID, userStat, userBase, exp){
   this.buffUpdateInterval = false;
   this.regenInterval = false;
 
+
+  this.onChangeStat = new Function();
   this.onDeath = new Function();
 
   this.getExp(0);
@@ -142,6 +144,12 @@ User.prototype.updateStatAndCondition = function(){
 
   var disperBuffCount = 0;
   var disperDebuffCount = 0;
+
+  var beforeConditionImmortal = this.conditions[gameConfig.USER_CONDITION_IMMORTAL];
+  var beforeConditionChill = this.conditions[gameConfig.USER_CONDITION_CHILL];
+  var beforeConditionFreeze = this.conditions[gameConfig.USER_CONDITION_FREEZE];
+  var beforeConditionSilence = this.conditions[gameConfig.USER_CONDITION_SILENCE];
+  var beforeConditionIgnite = this.conditions[gameConfig.USER_CONDITION_IGNITE];
 
   this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = false;
   this.conditions[gameConfig.USER_CONDITION_CHILL] = false;
@@ -297,6 +305,14 @@ User.prototype.updateStatAndCondition = function(){
   this.intellect = this.baseIntellect + additionalIntellect;
   this.perception = this.basePerception + additionalPerception;
 
+  var beforeMaxHP = this.maxHP;
+  var beforeMaxMP = this.maxMP;
+  var beforeHP = this.HP;
+  var beforeMP = this.MP;
+  var beforeCastSpeed = this.castSpeed;
+  var beforeMoveSpeed = this.moveSpeed;
+  var beforeRotateSpeed = this.rotateSpeed;
+
   this.maxHP = (this.baseHP + serverConfig.STAT_CALC_FACTOR_MIGHT_TO_HP * this.might + additionalMaxHP) * additionalMaxHPRate/100;
   this.maxMP = (this.baseMP + serverConfig.STAT_CALC_FACTOR_INTELLECT_TO_MP * this.intellect + additionalMaxMP) * additionalMaxMPRate/100;
   var HPRegenRate = this.baseHPRegenRate + additionalHPRegenRate;
@@ -333,14 +349,22 @@ User.prototype.updateStatAndCondition = function(){
 
   this.setMaxSpeed(this.moveSpeed);
   this.setRotateSpeed(this.rotateSpeed);
+
+  if( beforeConditionImmortal !== this.conditions[gameConfig.USER_CONDITION_IMMORTAL] || beforeConditionChill !== this.conditions[gameConfig.USER_CONDITION_CHILL] ||
+      beforeConditionFreeze !== this.conditions[gameConfig.USER_CONDITION_FREEZE] || beforeConditionSilence !== this.conditions[gameConfig.USER_CONDITION_SILENCE] ||
+      beforeConditionIgnite !== this.conditions[gameConfig.USER_CONDITION_IGNITE] || beforeMaxHP !== this.maxHP  || beforeMaxMP !== this.maxMP  ||
+      beforeHP !== this.HP || beforeMP !== this.MP || beforeCastSpeed !== this.castSpeed || beforeMoveSpeed !== this.moveSpeed || beforeRotateSpeed !== this.rotateSpeed){
+        this.onChangeStat(this);
+  }
 };
 User.prototype.regenHPMP = function(){
   this.healHP(this.HPRegen);
   this.healMP(this.MPRegen);
 };
-User.prototype.igniteHP = function(){
+User.prototype.igniteHP = function(attackUserID){
   var igniteDamage = this.maxHP * serverConfig.IGNITE_DAMAGE_RATE;
   console.log('ignite ' + this.objectID + ' : ' + igniteDamage);
+  this.takeDamage(attackUserID, igniteDamage);
   // this.takeDamage(igniteDamage);
 };
 User.prototype.buffUpdate = function(){
@@ -357,7 +381,7 @@ function buffUpdateHandler(){
 function regenIntervalHandler(){
   this.regenHPMP();
   if(this.conditions[serverConfig.USER_CONDITION_IGNITE]){
-    this.igniteHP();
+    this.igniteHP(this.conditions[serverConfig.USER_CONDITION_IGNITE]);
   }
 };
 User.prototype.addBuffs = function(buffs){
@@ -370,7 +394,7 @@ User.prototype.addBuffs = function(buffs){
     }
   }
   //set duration and startTime
-  //if duplicate condition, set as later condition buff. delete before buff and debuff
+  //if duplicate condition, set as later condition buff. delete fore buff and debuff
   //set buffTickTime
   for(var i=0; i<applyBuffs.length; i++){
     applyBuffs[i].startTime = Date.now();
@@ -451,16 +475,72 @@ User.prototype.stop = function(){
     this.currentSkill = undefined;
   }
 };
-User.prototype.takeDamage = function(attackUserID, dmg){
-  console.log(this);
+User.prototype.takeDamage = function(attackUserID, fireDamage, frostDamage, arcaneDamage, damageToMP){
+  var dmg = 0;
+  var dmgToMP = 0;
+  if(!isNaN(fireDamage)){
+    var dmgFire = fireDamage * (1 - this.resistAll/100) * (1 - this.resistFire/100) - (this.reductionAll + this.reductionFire);
+    dmg += dmgFire;
+  }
+  if(!isNaN(frostDamage)){
+    var dmgFrost = frostDamage * (1 - this.resistAll/100) * (1 - this.resistFrost/100) - (this.reductionAll + this.reductionFrost);
+    dmg += dmgFrost;
+  }
+  if(!isNaN(arcaneDamage)){
+    var dmgArcane = arcaneDamage * (1 - this.resistAll/100) * (1 - this.resistArcane/100) - (this.reductionAll + this.reductionArcane);
+    dmg += dmgFrost;
+    if(!isNaN(damageToMP)){
+      dmgToMP = damageToMP;
+    }
+  }
+  if(dmg < 0){
+    //minimum damage
+    dmg = 1;
+  }
+
   this.HP -= dmg;
   console.log(this.objectID + ' : ' + this.HP);
+  if(dmgToMP > 0){
+    this.takeDamageToMP(dmgToMP);
+  }
   if(this.HP <= 0){
     this.death(attackUserID);
   }
 };
-User.prototype.takeDamageToMana = function(){
-
+// User.prototype.takeDamage = function(attackUserID, dmg){
+//   console.log(this);
+//   this.HP -= dmg;
+//   console.log(this.objectID + ' : ' + this.HP);
+//   if(this.HP <= 0){
+//     this.death(attackUserID);
+//   }
+// };
+User.prototype.consumeMP = function(mpAmount){
+  this.MP -= mpAmount;
+  if(this.MP < 0){
+    this.MP = 0;
+  }
+};
+User.prototype.takeDamageToMP = function(dmgToMP){
+  if(dmgToMP > 0){
+    this.MP -= dmgToMP;
+  }
+  if(this.MP < 0){
+    this.MP = 0;
+  }
+};
+User.prototype.healHPMP = function(hpAmount, mpAmount){
+  var beforeHP = this.HP;
+  var beforeMP = this.MP;
+  if(!isNaN(hpAmount)){
+    this.healHP(hpAmount);
+  }
+  if(!isNaN(mpAmount)){
+    this.healMP(mpAmount)
+  }
+  if(beforeHP !== this.HP || beforeMP !== this.MP){
+    this.onChangeStat(this);
+  }
 };
 User.prototype.healHP = function(amount){
   if(this.maxHP < this.HP + amount){
@@ -500,6 +580,7 @@ User.prototype.levelUp = function(){
   //add levelBonus
   //additional level up check.
   this.updateUserBaseStat();
+  this.restoreWhenLevelUp();
   this.getExp(0);
 };
 
@@ -510,6 +591,11 @@ User.prototype.updateUserBaseStat = function(){
   this.baseMight = userLevelData.might;
   this.baseIntellect = userLevelData.intellect;
   this.basePerception = userLevelData.perception;
+};
+User.prototype.restoreWhenLevelUp = function(){
+  var healHPAmount = this.maxHP * serverConfig.USER_LEVEL_UPGRADE_RESTORE_RATE / 100;
+  var healMPAmount = this.maxMP * serverConfig.USER_LEVEL_UPGRADE_RESTORE_RATE / 100;
+  this.healHPMP(healHPAmount, healMPAmount);
 };
 
 module.exports = User;

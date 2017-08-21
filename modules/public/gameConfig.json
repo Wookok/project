@@ -3,7 +3,7 @@
 
   "CANVAS_MAX_SIZE" : {"width" : 3200 , "height" : 3200},
   "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
-  
+
   "DRAW_MODE_NORMAL" : 1,
   "DRAW_MODE_SKILL_RANGE" : 2,
 
@@ -32,6 +32,7 @@
   "PREFIX_OBSTACLE_ROCK" : "OTR",
   "PREFIX_OBJECT_EXP" : "OXP",
   "PREFIX_OBJECT_SKILL" : "OSK",
+  "PREFIX_OBJECT_GOLD" : "OGD",
 
   "USER_CONDITION_IMMORTAL" : 1,
   "USER_CONDITION_CHILL" : 2,

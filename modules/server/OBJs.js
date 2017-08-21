@@ -35,17 +35,17 @@ function OBJExp(objectID){
   GameObject.call(this);
   this.objectID = objectID;
 
-  this.exp;
+  this.expAmount;
 
   this.collectionEle = {};
 };
 OBJExp.prototype = Object.create(GameObject.prototype);
 OBJExp.prototype.constructor = OBJExp;
 
-OBJExp.prototype.initOBJExp = function(position, radius, exp){
+OBJExp.prototype.initOBJExp = function(position, radius, expAmount){
   this.setSize(radius * 2, radius * 2);
   this.setPosition(position.x, position.y);
-  this.exp = exp;
+  this.expAmount = expAmount;
 };
 OBJExp.prototype.setCollectionEle = function(){
   this.collectionEle = {
@@ -54,7 +54,7 @@ OBJExp.prototype.setCollectionEle = function(){
     y : this.position.y,
     width : this.size.width,
     height : this.size.height,
-    exp : this.exp
+    expAmount : this.expAmount
   };
 };
 
@@ -65,8 +65,8 @@ function OBJChest(objectID, locationID){
   this.objectID = objectID;
   this.locationID = locationID;
 
+  this.maxHP = 0;
   this.HP = 0;
-  this.currentHP = 0;
 
   this.grade = 0;
   this.exps = [];
@@ -83,9 +83,9 @@ OBJChest.prototype.constructor = OBJChest;
 
 OBJChest.prototype.takeDamage = function(attackUser, damage){
   console.log(this.objectID + ' is hit by ' + attackUser);
-  this.currentHP -= damage;
-  console.log(this.currentHP);
-  if(this.currentHP <= 0){
+  this.HP -= damage;
+  console.log(this.HP);
+  if(this.HP <= 0){
     this.destroy();
   }
 };
@@ -95,8 +95,8 @@ OBJChest.prototype.destroy = function(){
 OBJChest.prototype.initOBJChest = function(position, radius, chestData){
   this.setSize(radius * 2, radius * 2);
   this.setPosition(position.x, position.y);
-  this.HP = chestData.HP;
-  this.currentHP = this.HP;
+  this.maxHP = chestData.HP;
+  this.HP = this.maxHP;
   this.grade = chestData.grade;
   this.setExps(chestData);
   this.setSkills(chestData);
@@ -107,7 +107,6 @@ OBJChest.prototype.setExps = function(chestData){
     var expAmount = Math.floor(Math.random() * (chestData.maxExpAmount - chestData.minExpAmount + 1) + chestData.minExpAmount);
     this.exps.push(expAmount);
   }
-  console.log(this.exps);
 };
 OBJChest.prototype.setSkills = function(chestData){
   var totalRate = 0;
@@ -127,7 +126,6 @@ OBJChest.prototype.setSkills = function(chestData){
     }
     this.skills.push(skillIndex);
   }
-  console.log(this.skills);
 };
 OBJChest.prototype.setEntityEle = function(){
   this.entityTreeEle = {

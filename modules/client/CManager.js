@@ -3,7 +3,7 @@ var User = require('./CUser.js');
 var util = require('../public/util.js');
 
 var gameConfig = require('../public/gameConfig.json');
-var resources = require('../public/resource.json');
+var resources = require('../public/resources.json');
 var map = require('../public/map.json');
 
 var QuadTree = require('../public/quadtree.min.js');
@@ -30,6 +30,7 @@ var CManager = function(){
 
 	this.onSkillFire = new Function();
 	this.onProjectileSkillFire = new Function();
+	this.onCancelCasting = new Function();
 
 	this.staticInterval = null;
 	this.affectInterval = null;
@@ -103,7 +104,7 @@ CManager.prototype = {
 		}
 	},
 	setUsers : function(userDatas){
-		for(var i=0; i<Object.keys(userDatas).length; i++){
+		for(var i=0; i<userDatas.length; i++){
 			var tempUser = new User(userDatas[i]);
 			this.users[userDatas[i].objectID] = tempUser;
 			this.users[userDatas[i].objectID].onMove = onMoveCalcCompelPos.bind(this);
@@ -111,14 +112,14 @@ CManager.prototype = {
 		}
 	},
 	setUsersSkills : function(skillDatas){
-		for(var i=0; i<Object.keys(skillDatas).length; i++){
+		for(var i=0; i<skillDatas.length; i++){
 			if(skillDatas[i].fireTime > 0){
 				this.userSkill(skillDatas[i].userID, skillDatas[i]);
 			}
 		}
 	},
 	setObjs : function(objDatas){
-		for(var i=0; i<Object.keys(objDatas).length; i++){
+		for(var i=0; i<objDatas.length; i++){
 			if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_EXP){
 				this.objExps.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
 			}else if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
@@ -127,7 +128,7 @@ CManager.prototype = {
 		}
 	},
 	createOBJs : function(objDatas){
-		for(var i=0; i<Object.keys(objDatas).length; i++){
+		for(var i=0; i<objDatas.length; i++){
 			if(objDatas[i].objectID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
 				this.objExps.push({objectID : objDatas[i].objectID, position : objDatas[i].position, radius : objDatas[i].radius });
 			}else if(objDatas[i].objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
@@ -273,27 +274,48 @@ CManager.prototype = {
 		}
 		this.users[userID].setSkill(skillInstance);
 	},
-	deleteProjectile : function(userID, projectileID){
-		// for(var i=0; i<this.projectiles.length; i++){
-		// 	if(this.projectiles[i].objectID === projectileID){
-		// 		this.projectiles[i].explode();
-		// 		this.projectiles[i].startEffectTimer();
-		// 		this.effects.push(this.projectiles[i].effect);
-		// 		this.projectiles.splice(i, 1);
-		// 		break;
-		// 	}
-		// }
+	cancelCasting : function(userID){
+		if(userID in this.users){
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_IDLE);
+			if(userID === this.user.objectID){
+				this.onCancelCasting();
+			}
+		}
 	},
-	explodeProjectile : function(userID, projectileID){
-		// for(var i=0; i<this.projectiles.length; i++){
-		// 	if(this.projectiles[i].objectID === projectileID){
-		// 		this.projectiles[i].explode();
-		// 		this.projectiles[i].startEffectTimer();
-		// 		this.effects.push(this.projectiles[i].effect);
-		// 		this.projectiles.splice(i, 1);
-		// 		break;
-		// 	}
-		// }
+	deleteProjectile : function(projectileID){
+		for(var i=0; i<this.projectiles.length; i++){
+			if(this.projectiles[i].objectID === projectileID){
+				this.projectiles.splice(i, 1);
+				break;
+			}
+		}
+	},
+	explodeProjectile : function(projectileID){
+		for(var i=0; i<this.projectiles.length; i++){
+			if(this.projectiles[i].objectID === projectileID){
+				this.projectiles[i].explode();
+				this.projectiles[i].startEffectTimer();
+				this.effects.push(this.projectiles[i].effect);
+				this.projectiles.splice(i, 1);
+				break;
+			}
+		}
+	},
+	changeUserStat : function(userData){
+		this.users[userData.objectID].maxHP = userData.maxHP;
+		this.users[userData.objectID].maxMP = userData.maxMP;
+		this.users[userData.objectID].HP = userData.HP;
+		this.users[userData.objectID].MP = userData.MP;
+		this.users[userData.objectID].castSpeed = userData.castSpeed;
+		this.users[userData.objectID].maxSpeed = userData.maxSpeed;
+		this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+		this.users[userData.objectID].conditions = userData.conditions;
+
+		//apply maxSpeed
+		this.users[userData.objectID].setSpeed();
+		if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
+
+		}
 	},
 	updateSkillPossessions : function(userID, possessSkills){
 		this.users[userID].updateSkillPossessions(possessSkills);
@@ -332,6 +354,7 @@ CManager.prototype = {
 			currentState : this.user.currentState,
 			position : this.user.position,
 			direction : this.user.direction,
+
 			time : this.user.timer
 		};
 	},

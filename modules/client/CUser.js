@@ -1,11 +1,19 @@
 var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
+var resources = require('../public/resources.json');
 var gameConfig = require('../public/gameConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var User = function(userData){
   this.objectID = userData.objectID;
+
+  this.maxHP = userData.maxHP;
+  this.maxMP = userData.maxMP;
+  this.HP = userData.HP;
+  this.MP = userData.MP;
+  this.castSpeed = userData.castSpeed;
+  this.conditions = userData.conditions;
 
   this.currentState = null;
   this.currentSkill = undefined;

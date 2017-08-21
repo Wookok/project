@@ -32,7 +32,7 @@ var grid;
 
 // game state var
 var gameState = gameConfig.GAME_STATE_LOAD;
-var gameSetupFunc = load;
+var gameSetupFunc = stateFuncLoad;
 var gameUpdateFunc = null;
 
 var latency = 0;
@@ -41,6 +41,9 @@ var userDataUpdateInterval = false;
 
 //draw skills range, explosionRadius.
 var drawMode = gameConfig.DRAW_MODE_NORMAL;
+//use when draw mode skill.
+var mousePoint = {x : 0, y : 0};
+var currentSkillData = null;
 
 //state changer
 function changeState(newState){
@@ -52,28 +55,28 @@ function changeState(newState){
   switch (newState) {
     case gameConfig.GAME_STATE_LOAD:
       gameState = newState;
-      gameSetupFunc = load;
+      gameSetupFunc = stateFuncLoad;
       gameUpdateFunc = null;
       break;
     case gameConfig.GAME_STATE_START_SCENE:
       gameState = newState;
       gameSetupFunc = null
-      gameUpdateFunc = standby;
+      gameUpdateFunc = stateFuncStandby;
       break;
     case gameConfig.GAME_STATE_GAME_START:
       gameState = newState;
-      gameSetupFunc = start;
+      gameSetupFunc = stateFuncStart;
       gameUpdateFunc = null;
       break;
     case gameConfig.GAME_STATE_GAME_ON:
       gameState = newState;
       gameSetupFunc = null
-      gameUpdateFunc = game;
+      gameUpdateFunc = stateFuncGame;
       break;
     case gameConfig.GAME_STATE_END:
       gameSate = newState;
       gameSetupFunc = null;
-      gameUpdateFunc = end;
+      gameUpdateFunc = stateFuncEnd;
       break;
   }
   update();
@@ -88,7 +91,7 @@ function update(){
 };
 
 //load resource, base setting
-function load(){
+function stateFuncLoad(){
   setBaseSetting();
   setCanvasSize();
   //event handle config
@@ -101,12 +104,12 @@ function load(){
   changeState(gameConfig.GAME_STATE_START_SCENE);
 };
 //when all resource loaded. just draw start scene
-function standby(){
+function stateFuncStandby(){
   drawStartScene();
 };
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
-function start(){
+function stateFuncStart(){
   setupSocket();
   var userType = 1;
   if(btnType1.checked){
@@ -123,11 +126,11 @@ function start(){
   socket.emit('reqStartGame', userType);
 };
 //game play on
-function game(){
+function stateFuncGame(){
   drawGame();
 };
 //show end message and restart button
-function end(){
+function stateFuncEnd(){
   //should init variables
   canvasDisableEvent();
   documentDisableEvent();
@@ -160,8 +163,9 @@ function setBaseSetting(){
   Manager = new CManager(gameConfig);
   Manager.onSkillFire = onSkillFireHandler;
   Manager.onProjectileSkillFire = onProjectileSkillFireHandler;
+  Manager.onCancelCasting = onCancelCastingHandler;
   // resource 관련
-  resources = require('../../modules/public/resource.json');
+  resources = require('../../modules/public/resources.json');
 
   userImage = new Image();
   userHand = new Image();
@@ -177,6 +181,10 @@ function onSkillFireHandler(rawSkillData){
 function onProjectileSkillFireHandler(rawProjectileData){
   var projectileData = Manager.processProjectileData(rawProjectileData);
   socket.emit('projectileFired', projectileData);
+};
+function onCancelCastingHandler(){
+  var userData = Manager.processUserData();
+  socket.emit('castCanceled', userData);
 };
 function setCanvasSize(){
   canvas.width = window.innerWidth;
@@ -281,8 +289,11 @@ function setupSocket(){
   socket.on('deleteProjectile', function(projectileID){
     Manager.deleteProjectile(projectileID);
   });
-  socket.on('explodeProjectile', function(userID, projectileID){
-    Manager.explodeProjectile(userID, projectileID);
+  socket.on('explodeProjectile', function(projectileID){
+    Manager.explodeProjectile(projectileID);
+  });
+  socket.on('castCanceled', function(userID){
+    Manager.cancelCasting(userID);
   });
   socket.on('createOBJs', function(objDatas){
     Manager.createOBJs(objDatas);
@@ -294,9 +305,8 @@ function setupSocket(){
     console.log(chestData);
     Manager.createChest(chestData);
   });
-  socket.on('updateUser', function(userData){
-    console.log('in updateUser')
-    console.log(userData);
+  socket.on('changeUserStat', function(userData){
+    Manager.changeUserStat(userData);
   });
   socket.on('updateSkillPossessions', function(possessSkills){
     Manager.updateSkillPossessions(gameConfig.userID, possessSkills);
@@ -405,9 +415,9 @@ function drawEffect(){
   for(var i=0; i<Manager.effects.length; i++){
     ctx.beginPath();
     ctx.fillStyle ="#ff0000";
-    var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y, gameConfig.userOffset.y);
-    ctx.arc(centerX, centerY, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x + Manager.effects[i].radius, gameConfig.userOffset.x);
+    var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y + Manager.effects[i].radius, gameConfig.userOffset.y);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
   }
@@ -418,7 +428,7 @@ function drawProjectile(){
     ctx.beginPath();
     var centerX = util.worldXCoordToLocalX(Manager.projectiles[i].position.x + Manager.projectiles[i].radius, gameConfig.userOffset.x);
     var centerY = util.worldYCoordToLocalY(Manager.projectiles[i].position.y + Manager.projectiles[i].radius, gameConfig.userOffset.y);
-    ctx.arc(centerX, centerY, Manager.projectiles[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.projectiles[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
   }
@@ -523,19 +533,22 @@ var documentEventHandler = function(e){
   }else if(keyCode === 52){
 
   }
-  //skills direction and targetPosition setting
-  if(skillIndex){
-    if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
-      if(drawMode === gameConfig.DRAW_MODE_NORMAL){
-        currentSkillData = skillData;
-        changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
+  //check mp
+  if(Manager.user.MP > skillData.consumeMP){
+    if(skillIndex){
+      if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
+        if(drawMode === gameConfig.DRAW_MODE_NORMAL){
+          currentSkillData = skillData;
+          changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
+        }
+      }else{
+        useSkill(skillData, userPosition, Manager.users[gameConfig.userID]);
       }
-    }else{
-      useSkill(skillData, userPosition, Manager.users[gameConfig.userID]);
     }
   }
+  //check conditions
+
 };
-var currentSkillData = null;
 function changeDrawMode(mode){
   if(mode === gameConfig.DRAW_MODE_NORMAL){
     drawMode = gameConfig.DRAW_MODE_NORMAL;
@@ -546,7 +559,6 @@ function changeDrawMode(mode){
     canvas.addEventListener('mousemove', mouseMoveHandler, false);
   }
 };
-var mousePoint = {x : 0, y : 0};
 function mouseMoveHandler(e){
   mousePoint.x = e.clientX/gameConfig.scaleFactor;
   mousePoint.y = e.clientY/gameConfig.scaleFactor;
@@ -554,7 +566,8 @@ function mouseMoveHandler(e){
 function useSkill(skillData, clickPosition, user){
   skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
   skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
-  if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+  if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+     skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
     skillData.projectileID = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
   }
   Manager.useSkill(gameConfig.userID, skillData);
