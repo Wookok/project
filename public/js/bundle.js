@@ -1323,7 +1323,7 @@ module.exports={
 
   "GRID_SRC" : "../images/map-grass.png",
   "GRID_SIZE" : 60,
-  "GRID_IMG_SIZE" : 59,
+  "GRID_IMG_SIZE" : 60,
 
   "OBJ_TREE_SRC" : "",
   "OBJ_TREE_SIZE" : 100,
@@ -1829,7 +1829,7 @@ var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : 
 var socket;
 
 // document elements
-var infoScene, gameScene, standingScene;
+var startScene, gameScene, standingScene;
 var btnType1, btnType2, btnType3, btnType4, btnType5;
 var startButton;
 
@@ -1961,7 +1961,7 @@ function setBaseSetting(){
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
 
-  infoScene = document.getElementById('infoScene');
+  startScene = document.getElementById('startScene');
   btnType1 = document.getElementById('type1');
   btnType2 = document.getElementById('type2');
   btnType3 = document.getElementById('type3');
@@ -2014,8 +2014,8 @@ function setCanvasSize(){
 };
 
 function drawStartScene(){
-  infoScene.classList.add('enable');
-  infoScene.classList.remove('disable');
+  startScene.classList.add('enable');
+  startScene.classList.remove('disable');
   gameScene.classList.add('disable');
   gameScene.classList.remove('enable');
   standingScene.classList.add('disable');
@@ -2023,8 +2023,9 @@ function drawStartScene(){
 };
 
 function drawGame(){
-  infoScene.classList.add('disable');
-  infoScene.classList.remove('enable');
+  var startTime = Date.now();
+  startScene.classList.add('disable');
+  startScene.classList.remove('enable');
   gameScene.classList.add('enable');
   gameScene.classList.remove('disable');
   standingScene.classList.add('disable');
@@ -2033,7 +2034,7 @@ function drawGame(){
   gameConfig.userOffset = calcOffset();
 
   drawScreen();
-  drawBackground();
+  // drawBackground();
   drawGrid();
   drawObstacles();
   drawChests();
@@ -2044,6 +2045,7 @@ function drawGame(){
   if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
     drawSkillRange();
   }
+  console.log(Date.now() - startTime);
 };
 
 // socket connect and server response configs
@@ -2267,36 +2269,47 @@ function drawSkillRange(){
   ctx.fill();
   ctx.globalAlpha = 1
 };
-function drawBackground(){
-  ctx.fillStyle = "#11ff11";
-  var posX = -gameConfig.userOffset.x * gameConfig.scaleFactor;
-  var posY = -gameConfig.userOffset.y * gameConfig.scaleFactor;
-  var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor;
-  var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor;
-  ctx.fillRect(posX, posY, sizeW, sizeH);
-};
+// function drawBackground(){
+//   // ctx.fillStyle = "#11ff11";
+//   // var posX = -gameConfig.userOffset.x * gameConfig.scaleFactor;
+//   // var posY = -gameConfig.userOffset.y * gameConfig.scaleFactor;
+//   // var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor;
+//   // var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor;
+//   // ctx.fillRect(posX, posY, sizeW, sizeH);
+// };
 function drawGrid(){
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = '#0000ff';
-  ctx.globalAlpha = 0.15;
-  ctx.beginPath();
- // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
- //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
-  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
-    if(util.isXInCanvas(x, gameConfig)){
-      ctx.moveTo(x * gameConfig.scaleFactor, 0);
-      ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.canvasSize.height);
+  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
+    var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
+    if(x * gameConfig.scaleFactor >= -resources.GRID_SIZE && x * gameConfig.scaleFactor <= gameConfig.canvasSize.width){
+      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
+         var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
+         if(y * gameConfig.scaleFactor >= -resources.GRID_SIZE && y * gameConfig.scaleFactor <= gameConfig.canvasSize.height){
+           ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
+         }
+      }
     }
-  };
-  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
-    if(util.isYInCanvas(y, gameConfig)){
-      ctx.moveTo(0, y * gameConfig.scaleFactor);
-      ctx.lineTo(gameConfig.canvasSize.width, y * gameConfig.scaleFactor);
-    }
-  };
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-  ctx.closePath();
+  }
+ //  ctx.lineWidth = 1;
+ //  ctx.strokeStyle = '#0000ff';
+ //  ctx.globalAlpha = 0.15;
+ //  ctx.beginPath();
+ // // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
+ // //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
+ //  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+ //    if(util.isXInCanvas(x, gameConfig)){
+ //      ctx.moveTo(x * gameConfig.scaleFactor, 0);
+ //      ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.canvasSize.height);
+ //    }
+ //  };
+ //  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
+ //    if(util.isYInCanvas(y, gameConfig)){
+ //      ctx.moveTo(0, y * gameConfig.scaleFactor);
+ //      ctx.lineTo(gameConfig.canvasSize.width, y * gameConfig.scaleFactor);
+ //    }
+ //  };
+ //  ctx.stroke();
+ //  ctx.globalAlpha = 1;
+ //  ctx.closePath();
 };
 function updateUserDataHandler(){
   var userData = Manager.processUserData();

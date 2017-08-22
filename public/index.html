@@ -4,35 +4,72 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>.io</title>
-  <style>
-    html, body, canvas {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    .disable{
-      display: none;
-    }
-    .enable{
-      display: block;
-    }
-  </style>
+  <link rel="stylesheet" type="text/css" href="/css/main.css">
 </head>
 <body>
-  <div id="infoScene" class="enable">
-    <h1>Info Scene</h1>
-    <input type="text" placeholder="Enter Your Nickname" id="name" />
-    <button id="startButton">start button</button>
-    <br>
-    <input type="radio" name="charType" id="type1"> type1<br>
-    <input type="radio" name="charType" id="type2"> type2<br>
-    <input type="radio" name="charType" id="type3"> type3<br>
-    <input type="radio" name="charType" id="type4"> type4<br>
-    <input type="radio" name="charType" id="type5"> type5<br>
-
+  <div id="startScene" class="enable">
+    <div class="hud">
+      <div class="hudTopLeft">
+      </div>
+      <div class="hudTopCenter">
+      </div>
+      <div class="hudTopRight">
+      </div>
+      <div class="hudCenterLeft">
+      </div>
+      <div class="hudCenterMiddleLeft">
+      </div>
+      <div class="hudCenter">
+        <h1>.io</h1>
+        <input type="text" placeholder="Enter Your Nickname" id="name" />
+        <button id="startButton">Start</button>
+        <br>
+        <input type="radio" name="charType" id="type1"> type1<br>
+        <input type="radio" name="charType" id="type2"> type2<br>
+        <input type="radio" name="charType" id="type3"> type3<br>
+      </div>
+      <div class="hudCenterMiddleRight">
+        <h3>instruction</h3>
+        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
+        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
+        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
+        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
+        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
+        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
+        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
+        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
+      </div>
+      <div class="hudCenterRight">
+      </div>
+      <div class="hudBottomLeft">
+      </div>
+      <div class="hudBottomCenter">
+      </div>
+      <div class="hudBottomRight">
+      </div>
+    </div>
   </div>
   <div id="gameScene" class="disable">
+    <div class="hud">
+      <div class="hudTopLeft">
+      </div>
+      <div class="hudTopCenter">
+      </div>
+      <div class="hudTopRight">
+      </div>
+      <div class="hudCenterLeft">
+      </div>
+      <div class="hudCenterRight">
+      </div>
+      <div class="hudBottomLeft">
+      </div>
+      <div class="hudBottomCenter">
+        <img  height="100" width="100">
+        <img src="../images/GrayMask.png" height="50" width="100">
+      </div>
+      <div class="hudBottomRight">
+      </div>
+    </div>
     <canvas id="canvas" height="1000" width="1000"></canvas>
   </div>
   <div id="standingScene" class="disable">

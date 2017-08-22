@@ -1,0 +1,154 @@
+* {
+  box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  font-family: 'Comic Sans MS', sans-serif;
+}
+.disable {
+  display: none;
+}
+.enable {
+  display: block;
+}
+
+html {
+  box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  display: block;
+}
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+.hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+.hud .hudTopLeft{
+  position : absolute;
+  top : 20px;
+  left : 20px;
+  width : 250px;
+  height : 300px;
+
+  background: gray;
+}
+.hud .hudTopCenter{
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width : 600px;
+  height : 300px;
+
+  background: gray;
+}
+.hud .hudTopRight{
+  position : absolute;
+  top : 20px;
+  right: 20px;
+  width : 250px;
+  height : 300px;
+
+  background: gray;
+}
+.hud .hudCenterLeft{
+  position : absolute;
+  top : 50%;
+  left : 20px;
+  width : 250px;
+  height : 350px;
+  transform: translateY(-50%);
+
+  background: gray;
+}
+.hud .hudCenterMiddleLeft{
+  position : absolute;
+  top : 50%;
+  left : 30%;
+  width : 600px;
+  height : 350px;
+  transform: translate(-50%, -50%);
+
+  background: gray;
+}
+.hud .hudCenter{
+  position : absolute;
+  top : 50%;
+  left : 50%;
+  width : 600px;
+  height : 350px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 11;
+
+  background: gray;
+}
+.hud .hudCenterMiddleRight{
+  position : absolute;
+  top : 50%;
+  left : 70%;
+  width : 600px;
+  height : 350px;
+  transform: translate(-50%, -50%);
+  overflow: scroll;
+  overflow-x: hidden;
+  z-index: 10;
+  background: gray;
+}
+.hud .hudCenterRight{
+  position : absolute;
+  top : 50%;
+  right : 20px;
+  width : 250px;
+  height : 350px;
+  transform: translateY(-50%);
+
+  background: gray;
+}
+.hud .hudBottomLeft{
+  position : absolute;
+  bottom: 20px;
+  left : 20px;
+  width : 250px;
+  height : 300px;
+
+  background: gray;
+}
+.hud .hudBottomCenter{
+  position : absolute;
+  bottom : 20px;
+  left : 50%;
+  width : 600px;
+  height : 300px;
+  transform: translateX(-50%);
+
+  background: gray;
+}
+.hud .hudBottomRight{
+  position : absolute;
+  bottom : 20px;
+  right : 20px;
+  width : 250px;
+  height : 300px;
+
+  background: gray;
+}
+img {
+  position : absolute;
+  bottom : 100px;
+}
