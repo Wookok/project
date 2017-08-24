@@ -31,11 +31,25 @@
     </div>
   </div>
   <div id="gameScene" class="disable">
-    <div class="gameSceneHudCenter" id="gameSceneHudCenter">
+    <div class="gameSceneHudCenter">
+      <div id="hudBaseSkill" class="hudBaseSkill"></div>
+      <div id="hudEquipSkill1" class="hudEquipSkill1"></div>
+      <div id="hudEquipSkill2" class="hudEquipSkill2"></div>
+      <div id="hudEquipSkill3" class="hudEquipSkill3"></div>
+      <div id="hudEquipSkill4" class="hudEquipSkill4"></div>
+      <div id="hudPassiveSkill" class="hudPassiveSkill"></div>
+    </div>
+    <div class="gameSceneHudBottomRight">
+      <div id="hudBtnSkillChange" class="hudBtnSkillChange">
+      </div>
     </div>
     <canvas id="canvas" height="1000" width="1000"></canvas>
   </div>
   <div id="standingScene" class="disable">
+  </div>
+  <div id="popUpSkillChange" class="popUpSkillChange disable">
+  </div>
+  <div id="popUpBackground" class="popUpBackground disable">
   </div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/bundle.js"></script>

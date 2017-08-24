@@ -13,7 +13,10 @@ var socket;
 var startScene, gameScene, standingScene;
 var btnType1, btnType2, btnType3, btnType4, btnType5;
 var startButton;
-var gameSceneHudCenter;
+var hudBaseSkill, hudEquipSkill1, hudEquipSkill2, hudEquipSkill3, hudEquipSkill4, hudPassiveSkill;
+var hudBtnSkillChange;
+
+var popUpSkillChange, popUpBackground;
 
 var canvas, ctx, scaleFactor;
 
@@ -108,6 +111,12 @@ function stateFuncLoad(){
   window.onresize = function(){
     setCanvasSize();
   };
+  hudBtnSkillChange.onclick = function(){
+    popChange(popUpSkillChange);
+    popUpBackground.onclick = function(){
+      popChange(popUpSkillChange);
+    }
+  }
   changeState(gameConfig.GAME_STATE_START_SCENE);
 };
 //when all resource loaded. just draw start scene
@@ -156,7 +165,16 @@ function setBaseSetting(){
   btnType1.checked = true;
 
   gameScene = document.getElementById('gameScene');
-  gameSceneHudCenter = document.getElementById('gameSceneHudCenter');
+  hudBaseSkill = document.getElementById('hudBaseSkill');
+  hudEquipSkill1 = document.getElementById('hudEquipSkill1');
+  hudEquipSkill2 = document.getElementById('hudEquipSkill2');
+  hudEquipSkill3 = document.getElementById('hudEquipSkill3');
+  hudEquipSkill4 = document.getElementById('hudEquipSkill4');
+  hudPassiveSkill = document.getElementById('hudPassiveSkill');
+
+  hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
+  popUpSkillChange = document.getElementById('popUpSkillChange');
+  popUpBackground = document.getElementById('popUpBackground');
 
   standingScene = document.getElementById('standingScene');
   startButton = document.getElementById('startButton');
@@ -635,35 +653,53 @@ function calcOffset(){
   };
 };
 function setHUDSkills(){
-  gameSceneHudCenter.innerHtml = '';
+  hudBaseSkill.innerHtml = '';
+  hudEquipSkill1.innerHtml = '';
+  hudEquipSkill2.innerHtml = '';
+  hudEquipSkill3.innerHtml = '';
+  hudEquipSkill4.innerHtml = '';
+  hudPassiveSkill.innerHtml = '';
+
   var baseImg = document.createElement('img');
   baseImg.src = baseSkillData.skillIcon;
-  baseImg.style.left = '30px';
   baseImg.style.width = '50px';
   baseImg.style.height = '50px';
-  baseImg.cursor = 'pointer';
-  gameSceneHudCenter.appendChild(baseImg);
+  hudBaseSkill.appendChild(baseImg);
 
   if(equipSkillDatas[0]){
     var equipSkills1 = document.createElement('img');
     equipSkills1.src = equipSkillDatas[0].skillIcon;
     equipSkills1.style.width = '50px';
     equipSkills1.style.height = '50px';
-    gameSceneHudCenter.appendChild(equipSkills1);
+    hudEquipSkill1.appendChild(equipSkills1);
   }
   if(equipSkillDatas[1]){
     var equipSkills2 = document.createElement('img');
     equipSkills2.src = equipSkillDatas[1].skillIcon;
-    gameSceneHudCenter.appendChild(equipSkills2);
+    hudEquipSkill2.appendChild(equipSkills2);
   }
   if(equipSkillDatas[2]){
     var equipSkills3 = document.createElement('img');
     equipSkills3.src = equipSkillDatas[2].skillIcon;
-    gameSceneHudCenter.appendChild(equipSkills3);
-  }
+    hudEquipSkill3.appendChild(equipSkills3);
+    }
   if(equipSkillDatas[3]){
     var equipSkills4 = document.createElement('img');
     equipSkills4.src = equipSkillDatas[3].skillIcon;
-    gameSceneHudCenter.appendChild(equipSkills4);
+    hudEquipSkill4.appendChild(equipSkills4);
+        // gameSceneHudCenter.appendChild(equipSkills4);
+  }
+};
+function popChange(popWindow){
+  if(popWindow.classList.contains('disable')){
+    popWindow.classList.add('enable');
+    popWindow.classList.remove('disable');
+    popUpBackground.classList.add('enable');
+    popUpBackground.classList.remove('disable');
+  }else if(popWindow.classList.contains('enable')){
+    popWindow.classList.add('disable');
+    popWindow.classList.remove('enable');
+    popUpBackground.classList.add('disable')
+    popUpBackground.classList.remove('enable');
   }
 };
