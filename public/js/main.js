@@ -13,6 +13,7 @@ var socket;
 var startScene, gameScene, standingScene;
 var btnType1, btnType2, btnType3, btnType4, btnType5;
 var startButton;
+var gameSceneHudCenter;
 
 var canvas, ctx, scaleFactor;
 
@@ -44,6 +45,12 @@ var drawMode = gameConfig.DRAW_MODE_NORMAL;
 //use when draw mode skill.
 var mousePoint = {x : 0, y : 0};
 var currentSkillData = null;
+
+var baseSkill = 0;
+var baseSkillData = null;
+var equipSkills = [];
+var equipSkillDatas = [];
+var possessSkills = [];
 
 //state changer
 function changeState(newState){
@@ -105,7 +112,7 @@ function stateFuncLoad(){
 };
 //when all resource loaded. just draw start scene
 function stateFuncStandby(){
-  drawStartScene();
+  drawstartScene();
 };
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
@@ -146,11 +153,11 @@ function setBaseSetting(){
   btnType1 = document.getElementById('type1');
   btnType2 = document.getElementById('type2');
   btnType3 = document.getElementById('type3');
-  btnType4 = document.getElementById('type4');
-  btnType5 = document.getElementById('type5');
   btnType1.checked = true;
 
   gameScene = document.getElementById('gameScene');
+  gameSceneHudCenter = document.getElementById('gameSceneHudCenter');
+
   standingScene = document.getElementById('standingScene');
   startButton = document.getElementById('startButton');
 
@@ -194,7 +201,7 @@ function setCanvasSize(){
   setCanvasScale(gameConfig);
 };
 
-function drawStartScene(){
+function drawstartScene(){
   startScene.classList.add('enable');
   startScene.classList.remove('disable');
   gameScene.classList.add('disable');
@@ -226,7 +233,7 @@ function drawGame(){
   if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
     drawSkillRange();
   }
-  console.log(Date.now() - startTime);
+  // console.log(Date.now() - startTime);
 };
 
 // socket connect and server response configs
@@ -244,10 +251,23 @@ function setupSocket(){
     latency = lat;
   });
 
-  socket.on('setSyncUser', function(user){
+  socket.on('syncAndSetSkills', function(user){
+    //synchronize user
+    var startTime = Date.now();
     gameConfig.userID = user.objectID;
     gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
-    // Manager = new CManager(gameConfig);
+
+    baseSkill = user.baseSkill;
+    baseSkillData = util.findData(skillTable, 'index', user.baseSkill);
+
+    equipSkills = user.equipSkills;
+    equipSkillDatas = [];
+    for(var i=0; i<user.equipSkills.length; i++){
+      equipSkillDatas.push(util.findData(skillTable, 'index', user.equipSkills[i]));
+    };
+
+    possessSkills = user.possessSkills;
+    setHUDSkills();
   });
 
   //change state game on
@@ -530,25 +550,20 @@ var documentEventHandler = function(e){
   var keyCode = e.keyCode;
   var userPosition = Manager.users[gameConfig.userID].center;
 
-  var skillIndex = 0;
   if(keyCode === 69 || keyCode === 32){
-    skillIndex = 11;
-    var skillData = util.findData(skillTable, 'index', 11);
+    var skillData = baseSkillData;
   }else if(keyCode === 49){
-    skillIndex = 21;
-    skillData = util.findData(skillTable, 'index', 21);
+    skillData = equipSkills[0];
   }else if(keyCode === 50){
-    skillIndex = 31;
-    skillData = util.findData(skillTable, 'index', 31);
+    skillData = equipSkills[1];
   }else if(keyCode === 51){
-    skillIndex = 41;
-    skillData = util.findData(skillTable, 'index', 41);
+    skillData = equipSkills[2];
   }else if(keyCode === 52){
-
+    skillData = equipSkills[3];
   }
-  //check mp
-  if(Manager.user.MP > skillData.consumeMP){
-    if(skillIndex){
+
+  if(skillData){
+    if(Manager.user.MP > skillData.consumeMP){
       if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
         if(drawMode === gameConfig.DRAW_MODE_NORMAL){
           currentSkillData = skillData;
@@ -618,4 +633,37 @@ function calcOffset(){
     x : Manager.user.center.x - gameConfig.canvasSize.width/(2 * gameConfig.scaleFactor),
     y : Manager.user.center.y - gameConfig.canvasSize.height/(2 * gameConfig.scaleFactor)
   };
+};
+function setHUDSkills(){
+  gameSceneHudCenter.innerHtml = '';
+  var baseImg = document.createElement('img');
+  baseImg.src = baseSkillData.skillIcon;
+  baseImg.style.left = '30px';
+  baseImg.style.width = '50px';
+  baseImg.style.height = '50px';
+  baseImg.cursor = 'pointer';
+  gameSceneHudCenter.appendChild(baseImg);
+
+  if(equipSkillDatas[0]){
+    var equipSkills1 = document.createElement('img');
+    equipSkills1.src = equipSkillDatas[0].skillIcon;
+    equipSkills1.style.width = '50px';
+    equipSkills1.style.height = '50px';
+    gameSceneHudCenter.appendChild(equipSkills1);
+  }
+  if(equipSkillDatas[1]){
+    var equipSkills2 = document.createElement('img');
+    equipSkills2.src = equipSkillDatas[1].skillIcon;
+    gameSceneHudCenter.appendChild(equipSkills2);
+  }
+  if(equipSkillDatas[2]){
+    var equipSkills3 = document.createElement('img');
+    equipSkills3.src = equipSkillDatas[2].skillIcon;
+    gameSceneHudCenter.appendChild(equipSkills3);
+  }
+  if(equipSkillDatas[3]){
+    var equipSkills4 = document.createElement('img');
+    equipSkills4.src = equipSkillDatas[3].skillIcon;
+    gameSceneHudCenter.appendChild(equipSkills4);
+  }
 };

@@ -16,8 +16,6 @@
 
     "CHEST_NEAR_RANGE" : 50,
 
-    "INITSKILLLIST" : [10, 20, 30],
-
     "CHEAT_CHECK_RATE" : 10000,
     "TOLERANCE_LIMIT_RATE" : 1.1,
 

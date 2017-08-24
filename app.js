@@ -83,8 +83,22 @@ io.on('connection', function(socket){
     var userBase = util.findData(userBaseTable, 'type', userType);
     user = new User(socket.id, userStat, userBase, 0);
 
+    var baseSkill = userBase.baseSkillGroupIndex + 1;
+    var equipSkills = [];
+    for(var i=0; i<3; i++){
+      if(userBase['baseEquipSkill' + (i + 1)]){
+        equipSkills.push(userBase['basePossessionSkill' + (i + 1)]);
+      }
+    }
+    var possessSkills = [];
+    for(var i=0; i<4; i++){
+      if(userBase['baseEquipSkill' + (i + 1)]){
+        possessSkills.push(userBase['basePossessionSkill' + (i + 1)]);
+      }
+    }
+
     // user init and join game
-    GM.initializeUser(user);
+    GM.initializeUser(user, baseSkill, equipSkills, possessSkills);
     GM.joinUser(user);
 
     var userData = GM.processUserDataSetting(user);
@@ -98,7 +112,8 @@ io.on('connection', function(socket){
     var objDatas = GM.processOBJDataSettings();
     var chestDatas = GM.processChestDataSettings();
 
-    socket.emit('setSyncUser', userData);
+    GM.addSkillData(userData);
+    socket.emit('syncAndSetSkills', userData);
     socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas, chestDatas);
   });
   // var timeDelay = Date.now();

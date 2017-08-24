@@ -16,13 +16,6 @@
 }
 
 html {
-  box-sizing: border-box;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   display: block;
 }
 body {
@@ -31,52 +24,25 @@ body {
   margin: 0;
   padding: 0;
 }
-.hud {
+.startSceneHud {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
 }
-.hud .hudTopLeft{
+.startSceneHud .startSceneHudTitle{
   position : absolute;
-  top : 20px;
-  left : 20px;
-  width : 250px;
-  height : 300px;
-
-  background: gray;
+  top : 100px;
+  left : 0px;
+  width : 100%;
+  height : 200px;
 }
-.hud .hudTopCenter{
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width : 600px;
-  height : 300px;
-
-  background: gray;
+.startSceneHud .startSceneHudTitle h1 {
+  text-align: center;
+  font-size: 64px;
 }
-.hud .hudTopRight{
-  position : absolute;
-  top : 20px;
-  right: 20px;
-  width : 250px;
-  height : 300px;
-
-  background: gray;
-}
-.hud .hudCenterLeft{
-  position : absolute;
-  top : 50%;
-  left : 20px;
-  width : 250px;
-  height : 350px;
-  transform: translateY(-50%);
-
-  background: gray;
-}
-.hud .hudCenterMiddleLeft{
+.startSceneHud .startSceneHudCenterLeft{
   position : absolute;
   top : 50%;
   left : 30%;
@@ -86,7 +52,7 @@ body {
 
   background: gray;
 }
-.hud .hudCenter{
+.startSceneHud .startSceneHudCenter{
   position : absolute;
   top : 50%;
   left : 50%;
@@ -98,7 +64,7 @@ body {
 
   background: gray;
 }
-.hud .hudCenterMiddleRight{
+.startSceneHud .startSceneHudCenterRight{
   position : absolute;
   top : 50%;
   left : 70%;
@@ -110,17 +76,7 @@ body {
   z-index: 10;
   background: gray;
 }
-.hud .hudCenterRight{
-  position : absolute;
-  top : 50%;
-  right : 20px;
-  width : 250px;
-  height : 350px;
-  transform: translateY(-50%);
-
-  background: gray;
-}
-.hud .hudBottomLeft{
+.startSceneHud .startSceneHudBottomLeft{
   position : absolute;
   bottom: 20px;
   left : 20px;
@@ -129,17 +85,7 @@ body {
 
   background: gray;
 }
-.hud .hudBottomCenter{
-  position : absolute;
-  bottom : 20px;
-  left : 50%;
-  width : 600px;
-  height : 300px;
-  transform: translateX(-50%);
-
-  background: gray;
-}
-.hud .hudBottomRight{
+.startSceneHud .startSceneHudBottomRight{
   position : absolute;
   bottom : 20px;
   right : 20px;
@@ -147,6 +93,15 @@ body {
   height : 300px;
 
   background: gray;
+}
+.gameSceneHudCenter {
+  position : absolute;;
+  bottom : 20px;
+  left : 50%;
+  transform : translate(-50%);
+  width: 500px;
+  height: 100px;
+  background : gray;
 }
 img {
   position : absolute;

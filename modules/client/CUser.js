@@ -37,9 +37,6 @@ var User = function(userData){
 
   this.timer = Date.now();
 
-  this.equipSkills = [];
-  this.possessSkills = [];
-
   this.setCenter();
   this.setSpeed();
   this.setTargetDirection();

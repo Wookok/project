@@ -8,67 +8,30 @@
 </head>
 <body>
   <div id="startScene" class="enable">
-    <div class="hud">
-      <div class="hudTopLeft">
+    <div class="startSceneHud">
+      <div class="startSceneHudTitle">
+        <h1>Title</h1>
       </div>
-      <div class="hudTopCenter">
+      <div class="startSceneHudCenterLeft">
       </div>
-      <div class="hudTopRight">
-      </div>
-      <div class="hudCenterLeft">
-      </div>
-      <div class="hudCenterMiddleLeft">
-      </div>
-      <div class="hudCenter">
-        <h1>.io</h1>
-        <input type="text" placeholder="Enter Your Nickname" id="name" />
-        <button id="startButton">Start</button>
-        <br>
+      <div class="startSceneHudCenter">
+        <input type="text" placeholder="Enter Your Nickname" id="userNickName"/>
         <input type="radio" name="charType" id="type1"> type1<br>
         <input type="radio" name="charType" id="type2"> type2<br>
         <input type="radio" name="charType" id="type3"> type3<br>
+        <br>
+        <button id="startButton">Start</button>
       </div>
-      <div class="hudCenterMiddleRight">
-        <h3>instruction</h3>
-        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
-        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
-        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
-        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
-        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
-        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
-        <p>how to play blablablblablablablablablablablablablablablablablablablablablablablablablablablablablablablablablaablablabla</p>
-        <p>blablablablablablablablablablablablablablablablablablablablablablabla<p>
+      <div class="startSceneHudCenterRight">
       </div>
-      <div class="hudCenterRight">
+      <div class="startSceneHudBottomLeft">
       </div>
-      <div class="hudBottomLeft">
-      </div>
-      <div class="hudBottomCenter">
-      </div>
-      <div class="hudBottomRight">
+      <div class="startSceneHudBottomRight">
       </div>
     </div>
   </div>
   <div id="gameScene" class="disable">
-    <div class="hud">
-      <div class="hudTopLeft">
-      </div>
-      <div class="hudTopCenter">
-      </div>
-      <div class="hudTopRight">
-      </div>
-      <div class="hudCenterLeft">
-      </div>
-      <div class="hudCenterRight">
-      </div>
-      <div class="hudBottomLeft">
-      </div>
-      <div class="hudBottomCenter">
-        <img  height="100" width="100">
-        <img src="../images/GrayMask.png" height="50" width="100">
-      </div>
-      <div class="hudBottomRight">
-      </div>
+    <div class="gameSceneHudCenter" id="gameSceneHudCenter">
     </div>
     <canvas id="canvas" height="1000" width="1000"></canvas>
   </div>

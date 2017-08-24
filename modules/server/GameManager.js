@@ -390,7 +390,7 @@ GameManager.prototype.stopUser = function(user){
   user.stop();
 };
 //user initialize
-GameManager.prototype.initializeUser = function(user){
+GameManager.prototype.initializeUser = function(user, baseSkill, equipSkills, possessSkills){
   // check ID is unique
   var randomID = SUtil.generateRandomUniqueID(this.users, gameConfig.PREFIX_USER);
   //initialize variables;
@@ -398,6 +398,8 @@ GameManager.prototype.initializeUser = function(user){
 
   user.setSize(resources.USER_BODY_SIZE,resources.USER_BODY_SIZE);
   user.setPosition(10, 10);
+
+  user.setSkills(baseSkill, equipSkills, possessSkills);
 
   user.initEntityEle();
   user.buffUpdate();
@@ -625,6 +627,13 @@ GameManager.prototype.processChangedUserStat = function(user){
 
     conditions : this.conditions
   };
+};
+GameManager.prototype.addSkillData = function(userData){
+  if(userData.objectID in this.users){
+    userData.baseSkill = this.users[userData.objectID].baseSkill;
+    userData.equipSkills = this.users[userData.objectID].equipSkills;
+    userData.possessSkills = this.users[userData.objectID].possessSkills;
+  }
 };
 GameManager.prototype.processSkillsDataSettings = function(){
   var skillDatas = [];

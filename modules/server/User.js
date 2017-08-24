@@ -13,7 +13,7 @@ var serverConfig = require('./serverConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
-function User(socketID, userStat, userBase, exp){
+function User(socketID, userStat, userBase, exp, baseSkillLevel){
   LivingEntity.call(this);
   // base setting;
   this.type = userStat.type;
@@ -73,6 +73,7 @@ function User(socketID, userStat, userBase, exp){
   this.resistAll = 0;  this.resistFire = 0;  this.resistFrost = 0;  this.resistArcane = 0;
   this.reductionAll = 0;  this.reductionFire = 0;  this.reductionFrost = 0;  this.reductionArcane = 0;
 
+  this.baseSkill = 0;
   this.equipSkills = [];
   this.possessSkills = [];
 
@@ -93,6 +94,11 @@ function User(socketID, userStat, userBase, exp){
 User.prototype = Object.create(LivingEntity.prototype);
 User.prototype.constructor = User;
 
+User.prototype.setSkills = function(baseSkill, equipSkills, possessSkills){
+  this.baseSkill = baseSkill;
+  this.equipSkills = equipSkills;
+  this.possessSkills = possessSkills;
+};
 //init user current stat
 User.prototype.initStat = function(){
   this.Might = this.baseMight;
@@ -414,13 +420,6 @@ User.prototype.addBuffs = function(buffs){
 };
 
 //Instantiate base attack
-User.prototype.initEquipSkills = function(skillIndexList){
-  if(skillIndexList){
-    this.equipSkills = skillIndexList;
-  }else {
-    this.equipSkills = serverConfig.INITSKILLLIST;
-  }
-};
 User.prototype.changeEquipSkills = function(newSkillList){
   var skillList = [];
   //validate skill
