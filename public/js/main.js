@@ -16,7 +16,8 @@ var startButton;
 var hudBaseSkill, hudEquipSkill1, hudEquipSkill2, hudEquipSkill3, hudEquipSkill4, hudPassiveSkill;
 var hudBtnSkillChange;
 
-var popUpSkillChange, popUpBackground;
+var popUpSkillChange, popUpSkillContainer, popUpBackground;
+var popUpEquipBaseSkill, popUpEquipSkill1, popUpEquipSkill2, popUpEquipSkill3, popUpEquipSkill4, popUpEquipPassiveSkill;
 
 var canvas, ctx, scaleFactor;
 
@@ -174,7 +175,15 @@ function setBaseSetting(){
 
   hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
   popUpSkillChange = document.getElementById('popUpSkillChange');
+  popUpSkillContainer = document.getElementById('popUpSkillContainer');
   popUpBackground = document.getElementById('popUpBackground');
+
+  popUpEquipBaseSkill = document.getElementById('popUpEquipBaseSkill');
+  popUpEquipSkill1 = document.getElementById('popUpEquipSkill1');
+  popUpEquipSkill2 = document.getElementById('popUpEquipSkill2');
+  popUpEquipSkill3 = document.getElementById('popUpEquipSkill3');
+  popUpEquipSkill4 = document.getElementById('popUpEquipSkill4');
+  popUpEquipPassiveSkill = document.getElementById('popUpEquipPassiveSkill');
 
   standingScene = document.getElementById('standingScene');
   startButton = document.getElementById('startButton');
@@ -286,6 +295,7 @@ function setupSocket(){
 
     possessSkills = user.possessSkills;
     setHUDSkills();
+    setPopUpSkillChange();
   });
 
   //change state game on
@@ -348,9 +358,11 @@ function setupSocket(){
   socket.on('changeUserStat', function(userData){
     Manager.changeUserStat(userData);
   });
-  socket.on('updateSkillPossessions', function(possessSkills){
-    Manager.updateSkillPossessions(gameConfig.userID, possessSkills);
-  })
+  socket.on('updateSkillPossessions', function(possessSkillIndexes){
+    Manager.updateSkillPossessions(gameConfig.userID, possessSkillIndexes);
+    possessSkills = possessSkillIndexes;
+    setPopUpSkillChange();
+  });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
   });
@@ -660,11 +672,21 @@ function setHUDSkills(){
   hudEquipSkill4.innerHtml = '';
   hudPassiveSkill.innerHtml = '';
 
+  popUpEquipBaseSkill.innerHtml = '';
+  popUpEquipSkill1.innerHtml = '';
+  popUpEquipSkill2.innerHtml = '';
+  popUpEquipSkill3.innerHtml = '';
+  popUpEquipSkill4.innerHtml = '';
+  popUpEquipPassiveSkill.innerHtml = '';
+
   var baseImg = document.createElement('img');
   baseImg.src = baseSkillData.skillIcon;
   baseImg.style.width = '50px';
   baseImg.style.height = '50px';
   hudBaseSkill.appendChild(baseImg);
+  var baseCloneImg = baseImg.cloneNode(true);
+  popUpEquipBaseSkill.appendChild(baseCloneImg);
+  popUpEquipBaseSkill.onclick = changeEquipSkillHandler();
 
   if(equipSkillDatas[0]){
     var equipSkills1 = document.createElement('img');
@@ -672,21 +694,33 @@ function setHUDSkills(){
     equipSkills1.style.width = '50px';
     equipSkills1.style.height = '50px';
     hudEquipSkill1.appendChild(equipSkills1);
+    var equipSkillClone1 = equipSkills1.cloneNode(true);
+    popUpEquipSkill1.appendChild(equipSkillClone1);
+    popUpEquipSkill1.onclick = changeEquipSkillHandler();
   }
   if(equipSkillDatas[1]){
     var equipSkills2 = document.createElement('img');
     equipSkills2.src = equipSkillDatas[1].skillIcon;
     hudEquipSkill2.appendChild(equipSkills2);
+    var equipSkillClone2 = equipSkills2.cloneNode(true);
+    popUpEquipSkill2.appendChild(equipSkillClone2);
+    popUpEquipSkill2.onclick = changeEquipSkillHandler();
   }
   if(equipSkillDatas[2]){
     var equipSkills3 = document.createElement('img');
     equipSkills3.src = equipSkillDatas[2].skillIcon;
     hudEquipSkill3.appendChild(equipSkills3);
+    var equipSkillClone3 = equipSkills3.cloneNode(true);
+    popUpEquipSkill3.appendChild(equipSkillClone3);
+    popUpEquipSkill3.onclick = changeEquipSkillHandler();
     }
   if(equipSkillDatas[3]){
     var equipSkills4 = document.createElement('img');
     equipSkills4.src = equipSkillDatas[3].skillIcon;
     hudEquipSkill4.appendChild(equipSkills4);
+    var equipSkillClone4 = equipSkills4.cloneNode(true);
+    popUpEquipSkill4.appendChild(equipSkillClone4);
+    popUpEquipSkill4.onclick = changeEquipSkillHandler();
         // gameSceneHudCenter.appendChild(equipSkills4);
   }
 };
@@ -703,3 +737,59 @@ function popChange(popWindow){
     popUpBackground.classList.remove('enable');
   }
 };
+
+var sellectedPanel = null;
+var sellectedItemIndex = null;
+
+function setPopUpSkillChange(){
+  while (popUpSkillContainer.firstChild) {
+    popUpSkillContainer.removeChild(popUpSkillContainer.firstChild);
+  }
+
+  for(var i=0; i<possessSkills.length; i++){
+    var skillData = util.findData(skillTable, 'index', possessSkills[i]);
+    var skillDiv = document.createElement('div');
+    var skillImg = document.createElement('img');
+
+    skillDiv.setAttribute("skillIndex", possessSkills[i]);
+    skillImg.style.width = '80px';
+    skillImg.style.height = '80px';
+
+    skillDiv.classList.add('popUpSkillContainerItem');
+    skillImg.src = skillData.skillIcon;
+    skillDiv.appendChild(skillImg);
+    popUpSkillContainer.appendChild(skillDiv);
+
+    skillDiv.onclick = changeEquipSkillHandler(gameConfig.SKILL_CHANGE_PANEL_CONTAINER);
+  }
+};
+
+function changeEquipSkillHandler(sellectPanel){
+  if(sellectedItemIndex && sellectedPanel){
+    switch (sellectedPanel) {
+      case gameConfig.SKILL_CHANGE_PANEL_CONTAINER:
+        if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_CONTAINER){
+
+        }else if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP){
+
+        }
+        break;
+      case gameConfig.SKILL_CHANGE_PANEL_EQUIP:
+        if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_CONTAINER){
+
+        }else if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP){
+
+        }
+        break;
+      default:
+    }
+  }else{
+    sellectedItemIndex = this.getAttribute('skillIndex');
+    sellectedPanel = sellectPanel;
+    if(sellectedPanel === gameConfig.SKILL_CHANGE_PANEL_CONTAINER){
+      //disable
+    }else if(sellectedPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP){
+
+    }
+  }
+}
