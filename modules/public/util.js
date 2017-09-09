@@ -308,13 +308,18 @@ exports.distance = function(position1, position2){
 //calcurate targetDirection;
 exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
   switch (skillData.type) {
-    case gameConfig.SKILL_TYPE_BASIC:
+    case gameConfig.SKILL_TYPE_INSTANT_RANGE:
       var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
       var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
 
       return {
         x : user.center.x + addPosX,
         y : user.center.y + addPosY
+      };
+    case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
       };
     case gameConfig.SKILL_TYPE_INSTANT:
       var distSquare = exports.distanceSquare(user.center, clickPosition);
@@ -365,6 +370,16 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
       };
     case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
       return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    case gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION :
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION :
+      return{
         x : clickPosition.x,
         y : clickPosition.y
       };
@@ -373,7 +388,9 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
 };
 exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
   switch (skillType) {
-    case gameConfig.SKILL_TYPE_BASIC:
+    case gameConfig.SKILL_TYPE_INSTANT_RANGE:
+      return user.direction;
+    case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
       return user.direction;
     case gameConfig.SKILL_TYPE_INSTANT:
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
@@ -386,6 +403,10 @@ exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
     case gameConfig.SKILL_TYPE_PROJECTILE :
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
     case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION :
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
     default:
   }
@@ -446,32 +467,57 @@ exports.findDataWithTwoColumns = function(table, columnName1, value1, columnName
   }
   return data;
 }
-exports.findAndSetBuffs = function(skillData, buffTable, columnName, length, actorID){
+exports.findAndSetBuffs = function(buffGroupData, buffTable, actorID){
   var returnVal = [];
-  for(var i=0; i<length; i++){
-    var buffIndex = skillData[columnName + (i + 1)];
-    if(buffIndex === ''){
-      return returnVal;
-    }else{
+  for(var i=0; i<5; i++){
+    var buffIndex = buffGroupData['buff' + (i + 1)];
+    if(buffIndex){
       var buffData = exports.findData(buffTable, 'index', buffIndex);
       buffData.actorID = actorID;
       returnVal.push(buffData);
+    }else{
+      return returnVal;
     }
   }
   return returnVal;
 }
-exports.generateRandomUniqueID = function(uniqueCheckArray, prefix){
-  var IDisUnique = false;
-  while(!IDisUnique){
-    var randomID = generateRandomID(prefix);
-    IDisUnique = true;
-    for(var index in uniqueCheckArray){
-      if(randomID == uniqueCheckArray[index].objectID){
-        IDisUnique = false;
+exports.generateRandomUniqueID = function(uniqueCheckArray, prefix, idCount){
+  if(!idCount){
+    var IDisUnique = false;
+    while(!IDisUnique){
+      var randomID = generateRandomID(prefix);
+      IDisUnique = true;
+      for(var index in uniqueCheckArray){
+        if(randomID == uniqueCheckArray[index].objectID){
+          IDisUnique = false;
+        }
       }
     }
+    return randomID;
+  }else if(idCount){
+    var IDs = [];
+    for(var i=0; i<idCount; i++){
+      var IDisUnique = false;
+      while(!IDisUnique){
+        var randomID = generateRandomID(prefix);
+        IDisUnique = true;
+        for(var index in uniqueCheckArray){
+          if(randomID == uniqueCheckArray[index].objectID){
+            IDisUnique = false;
+          }
+        }
+        for(var j=0; j<IDs.length; j++){
+          if(randomID == IDs[j]){
+            IDisUnique = false;
+          }
+        }
+        if(IDisUnique){
+          IDs.push(randomID);
+        }
+      }
+    }
+    return IDs;
   }
-  return randomID;
 };
 function generateRandomID(prefix){
   var output = prefix;

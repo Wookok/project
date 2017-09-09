@@ -62,6 +62,12 @@ exports.expToRadius = function(exp){
   return 4 + Math.sqrt(exp) * 6;
 };
 
+exports.onUserBuffExchange = function(user){
+  this.onNeedInformBuffUpdate(user);
+};
+exports.onUserSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
+  this.onNeedInformSkillUpgrade(socketID, beforeSkillIndex, afterSkillIndex);
+};
 exports.onUserChangeStat = function(user){
   this.onNeedInformUserChangeStat(user);
 };
@@ -86,7 +92,7 @@ exports.setAffectedEleColSkillWithEntity = function(skill, affectedID, collision
     arcaneDamage : skill.arcaneDamage || 0,
     damageToMP : skill.damageToMP || 0,
 
-    buffsToTarget : skill.buffsToTarget
+    buffToTarget : skill.buffToTarget
   }
 };
 exports.setAffectedEleColUserWithCollection = function(userID, affectedObj, collisionType){

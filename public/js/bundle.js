@@ -187,93 +187,188 @@ CManager.prototype = {
 		var thisOnProjectileSkillFire = this.onProjectileSkillFire;
 
 		this.users[userID].targetDirection = skillData.direction;
-		switch (skillData.type) {
-			case gameConfig.SKILL_TYPE_BASIC:
-	      // skillInstance = this.users[userID].makeSkillInstance(skillData);
-	      skillInstance.onFire = function(){
-					//inform to server
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
+		if(skillData.type === gameConfig.SKILL_TYPE_INSTANT_RANGE){
+			skillInstance.onFire = function(){
+				//inform to server
+				if(thisUser === mainUser){
+					thisOnSkillFire(skillData)
+				}
+				mainUser.skillCastEffectPlay = false;
+				skillInstance.startEffectTimer();
+				thisEffects.push(skillInstance.effect);
+			};
+			//on attack can cast skill but on attack cant attack;
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+		}else if(skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+			if(thisUser === mainUser){
+				thisOnProjectileSkillFire(projectile);
+			}
+			thisProjectiles.push(projectile);
+			mainUser.skillCastEffectPlay = false;
+			//on attack can cast skill but on attack cant attack;
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+		}else if(skillData.type === gameConfig.SKILL_TYPE_RANGE || skillData.type === gameConfig.SKILL_TYPE_SELF ||
+						 skillData.type === gameConfig.SKILL_TYPE_SELF_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_TELEPORT){
+			skillInstance.onFire = function(){
+				if(thisUser === mainUser){
+					thisOnSkillFire(skillData)
+				}
+				mainUser.skillCastEffectPlay = false;
+				skillInstance.startEffectTimer();
+				thisEffects.push(skillInstance.effect);
+			};
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		}else if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+						 skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
+			skillInstance.onFire = function(){
+				var projectiles = [];
+				var direction = skillData.direction;
+				for(var i=0; i<skillData.projectileCount; i++){
+					if(skillData.projectileCount % 2 === 0){
+						var midPoint = skillData.projectileCount/2 - 0.5;
+						var factor = i - midPoint;
+						direction = skillData.direction + factor * gameConfig.MULTI_PROJECTILE_DEGREE;
+					}else if(skillData.projectileCount % 2 === 1){
+						var midPoint = Math.floor(skillData.projectileCount/2);
+						factor = i - midPoint;
+						direction = skillData.direction + factor * gameConfig.MULTI_PROJECTILE_DEGREE;
 					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-	      };
-	      //on attack can cast skill but on attack cant attack;
-	      this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
-	      break;
-	    case gameConfig.SKILL_TYPE_INSTANT:
-	      skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-	      };
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-	      break;
-	    case gameConfig.SKILL_TYPE_SELF:
-	      skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-	      };
-	      this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-	      break;
-			case gameConfig.SKILL_TYPE_SELF_EXPLOSION:
-				skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-			case gameConfig.SKILL_TYPE_TELEPORT:
-				skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-			case gameConfig.SKILL_TYPE_PROJECTILE:
-				skillInstance.onFire = function(){
-					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
-					if(thisUser === mainUser){
-						thisOnProjectileSkillFire(projectile);
-					}
+					var projectile = mainUser.makeProjectile(skillData.projectileIDs[i], skillInstance, direction);
 					thisProjectiles.push(projectile);
-					mainUser.skillCastEffectPlay = false;
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-			case gameConfig.SKILL_TYPE_PROJECTILE_TICK:
-				skillInstance.onFire = function(){
-					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
-					if(thisUser === mainUser){
-						thisOnProjectileSkillFire(projectile);
+					projectiles.push(projectile);
+					if(thisUser === mainUser && projectiles.length === skillData.projectileCount){
+						thisOnProjectileSkillFire(projectiles);
 					}
-					thisProjectiles.push(projectile);
 					mainUser.skillCastEffectPlay = false;
-
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-	    default:
-				console.log('skill type error!!!');
-	      break;
+				}
+			};
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		}else{
+			console.log('skill type error!!!');
 		}
 		this.users[userID].setSkill(skillInstance);
+		//
+		// switch (skillData.type) {
+		// 	case gameConfig.SKILL_TYPE_INSTANT_RANGE:
+		//
+	  //     // skillInstance = this.users[userID].makeSkillInstance(skillData);
+	  //     skillInstance.onFire = function(){
+		// 			//inform to server
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+	  //     };
+	  //     //on attack can cast skill but on attack cant attack;
+	  //     this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+	  //     break;
+		// 	case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
+		// 		var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 		if(thisUser === mainUser){
+		// 			thisOnProjectileSkillFire(projectile);
+		// 		}
+		// 		thisProjectiles.push(projectile);
+		// 		mainUser.skillCastEffectPlay = false;
+		// 		//on attack can cast skill but on attack cant attack;
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+		// 		break;
+	  //   case gameConfig.SKILL_TYPE_RANGE:
+	  //     skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+	  //     };
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+	  //     break;
+	  //   case gameConfig.SKILL_TYPE_SELF:
+	  //     skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+	  //     };
+	  //     this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+	  //     break;
+		// 	case gameConfig.SKILL_TYPE_SELF_EXPLOSION:
+		// 		skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_TELEPORT:
+		// 		skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE_TICK:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		//
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+	  //   default:
+		// 		console.log('skill type error!!!');
+	  //     break;
+		// }
+		// this.users[userID].setSkill(skillInstance);
 	},
 	cancelCasting : function(userID){
 		if(userID in this.users){
@@ -303,19 +398,23 @@ CManager.prototype = {
 		}
 	},
 	changeUserStat : function(userData){
-		this.users[userData.objectID].maxHP = userData.maxHP;
-		this.users[userData.objectID].maxMP = userData.maxMP;
-		this.users[userData.objectID].HP = userData.HP;
-		this.users[userData.objectID].MP = userData.MP;
-		this.users[userData.objectID].castSpeed = userData.castSpeed;
-		this.users[userData.objectID].maxSpeed = userData.maxSpeed;
-		this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
-		this.users[userData.objectID].conditions = userData.conditions;
+		if(userData.objectID in this.users){
+			this.users[userData.objectID].maxHP = userData.maxHP;
+			this.users[userData.objectID].maxMP = userData.maxMP;
+			this.users[userData.objectID].HP = userData.HP;
+			this.users[userData.objectID].MP = userData.MP;
+			this.users[userData.objectID].castSpeed = userData.castSpeed;
+			this.users[userData.objectID].maxSpeed = userData.maxSpeed;
+			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+			this.users[userData.objectID].conditions = userData.conditions;
+			this.users[userData.objectID].buffList = userData.buffList;
+			this.users[userData.objectID].passiveList = userData.passiveList;
 
-		//apply maxSpeed
-		this.users[userData.objectID].setSpeed();
-		if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
+			//apply maxSpeed
+			this.users[userData.objectID].setSpeed();
+			if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
 
+			}
 		}
 	},
 	updateSkillPossessions : function(userID, possessSkills){
@@ -366,16 +465,28 @@ CManager.prototype = {
 			skillTargetPosition : skillData.targetPosition
 		};
 	},
-	processProjectileData : function(projectileData){
-		return {
-			// userID : this.user.objectID,
-			objectID : projectileData.objectID,
-			skillIndex : projectileData.index,
-			position : projectileData.position,
-			speed : projectileData.speed,
-			startTime : projectileData.startTime,
-			lifeTime : projectileData.lifeTime
-		};
+	processProjectileData : function(projectileDatas){
+		var projectiles = [];
+		for(var i=0; i<projectileDatas.length; i++){
+			projectiles.push({
+				objectID : projectileDatas[i].objectID,
+				skillIndex : projectileDatas[i].index,
+				position : projectileDatas[i].position,
+				speed : projectileDatas[i].speed,
+				startTime : projectileDatas[i].startTime,
+				lifeTime : projectileDatas[i].lifeTime
+			});
+		}
+		return projectiles;
+		// return {
+		// 	// userID : this.user.objectID,
+		// 	objectID : projectileData.objectID,
+		// 	skillIndex : projectileData.index,
+		// 	position : projectileData.position,
+		// 	speed : projectileData.speed,
+		// 	startTime : projectileData.startTime,
+		// 	lifeTime : projectileData.lifeTime
+		// };
 	}
 };
 
@@ -409,7 +520,7 @@ var onMoveCalcCompelPos = function(user){
 };
 module.exports = CManager;
 
-},{"../public/gameConfig.json":7,"../public/map.json":8,"../public/quadtree.min.js":9,"../public/resources.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CUser.js":4}],2:[function(require,module,exports){
+},{"../public/gameConfig.json":8,"../public/map.json":9,"../public/quadtree.min.js":10,"../public/resources.json":11,"../public/util.js":12,"./CObstacle.js":2,"./CUser.js":5}],2:[function(require,module,exports){
 function CObstacle(posX, posY, sizeW, sizeH, id, src){
   this.objectID = id;
   this.src = src;
@@ -524,8 +635,8 @@ CSkill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(currentPosition, projectileID){
-    var projectile = new ProjectileSkill(this, currentPosition, projectileID)
+  makeProjectile : function(currentPosition, projectileID, direction){
+    var projectile = new ProjectileSkill(this, currentPosition, projectileID, direction)
     return projectile;
   }
 };
@@ -540,7 +651,7 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(skillInstance, currentPosition, ID){
+var ProjectileSkill = function(skillInstance, currentPosition, ID, direction){
   this.startTime = Date.now();
 
   this.objectID = ID;
@@ -550,7 +661,7 @@ var ProjectileSkill = function(skillInstance, currentPosition, ID){
     x : currentPosition.x,
     y : currentPosition.y
   };
-  this.direction = skillInstance.direction;
+  this.direction = direction;
   this.speed = {
     x : skillInstance.maxSpeed * Math.cos(this.direction * Math.PI/180),
     y : skillInstance.maxSpeed * Math.sin(this.direction * Math.PI/180)
@@ -594,7 +705,617 @@ ProjectileSkill.prototype = {
 
 module.exports = CSkill;
 
-},{"../public/util.js":11}],4:[function(require,module,exports){
+},{"../public/util.js":12}],4:[function(require,module,exports){
+var util = require('../public/util.js');
+var gameConfig = require('../public/gameConfig.json');
+var skillTable, buffGroupTable;
+
+var startScene, gameScene, standingScene;
+var startButton;
+
+// var startSceneHudCenterCenterChar1, startSceneHudCenterCenterChar2, startSceneHudCenterCenterChar3;
+var characterType = 1;
+
+var baseSkill = 0;
+var baseSkillData = null;
+var equipSkills = new Array(4);
+var equipSkillDatas = new Array(4);
+var possessSkills = [];
+
+var hudBaseSkill, hudEquipSkill1, hudEquipSkill2, hudEquipSkill3, hudEquipSkill4, hudPassiveSkill;
+var hudBtnSkillChange;
+var gameSceneBuffsContainer;
+
+var popUpSkillChange, popUpSkillContainer, popUpBackground;
+var popUpSkillInfoIcon, popUpSkillInfoDesc, popUpSkillUpgradeBtn;
+var popUpEquipBaseSkill, popUpEquipSkill1, popUpEquipSkill2, popUpEquipSkill3, popUpEquipSkill4, popUpEquipPassiveSkill;
+
+var sellectedPanel = null;
+var sellectedDiv = null;
+var sellectedEquipIndex = null;
+var sellectedSkillIndex = null;
+
+var isServerResponse = true;
+
+function UIManager(sTable, bTable){
+  skillTable = sTable;
+  buffGroupTable = bTable;
+
+  this.serverResponseTimeout = false;
+
+  this.onStartBtnClick = new Function();
+
+  this.onSkillUpgrade = new Function();
+  this.onExchangePassive = new Function();
+  this.onEquipPassive = new Function();
+  this.onUnequipPassive = new Function();
+};
+UIManager.prototype = {
+  initStartScene : function(){
+    startScene = document.getElementById('startScene');
+    gameScene = document.getElementById('gameScene');
+    standingScene = document.getElementById('standingScene');
+    startButton = document.getElementById('startButton');
+    startButton.onclick = startBtnClickHandler.bind(this);
+
+    var children = document.getElementById('startSceneHudCenterCenterCharSelect').children;
+    for(var i=0; i<children.length; i++){
+      children[i].onclick = function(){
+        var type = parseInt(this.getAttribute('type'));
+        characterType = type;
+        for(var j=0; j<children.length; j++){
+          children[j].classList.remove('select');
+        }
+        this.classList.add('select');
+      };
+    }
+  },
+  initHUD : function(){
+    hudBaseSkill = document.getElementById('hudBaseSkill');
+    hudEquipSkill1 = document.getElementById('hudEquipSkill1');
+    hudEquipSkill2 = document.getElementById('hudEquipSkill2');
+    hudEquipSkill3 = document.getElementById('hudEquipSkill3');
+    hudEquipSkill4 = document.getElementById('hudEquipSkill4');
+    hudPassiveSkill = document.getElementById('hudPassiveSkill');
+
+    hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
+
+    gameSceneBuffsContainer = document.getElementById('gameSceneBuffsContainer');
+  },
+  drawStartScene : function(){
+    startScene.classList.add('enable');
+    startScene.classList.remove('disable');
+    gameScene.classList.add('disable');
+    gameScene.classList.remove('enable');
+    standingScene.classList.add('disable');
+    standingScene.classList.remove('enable');
+  },
+  drawGameScene : function(){
+    startScene.classList.add('disable');
+    startScene.classList.remove('enable');
+    gameScene.classList.add('enable');
+    gameScene.classList.remove('disable');
+    standingScene.classList.add('disable');
+    standingScene.classList.remove('enable');
+  },
+  syncSkills : function(bSkill, bSkillData, eSkills, eSkillDatas, pSkills){
+    baseSkill = bSkill;
+    baseSkillData = bSkillData;
+    equipSkills = eSkills;
+    equipSkillDatas = eSkillDatas;
+    possessSkills = pSkills;
+  },
+  updatePossessionSkills : function(pSkills){
+    possessSkills = pSkills;
+  },
+  setHUDSkills : function(){
+    while (hudBaseSkill.firstChild) {
+      hudBaseSkill.removeChild(hudBaseSkill.firstChild);
+    }
+    while (hudEquipSkill1.firstChild) {
+      hudEquipSkill1.removeChild(hudEquipSkill1.firstChild);
+    }
+    while (hudEquipSkill2.firstChild) {
+      hudEquipSkill2.removeChild(hudEquipSkill2.firstChild);
+    }
+    while (hudEquipSkill3.firstChild) {
+      hudEquipSkill3.removeChild(hudEquipSkill3.firstChild);
+    }
+    while (hudEquipSkill4.firstChild) {
+      hudEquipSkill4.removeChild(hudEquipSkill4.firstChild);
+    }
+    while (hudPassiveSkill.firstChild) {
+      hudPassiveSkill.removeChild(hudPassiveSkill.firstChild);
+    }
+    hudBaseSkill.innerHtml = '';
+    hudEquipSkill1.innerHtml = '';
+    hudEquipSkill2.innerHtml = '';
+    hudEquipSkill3.innerHtml = '';
+    hudEquipSkill4.innerHtml = '';
+    hudPassiveSkill.innerHtml = '';
+
+    var baseImg = document.createElement('img');
+    baseImg.src = baseSkillData.skillIcon;
+    hudBaseSkill.appendChild(baseImg);
+
+    if(equipSkillDatas[0]){
+      var equipSkills1 = document.createElement('img');
+      equipSkills1.src = equipSkillDatas[0].skillIcon;
+      hudEquipSkill1.appendChild(equipSkills1);
+    }
+    if(equipSkillDatas[1]){
+      var equipSkills2 = document.createElement('img');
+      equipSkills2.src = equipSkillDatas[1].skillIcon;
+      hudEquipSkill2.appendChild(equipSkills2);
+    }
+    if(equipSkillDatas[2]){
+      var equipSkills3 = document.createElement('img');
+      equipSkills3.src = equipSkillDatas[2].skillIcon;
+      hudEquipSkill3.appendChild(equipSkills3);
+      }
+    if(equipSkillDatas[3]){
+      var equipSkills4 = document.createElement('img');
+      equipSkills4.src = equipSkillDatas[3].skillIcon;
+      hudEquipSkill4.appendChild(equipSkills4);
+    }
+  },
+  setSkillChangeBtn : function(){
+    hudBtnSkillChange.onclick = function(){
+      popChange(popUpSkillChange);
+    }
+    popUpBackground.onclick = function(){
+      popChange(popUpSkillChange);
+    }
+  },
+  updateBuffIcon : function(passiveList, buffList){
+    while(gameSceneBuffsContainer.firstChild){
+      gameSceneBuffsContainer.removeChild(gameSceneBuffsContainer.firstChild);
+    }
+    gameSceneBuffsContainer.innerHtml = '';
+    for(var i=0; i<passiveList.length; i++){
+      var passiveData = util.findData(buffGroupTable, 'index', passiveList[i]);
+      var div = document.createElement('div');
+      var img = document.createElement('img');
+      img.src = passiveData.buffIcon;
+      div.appendChild(img);
+      gameSceneBuffsContainer.appendChild(div);
+    }
+    for(var i=0; i<buffList.length; i++){
+      var buffData = util.findData(buffGroupTable, 'index', buffList[i].index);
+      var div = document.createElement('div');
+      var img = document.createElement('img');
+      img.src = buffData.buffIcon;
+      div.appendChild(img);
+      gameSceneBuffsContainer.appendChild(div);
+    }
+  },
+  initPopUpSkillChanger : function(){
+    popUpSkillChange = document.getElementById('popUpSkillChange');
+    popUpSkillContainer = document.getElementById('popUpSkillContainer');
+    popUpBackground = document.getElementById('popUpBackground');
+
+    popUpSkillInfoIcon = document.getElementById('popUpSkillInfoIcon');
+    popUpSkillInfoDesc = document.getElementById('popUpSkillInfoDesc');
+    popUpSkillUpgradeBtn = document.getElementById('popUpSkillUpgradeBtn');
+
+    popUpEquipBaseSkill = document.getElementById('popUpEquipBaseSkill');
+    popUpEquipSkill1 = document.getElementById('popUpEquipSkill1');
+    popUpEquipSkill2 = document.getElementById('popUpEquipSkill2');
+    popUpEquipSkill3 = document.getElementById('popUpEquipSkill3');
+    popUpEquipSkill4 = document.getElementById('popUpEquipSkill4');
+    popUpEquipPassiveSkill = document.getElementById('popUpEquipPassiveSkill');
+  },
+  upgradeBaseSkill : function(afterSkillIndex, afterSkillData){
+    var beforeSkillIndex = baseSkill;
+    baseSkill = afterSkillIndex;
+    baseSkillData = afterSkillData;
+    if(sellectedSkillIndex === beforeSkillIndex){
+      this.updateSellectedPanel(afterSkillIndex);
+    }
+    this.updateSkillImageAndIndex(beforeSkillIndex, afterSkillIndex);
+    isServerResponse = true;
+    if(this.serverResponseTimeout){
+      clearTimeout(this.serverResponseTimeout);
+      this.serverResponseTimeout = false;
+    }
+  },
+  upgradePossessionSkill : function(beforeSkillIndex, afterSkillIndex){
+    for(var i=0; i<possessSkills.length; i++){
+      if(possessSkills[i] === beforeSkillIndex){
+        var index = possessSkills.indexOf(beforeSkillIndex);
+        possessSkills.splice(index, 1, afterSkillIndex);
+        break;
+      }
+    }
+    for(var i=0; i<equipSkills.length; i++){
+      if(equipSkills[i] === beforeSkillIndex){
+        var index = equipSkills.indexOf(beforeSkillIndex);
+        equipSkills.splice(index, 1, afterSkillIndex);
+        var skillData = util.findData(skillTable, 'index', afterSkillIndex);
+        equipSkillDatas.splice(index, 1, skillData);
+        break;
+      }
+    }
+    if(sellectedSkillIndex === beforeSkillIndex){
+      this.updateSellectedPanel(afterSkillIndex);
+    }
+    this.updateSkillImageAndIndex(beforeSkillIndex, afterSkillIndex);
+    isServerResponse = true;
+    if(this.serverResponseTimeout){
+      clearTimeout(this.serverResponseTimeout);
+      this.serverResponseTimeout = false;
+    }
+  },
+  updateSkillImageAndIndex : function(beforeSkillIndex, afterSkillIndex){
+    var divs = document.querySelectorAll('[skillIndex="' + beforeSkillIndex + '"]');
+    var afterData = util.findData(skillTable, 'index', afterSkillIndex);
+    for(var i=0; i<divs.length; i++){
+      divs[i].setAttribute('skillIndex', afterSkillIndex);
+      divs[i].getElementsByTagName('img')[0].src = afterData.skillIcon;
+    }
+    this.setHUDSkills()
+  },
+  setPopUpSkillChange : function(){
+    while (popUpSkillContainer.firstChild) {
+      popUpSkillContainer.removeChild(popUpSkillContainer.firstChild);
+    }
+    while(popUpEquipBaseSkill.firstChild){
+      popUpEquipBaseSkill.removeChild(popUpEquipBaseSkill.firstChild);
+    }
+    while(popUpEquipSkill1.firstChild){
+      popUpEquipSkill1.removeChild(popUpEquipSkill1.firstChild);
+    }
+    while(popUpEquipSkill2.firstChild){
+      popUpEquipSkill2.removeChild(popUpEquipSkill2.firstChild);
+    }
+    while(popUpEquipSkill3.firstChild){
+      popUpEquipSkill3.removeChild(popUpEquipSkill3.firstChild);
+    }
+    while(popUpEquipSkill4.firstChild){
+      popUpEquipSkill4.removeChild(popUpEquipSkill4.firstChild);
+    }
+
+
+    var baseImg = document.createElement('img');
+    baseImg.src = baseSkillData.skillIcon;
+    popUpEquipBaseSkill.setAttribute('skillIndex', baseSkill);
+    popUpEquipBaseSkill.appendChild(baseImg);
+    popUpEquipBaseSkill.onclick = changeEquipSkillHandler.bind(this, popUpEquipBaseSkill, gameConfig.SKILL_CHANGE_PANEL_EQUIP);
+
+    if(equipSkillDatas[0]){
+      var equipSkills1 = document.createElement('img');
+      equipSkills1.src = equipSkillDatas[0].skillIcon;
+      popUpEquipSkill1.setAttribute('skillIndex', equipSkillDatas[0].index);
+      popUpEquipSkill1.appendChild(equipSkills1);
+    }
+    if(equipSkillDatas[1]){
+      var equipSkills2 = document.createElement('img');
+      equipSkills2.src = equipSkillDatas[1].skillIcon;
+      popUpEquipSkill2.appendChild(equipSkills2);
+    }
+    if(equipSkillDatas[2]){
+      var equipSkills3 = document.createElement('img');
+      equipSkills3.src = equipSkillDatas[2].skillIcon;
+      popUpEquipSkill3.appendChild(equipSkills3);
+      }
+    if(equipSkillDatas[3]){
+      var equipSkills4 = document.createElement('img');
+      equipSkills4.src = equipSkillDatas[3].skillIcon;
+      popUpEquipSkill4.appendChild(equipSkills4);
+    }
+    popUpEquipSkill1.onclick = changeEquipSkillHandler.bind(this, popUpEquipSkill1, gameConfig.SKILL_CHANGE_PANEL_EQUIP);
+    popUpEquipSkill2.onclick = changeEquipSkillHandler.bind(this, popUpEquipSkill2, gameConfig.SKILL_CHANGE_PANEL_EQUIP);
+    popUpEquipSkill3.onclick = changeEquipSkillHandler.bind(this, popUpEquipSkill3, gameConfig.SKILL_CHANGE_PANEL_EQUIP);
+    popUpEquipSkill4.onclick = changeEquipSkillHandler.bind(this, popUpEquipSkill4, gameConfig.SKILL_CHANGE_PANEL_EQUIP);
+
+    var equipSkillIndexes = [];
+    equipSkillIndexes.push(baseSkill);
+    for(var i=0; i<equipSkills.length; i++){
+      equipSkillIndexes.push(equipSkills[i]);
+    }
+
+    for(var i=0; i<possessSkills.length; i++){
+      var isEquipSkill = false;
+      for(var j=0; j<equipSkillIndexes.length; j++){
+        if(equipSkillIndexes[j] === possessSkills[i]){
+          isEquipSkill = true;
+        }
+      }
+      if(!isEquipSkill){
+        var skillData = util.findData(skillTable, 'index', possessSkills[i]);
+        var skillDiv = document.createElement('div');
+        var skillImg = document.createElement('img');
+
+        skillDiv.setAttribute('skillIndex', possessSkills[i]);
+
+        skillDiv.classList.add('popUpSkillContainerItem');
+        skillImg.src = skillData.skillIcon;
+        skillDiv.appendChild(skillImg);
+        popUpSkillContainer.appendChild(skillDiv);
+
+        skillDiv.onclick = changeEquipSkillHandler.bind(this, skillDiv, gameConfig.SKILL_CHANGE_PANEL_CONTAINER);
+      }
+    }
+  },
+  updateSellectedPanel : function(skillIndex){
+    while(popUpSkillInfoIcon.firstChild){
+      popUpSkillInfoIcon.removeChild(popUpSkillInfoIcon.firstChild);
+    }
+    while(popUpSkillInfoDesc.firstChild){
+      popUpSkillInfoDesc.removeChild(popUpSkillInfoDesc.firstChild);
+    }
+    sellectedSkillIndex = skillIndex;
+
+    var skillData = util.findData(skillTable, 'index', skillIndex);
+    var skillImg = document.createElement('img');
+    var skillDesc = document.createElement('p');
+
+    skillImg.src = skillData.skillIcon;
+    skillDesc.innerHTML = skillData.clientName;
+
+    popUpSkillInfoIcon.appendChild(skillImg);
+    popUpSkillInfoDesc.appendChild(skillDesc);
+    // popUpSkillUpgradeBtn.addEventListener('click', skillUpgradeBtnHandler, false);
+    popUpSkillUpgradeBtn.onclick = skillUpgradeBtnHandler.bind(this, skillData)
+  }
+};
+function popChange(popWindow){
+  if(popWindow.classList.contains('disable')){
+    popWindow.classList.add('enable');
+    popWindow.classList.remove('disable');
+    popUpBackground.classList.add('enable');
+    popUpBackground.classList.remove('disable');
+  }else if(popWindow.classList.contains('enable')){
+    popWindow.classList.add('disable');
+    popWindow.classList.remove('enable');
+    popUpBackground.classList.add('disable')
+    popUpBackground.classList.remove('enable');
+  }
+};
+
+function changeEquipSkillHandler(sellectDiv, sellectPanel){
+  var sellectEquipIndex = null ;
+  if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP){
+    //set sellectedEquipIndex
+    if(sellectDiv === popUpEquipBaseSkill){
+      sellectEquipIndex = -1;
+    }else if(sellectDiv === popUpEquipSkill1){
+      sellectEquipIndex = 0;
+    }else if(sellectDiv === popUpEquipSkill2){
+      sellectEquipIndex = 1;
+    }else if(sellectDiv === popUpEquipSkill3){
+      sellectEquipIndex = 2;
+    }else if(sellectDiv === popUpEquipSkill4){
+      sellectEquipIndex = 3;
+    }
+  }
+  var skillIndex = parseInt(sellectDiv.getAttribute('skillIndex'));
+
+  if(sellectedPanel){
+    if(sellectedPanel !== sellectPanel){
+      //exchange
+      if(sellectedPanel === gameConfig.SKILL_CHANGE_PANEL_CONTAINER){
+        //find skill in container
+        //sellected === equipSkill sellectDiv === container skill
+        if(sellectEquipIndex === -1){
+          alert('cant change base skill');
+        }else{
+          var nodeIndex = 0;
+          for(var i=0; i<popUpSkillContainer.childNodes.length; i++){
+            if(popUpSkillContainer.childNodes[i] === sellectedDiv){
+              nodeIndex = i;
+              break;
+            }
+          }
+          popUpSkillContainer.removeChild(sellectedDiv);
+          if(skillIndex){
+            var beforeSkillData = util.findData(skillTable, 'index', skillIndex);
+            var skillDiv = document.createElement('div');
+            var skillImg = document.createElement('img');
+            skillDiv.setAttribute('skillIndex', skillIndex);
+
+            skillDiv.classList.add('popUpSkillContainerItem');
+            skillImg.src = beforeSkillData.skillIcon;
+            skillDiv.appendChild(skillImg);
+
+            popUpSkillContainer.insertBefore(skillDiv, popUpSkillContainer.childNodes[nodeIndex]);
+            // popUpSkillContainer.appendChild(skillDiv);
+
+            skillDiv.onclick = changeEquipSkillHandler.bind(this, skillDiv, gameConfig.SKILL_CHANGE_PANEL_CONTAINER);
+          }
+
+          while (sellectDiv.firstChild) {
+            sellectDiv.removeChild(sellectDiv.firstChild);
+          }
+
+          //data change
+          equipSkills.splice(sellectEquipIndex, 1);
+          equipSkillDatas.splice(sellectEquipIndex, 1);
+
+          equipSkills.splice(sellectEquipIndex, 0, sellectedSkillIndex);
+          var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+          equipSkillDatas.splice(sellectEquipIndex, 0, skillData);
+
+          var skillImg = document.createElement('img');
+          skillImg.src = skillData.skillIcon;
+          sellectDiv.setAttribute('skillIndex', skillData.index);
+          sellectDiv.appendChild(skillImg);
+        }
+      }else{
+        if(sellectedEquipIndex === -1){
+          alert('cant change base skill');
+        }else{
+          var nodeIndex = 0;
+          for(var i=0; i<popUpSkillContainer.childNodes.length; i++){
+            if(popUpSkillContainer.childNodes[i] === sellectedDiv){
+              nodeIndex = i;
+              break;
+            }
+          }
+          popUpSkillContainer.removeChild(sellectDiv);
+          if(sellectedSkillIndex){
+            var beforeSkillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+            var skillDiv = document.createElement('div');
+            var skillImg = document.createElement('img');
+
+            skillDiv.setAttribute('skillIndex', sellectedSkillIndex);
+
+            skillDiv.classList.add('popUpSkillContainerItem');
+            skillImg.src = beforeSkillData.skillIcon;
+            skillDiv.appendChild(skillImg);
+            popUpSkillContainer.insertBefore(skillDiv, popUpSkillContainer.childNodes[nodeIndex]);
+            // popUpSkillContainer.appendChild(skillDiv);
+
+            skillDiv.onclick = changeEquipSkillHandler.bind(this, skillDiv, gameConfig.SKILL_CHANGE_PANEL_CONTAINER);
+          }
+
+          while (sellectedDiv.firstChild) {
+            sellectedDiv.removeChild(sellectedDiv.firstChild);
+          }
+
+          //data change
+          equipSkills.splice(sellectedEquipIndex, 1);
+          equipSkillDatas.splice(sellectedEquipIndex, 1);
+
+          equipSkills.splice(sellectedEquipIndex, 0, skillIndex);
+          var skillData = util.findData(skillTable, 'index', skillIndex);
+          equipSkillDatas.splice(sellectedEquipIndex, 0, skillData);
+
+          var skillImg = document.createElement('img');
+          skillImg.src = skillData.skillIcon;
+          sellectedDiv.setAttribute('skillIndex', skillData.index);
+          sellectedDiv.appendChild(skillImg);
+        }
+      }
+      //set equipSkills
+      if(skillData && beforeSkillData){
+        if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE && beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
+          console.log(beforeSkillData.index + ' : ' + skillData.index);
+          var beforeBuffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          var afterBuffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          this.onExchangePassive(beforeBuffIndex, afterBuffIndex);
+        }
+      }else if(skillData){
+        if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
+          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          console.log(buffIndex);
+          this.onEquipPassive(buffIndex);
+        }
+      }else if(beforeSkillData){
+        if(beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
+          var buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          this.onUnequipPassive(buffIndex);
+        }
+      }
+
+      this.setHUDSkills();
+
+      sellectedSkillIndex = null;
+      sellectedPanel = null;
+      sellectedDiv = null;
+      sellectedEquipIndex = null;
+
+    }else if(skillIndex === sellectedSkillIndex){
+      //if click same icon
+      if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP && sellectEquipIndex !== -1){
+        var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+        var skillDiv = document.createElement('div');
+        var skillImg = document.createElement('img');
+
+        skillDiv.setAttribute('skillIndex', sellectedSkillIndex);
+
+        skillDiv.classList.add('popUpSkillContainerItem');
+        skillImg.src = skillData.skillIcon;
+        skillDiv.appendChild(skillImg);
+        popUpSkillContainer.appendChild(skillDiv);
+
+        skillDiv.onclick = changeEquipSkillHandler.bind(this, skillDiv, gameConfig.SKILL_CHANGE_PANEL_CONTAINER);
+
+        while (sellectedDiv.firstChild) {
+          sellectedDiv.removeChild(sellectedDiv.firstChild);
+          sellectedDiv.setAttribute('skillIndex', '');
+        }
+
+        //data delete
+        if(equipSkills[sellectedEquipIndex]){
+          equipSkills.splice(sellectedEquipIndex, 1);
+          equipSkillDatas.splice(sellectedEquipIndex, 1);
+        }
+        equipSkills.splice(sellectedEquipIndex, 0, undefined);
+        equipSkillDatas.splice(sellectedEquipIndex, 0, undefined);
+
+        if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
+          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          console.log(buffIndex);
+          this.onUnequipPassive(buffIndex);
+        }
+      }
+
+
+      this.setHUDSkills();
+
+      sellectedSkillIndex = null;
+      sellectedPanel = null;
+      sellectedDiv = null;
+      sellectedEquipIndex = null;
+    }else{
+      sellectedSkillIndex = skillIndex ? skillIndex : null;
+      sellectedPanel = sellectPanel;
+      sellectedDiv = sellectDiv;
+      sellectedEquipIndex = sellectEquipIndex;
+    }
+  }else{
+    sellectedSkillIndex = skillIndex ? skillIndex : null;
+    sellectedPanel = sellectPanel;
+    sellectedDiv = sellectDiv;
+    sellectedEquipIndex = sellectEquipIndex;
+  }
+
+  //set info panel
+  while (popUpSkillInfoIcon.firstChild) {
+    popUpSkillInfoIcon.removeChild(popUpSkillInfoIcon.firstChild);
+  }
+  while (popUpSkillInfoDesc.firstChild) {
+    popUpSkillInfoDesc.removeChild(popUpSkillInfoDesc.firstChild);
+  }
+  while (popUpSkillUpgradeBtn.firstChild) {
+    popUpSkillUpgradeBtn.removeChild(popUpSkillUpgradeBtn.firstChild);
+  }
+  if(sellectedSkillIndex){
+    var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+    var skillImg = document.createElement('img');
+    var skillDesc = document.createElement('p');
+
+    skillImg.src = skillData.skillIcon;
+    skillDesc.innerHTML = skillData.clientName;
+
+    popUpSkillInfoIcon.appendChild(skillImg);
+    popUpSkillInfoDesc.appendChild(skillDesc);
+    // popUpSkillUpgradeBtn.addEventListener('click', skillUpgradeBtnHandler, false);
+    popUpSkillUpgradeBtn.onclick = skillUpgradeBtnHandler.bind(this, skillData)
+  }else{
+    popUpSkillUpgradeBtn.onclick = new Function();
+    // popUpSkillUpgradeBtn.removeEventListener('click', skillUpgradeBtnHandler, false);
+  }
+  console.log(sellectedSkillIndex);
+};
+function skillUpgradeBtnHandler(){
+  if(isServerResponse){
+    this.onSkillUpgrade(sellectedSkillIndex);
+    isServerResponse = false;
+    this.serverResponseTimeout = setTimeout(function(){
+      if(!isServerResponse){
+        isServerResponse = true;
+      }
+    }, gameConfig.MAX_SERVER_RESPONSE_TIME);
+  }
+};
+function startBtnClickHandler(){
+  this.onStartBtnClick(characterType);
+};
+module.exports = UIManager;
+
+},{"../public/gameConfig.json":8,"../public/util.js":12}],5:[function(require,module,exports){
 var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
 var resources = require('../public/resources.json');
@@ -759,8 +1480,8 @@ User.prototype = {
     console.log('updateSkillPossessions');
     console.log(this.possessSkills);
   },
-  makeProjectile : function(projectileID, skillInstance){
-    var projectile = skillInstance.makeProjectile(this.position, projectileID);
+  makeProjectile : function(projectileID, skillInstance, direction){
+    var projectile = skillInstance.makeProjectile(this.position, projectileID, direction);
     return projectile;
   }
 };
@@ -777,7 +1498,7 @@ function onCastSkillHandler(skillInstance){
 };
 module.exports = User;
 
-},{"../public/gameConfig.json":7,"../public/resources.json":10,"../public/util.js":11,"./CSkill.js":3}],5:[function(require,module,exports){
+},{"../public/gameConfig.json":8,"../public/resources.json":11,"../public/util.js":12,"./CSkill.js":3}],6:[function(require,module,exports){
 
 module.exports = {
     toObject        : toObject,
@@ -1225,16 +1946,18 @@ function _csvToArray(text, delimit, quote) {
     return a;
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports={
   "userStatData" : "index,level,needExp,type,might,intellect,perception\n1,1,100,1,30,15,18\n2,2,150,1,32,16,19\n3,3,250,1,34,17,21\n4,4,400,1,36,18,22\n5,5,600,1,38,19,24\n6,6,850,1,40,20,25\n7,7,1150,1,42,21,27\n8,8,1500,1,44,22,28\n9,9,1900,1,46,23,30\n10,10,2350,1,48,24,31\n11,11,2850,1,50,25,33\n12,12,3400,1,52,26,34\n13,13,4000,1,54,27,36\n14,14,4650,1,56,28,37\n15,15,5350,1,58,29,39\n16,16,6100,1,60,30,40\n17,17,6900,1,62,31,42\n18,18,7750,1,64,32,43\n19,19,8650,1,66,33,45\n20,20,-1,1,68,34,46\n101,1,100,2,15,30,18\n102,2,150,2,16,32,19\n103,3,250,2,17,34,21\n104,4,400,2,18,36,22\n105,5,600,2,19,38,24\n106,6,850,2,20,40,25\n107,7,1150,2,21,42,27\n108,8,1500,2,22,44,28\n109,9,1900,2,23,46,30\n110,10,2350,2,24,48,31\n111,11,2850,2,25,50,33\n112,12,3400,2,26,52,34\n113,13,4000,2,27,54,36\n114,14,4650,2,28,56,37\n115,15,5350,2,29,58,39\n116,16,6100,2,30,60,40\n117,17,6900,2,31,62,42\n118,18,7750,2,32,64,43\n119,19,8650,2,33,66,45\n120,20,-1,2,34,68,46\n201,1,100,3,18,18,18\n202,2,150,3,19,19,19\n203,3,250,3,21,21,21\n204,4,400,3,22,22,22\n205,5,600,3,24,24,24\n206,6,850,3,25,25,25\n207,7,1150,3,27,27,27\n208,8,1500,3,28,28,28\n209,9,1900,3,30,30,30\n210,10,2350,3,31,31,31\n211,11,2850,3,33,33,33\n212,12,3400,3,34,34,34\n213,13,4000,3,36,36,36\n214,14,4650,3,37,37,37\n215,15,5350,3,39,39,39\n216,16,6100,3,40,40,40\n217,17,6900,3,42,42,42\n218,18,7750,3,43,43,43\n219,19,8650,3,45,45,45\n220,20,-1,3,46,46,46\n",
-  "skillData" : "index,name,level,type,property,groupIndex,nextSkillIndex,totalTime,fireTime,coolDown,range,explosionRadius,consumeMP,fireDamage,frostDamage,arcaneDamage,doDamageToMP,damageToMPRate,doDamageToSelf,damageToSelfRate,healHP,healHPRate,healMP,healMPRate,repeatLifeTime,repeatTime,buffToSelf1,buffToSelf2,buffToSelf3,buffToTarget1,buffToTarget2,buffToTarget3,projectileCount,radius,maxSpeed,lifeTime,tickTime,clientName,effectLastTime,skillIcon\n11,FireBaseSkill1,1,1,1,10,12,1000,600,100,100,50,0,100,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x512.png\n12,FireBaseSkill2,2,1,1,10,13,1000,600,100,100,50,0,110,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443612-stock-illustration-soft-skill-icon.jpg\n13,FireBaseSkill3,3,1,1,10,14,1000,600,100,100,50,0,120,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x513.png\n14,FireBaseSkill4,4,1,1,10,15,1000,600,100,100,50,0,130,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443613-stock-illustration-soft-skill-icon.jpg\n15,FireBaseSkill5,5,1,1,10,16,1000,600,100,100,50,0,140,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x514.png\n16,FireBaseSkill6,6,1,1,10,17,1000,600,100,100,50,0,150,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443614-stock-illustration-soft-skill-icon.jpg\n17,FireBaseSkill7,7,1,1,10,18,1000,600,100,100,50,0,160,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x515.png\n18,FireBaseSkill8,8,1,1,10,19,1000,600,100,100,50,0,170,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443615-stock-illustration-soft-skill-icon.jpg\n19,FireBaseSkill9,9,1,1,10,20,1000,600,100,100,50,0,180,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x516.png\n20,FireBaseSkill10,10,1,1,10,21,1000,600,100,100,50,0,190,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443616-stock-illustration-soft-skill-icon.jpg\n21,FireBaseSkill11,11,1,1,10,22,1000,600,100,100,50,0,200,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x517.png\n22,FireBaseSkill12,12,1,1,10,23,1000,600,100,100,50,0,210,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443617-stock-illustration-soft-skill-icon.jpg\n23,FireBaseSkill13,13,1,1,10,24,1000,600,100,100,50,0,220,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x518.png\n24,FireBaseSkill14,14,1,1,10,25,1000,600,100,100,50,0,230,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443618-stock-illustration-soft-skill-icon.jpg\n25,FireBaseSkill15,15,1,1,10,26,1000,600,100,100,50,0,240,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x519.png\n26,FireBaseSkill16,16,1,1,10,27,1000,600,100,100,50,0,250,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443619-stock-illustration-soft-skill-icon.jpg\n27,FireBaseSkill17,17,1,1,10,28,1000,600,100,100,50,0,260,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x520.png\n28,FireBaseSkill18,18,1,1,10,29,1000,600,100,100,50,0,270,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443620-stock-illustration-soft-skill-icon.jpg\n29,FireBaseSkill19,19,1,1,10,30,1000,600,100,100,50,0,280,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,0,0,0,0,0,Fire Strike,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x521.png\n30,FireBaseSkill20,20,1,1,10,-1,1000,600,100,100,50,0,290,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,0,0,0,0,0,Fire Strike,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443621-stock-illustration-soft-skill-icon.jpg\n101,FireProjectileExplosion1,1,3,1,100,102,2000,1600,5000,0,500,100,100,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,1,30,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443612-stock-illustration-soft-skill-icon.jpg\n102,FireProjectileExplosion2,2,3,1,100,103,2000,1600,5000,0,510,105,110,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,1,31,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443622-stock-illustration-soft-skill-icon.jpg\n103,FireProjectileExplosion3,3,3,1,100,104,2000,1600,5000,0,520,110,120,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,1,32,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x523.png\n104,FireProjectileExplosion4,4,3,1,100,105,2000,1600,5000,0,530,115,130,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,1,33,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443623-stock-illustration-soft-skill-icon.jpg\n105,FireProjectileExplosion5,5,3,1,100,106,2000,1600,5000,0,540,120,140,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,,,1,34,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x524.png\n106,FireProjectileExplosion6,6,3,1,100,107,2000,1600,5000,0,550,125,150,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,1,35,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443624-stock-illustration-soft-skill-icon.jpg\n107,FireProjectileExplosion7,7,3,1,100,108,2000,1600,5000,0,560,130,160,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,1,36,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x525.png\n108,FireProjectileExplosion8,8,3,1,100,109,2000,1600,5000,0,570,135,170,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,1,37,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443625-stock-illustration-soft-skill-icon.jpg\n109,FireProjectileExplosion9,9,3,1,100,110,2000,1600,5000,0,580,140,180,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,1,38,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x526.png\n110,FireProjectileExplosion10,10,3,1,100,111,2000,1600,5000,0,590,145,190,0,0,0,0,0,0,0,0,0,0,0,0,,,,2,,,1,39,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443626-stock-illustration-soft-skill-icon.jpg\n111,FireProjectileExplosion11,11,3,1,100,112,2000,1600,5000,0,600,150,200,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,1,40,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x527.png\n112,FireProjectileExplosion12,12,3,1,100,113,2000,1600,5000,0,610,155,210,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,1,41,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443627-stock-illustration-soft-skill-icon.jpg\n113,FireProjectileExplosion13,13,3,1,100,114,2000,1600,5000,0,620,160,220,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,1,42,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x528.png\n114,FireProjectileExplosion14,14,3,1,100,115,2000,1600,5000,0,630,165,230,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,1,43,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443628-stock-illustration-soft-skill-icon.jpg\n115,FireProjectileExplosion15,15,3,1,100,116,2000,1600,5000,0,640,170,240,0,0,0,0,0,0,0,0,0,0,0,0,,,,3,,,1,44,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x529.png\n116,FireProjectileExplosion16,16,3,1,100,117,2000,1600,5000,0,650,175,250,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,1,45,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443629-stock-illustration-soft-skill-icon.jpg\n117,FireProjectileExplosion17,17,3,1,100,118,2000,1600,5000,0,660,180,260,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,1,46,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x530.png\n118,FireProjectileExplosion18,18,3,1,100,119,2000,1600,5000,0,670,185,270,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,1,47,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443630-stock-illustration-soft-skill-icon.jpg\n119,FireProjectileExplosion19,19,3,1,100,120,2000,1600,5000,0,680,190,280,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,1,48,400,3000,0,Fire Ball,150,https://cdn.iconscout.com/public/images/icon/premium/png-512/management-manager-skill-worker-optimize-performance-37ef4bb5d1f3dc10-512x531.png\n120,FireProjectileExplosion20,20,3,1,100,-1,2000,1600,5000,0,690,195,290,0,0,0,0,0,0,0,0,0,0,0,0,,,,4,,,1,49,400,3000,0,Fire Ball,150,http://st2.depositphotos.com/6628792/9844/v/950/depositphotos_98443631-stock-illustration-soft-skill-icon.jpg\n",
-  "buffData" : "index,name,isPassive,buffLifeTime,buffTickTime,isBuff,buffType,buffEffectType,buffAmount,buffApplyRate\n1,ignite1,0,10000,0,0,5,5,,30\n2,ignite2,0,11000,0,0,5,5,,30\n3,ignite3,0,12000,0,0,5,5,,30\n4,ignite4,0,13000,0,0,5,5,,30\n",
+  "skillData" : "index,name,level,type,property,groupIndex,nextSkillIndex,totalTime,fireTime,coolDown,range,explosionRadius,explosionDamageRate,consumeMP,fireDamage,frostDamage,arcaneDamage,doDamageToMP,damageToMPRate,doDamageToSelf,damageToSelfRate,healHP,healHPRate,healMP,healMPRate,repeatLifeTime,repeatTime,buffToSelf,buffToTarget,projectileCount,radius,maxSpeed,lifeTime,tickTime,clientName,effectLastTime,skillIcon\n11,FireStrike1,1,1,1,10,12,1000,600,100,100,50,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,,1,0,0,0,0,0,Fire_Strike1,150,../images/tempSkill1.png\n12,FireStrike2,2,1,1,10,13,1000,600,100,100,50,0,0,110,0,0,0,0,0,0,0,0,0,0,0,0,,2,0,0,0,0,0,Fire_Strike2,150,../images/tempSkill1.png\n13,FireStrike3,3,1,1,10,14,1000,600,100,100,50,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,,3,0,0,0,0,0,Fire_Strike3,150,../images/tempSkill1.png\n14,FireStrike4,4,1,1,10,15,1000,600,100,100,50,0,0,130,0,0,0,0,0,0,0,0,0,0,0,0,,4,0,0,0,0,0,Fire_Strike4,150,../images/tempSkill1.png\n15,FireStrike5,5,1,1,10,-1,1000,600,100,100,50,0,0,140,0,0,0,0,0,0,0,0,0,0,0,0,,5,0,0,0,0,0,Fire_Strike5,150,../images/tempSkill1.png\n21,FireBall1,1,4,1,20,22,2000,1600,5000,0,100,0,100,100,0,0,0,0,0,0,0,0,0,0,0,0,,1,1,50,400,3000,0,Fire_Ball1,150,../images/tempSkill2.png\n22,FireBall2,2,4,1,20,23,2000,1600,5000,0,105,0,105,110,0,0,0,0,0,0,0,0,0,0,0,0,,2,1,52,400,3000,0,Fire_Ball2,150,../images/tempSkill2.png\n23,FireBall3,3,4,1,20,24,2000,1600,5000,0,110,0,110,120,0,0,0,0,0,0,0,0,0,0,0,0,,3,1,54,400,3000,0,Fire_Ball3,150,../images/tempSkill2.png\n24,FireBall4,4,4,1,20,25,2000,1600,5000,0,115,0,115,130,0,0,0,0,0,0,0,0,0,0,0,0,,4,1,56,400,3000,0,Fire_Ball4,150,../images/tempSkill2.png\n25,FireBall5,5,4,1,20,-1,2000,1600,5000,0,120,0,120,140,0,0,0,0,0,0,0,0,0,0,0,0,,5,1,58,400,3000,0,Fire_Ball5,150,../images/tempSkill2.png\n31,Explosion1,1,7,1,30,32,2000,1600,5000,0,115,0,115,130,0,0,0,0,0,0,0,0,0,0,0,0,,1,0,0,0,0,0,Explosion1,150,../images/tempSkill3.png\n32,Explosion2,2,7,1,30,33,2000,1600,5000,0,120,0,120,135,0,0,0,0,0,0,0,0,0,0,0,0,,2,0,0,0,0,0,Explosion2,150,../images/tempSkill3.png\n33,Explosion3,3,7,1,30,34,2000,1600,5000,0,125,0,125,140,0,0,0,0,0,0,0,0,0,0,0,0,,3,0,0,0,0,0,Explosion3,150,../images/tempSkill3.png\n34,Explosion4,4,7,1,30,35,2000,1600,5000,0,130,0,130,145,0,0,0,0,0,0,0,0,0,0,0,0,,4,0,0,0,0,0,Explosion4,150,../images/tempSkill3.png\n35,Explosion5,5,7,1,30,-1,2000,1600,5000,0,135,0,135,150,0,0,0,0,0,0,0,0,0,0,0,0,,5,0,0,0,0,0,Explosion5,150,../images/tempSkill3.png\n41,RollingFire1,1,5,1,40,42,2000,1600,5000,0,0,0,100,10,0,0,0,0,0,0,0,0,0,0,0,0,,1,1,100,400,3000,500,Rolling_Fire1,0,../images/tempSkill4.png\n42,RollingFire1,2,5,1,40,43,2000,1600,5000,0,0,0,105,11,0,0,0,0,0,0,0,0,0,0,0,0,,2,1,100,400,3000,500,Rolling_Fire2,0,../images/tempSkill4.png\n43,RollingFire1,3,5,1,40,44,2000,1600,5000,0,0,0,110,12,0,0,0,0,0,0,0,0,0,0,0,0,,3,1,100,400,3000,500,Rolling_Fire3,0,../images/tempSkill4.png\n44,RollingFire1,4,5,1,40,45,2000,1600,5000,0,0,0,115,13,0,0,0,0,0,0,0,0,0,0,0,0,,4,1,100,400,3000,500,Rolling_Fire4,0,../images/tempSkill4.png\n45,RollingFire1,5,5,1,40,-1,1000,600,5000,0,0,0,120,14,0,0,0,0,0,0,0,0,0,0,0,0,,5,1,100,400,3000,500,Rolling_Fire5,0,../images/tempSkill4.png\n51,FireShield1,1,8,1,50,52,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,,0,0,0,0,0,Fire_Shield1,0,../images/tempSkill5.png\n52,FireShield2,2,8,1,50,53,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,,0,0,0,0,0,Fire_Shield2,0,../images/tempSkill5.png\n53,FireShield3,3,8,1,50,54,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,,0,0,0,0,0,Fire_Shield3,0,../images/tempSkill5.png\n54,FireShield4,4,8,1,50,55,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,,0,0,0,0,0,Fire_Shield4,0,../images/tempSkill5.png\n55,FireShield5,5,8,1,50,-1,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,,0,0,0,0,0,Fire_Shield5,0,../images/tempSkill5.png\n61,Incinerate1,1,8,1,60,62,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,,0,0,0,0,0,Incinerate1,0,../images/tempSkill6.png\n62,Incinerate2,2,8,1,60,63,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,12,,0,0,0,0,0,Incinerate2,0,../images/tempSkill6.png\n63,Incinerate3,3,8,1,60,64,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,,0,0,0,0,0,Incinerate3,0,../images/tempSkill6.png\n64,Incinerate4,4,8,1,60,65,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,,0,0,0,0,0,Incinerate4,0,../images/tempSkill6.png\n65,Incinerate5,5,8,1,60,-1,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,,0,0,0,0,0,Incinerate5,0,../images/tempSkill6.png\n71,InnerFire1,1,12,1,70,72,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,,0,0,0,0,0,Inner_Fire1,0,../images/tempSkill7.png\n72,InnerFire2,2,12,1,70,73,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,,0,0,0,0,0,Inner_Fire2,0,../images/tempSkill7.png\n73,InnerFire3,3,12,1,70,74,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,18,,0,0,0,0,0,Inner_Fire3,0,../images/tempSkill7.png\n74,InnerFire4,4,12,1,70,75,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,19,,0,0,0,0,0,Inner_Fire4,0,../images/tempSkill7.png\n75,InnerFire5,5,12,1,70,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,,0,0,0,0,0,Inner_Fire5,0,../images/tempSkill7.png\n81,BurningSoul1,1,12,1,80,82,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,21,,0,0,0,0,0,Burning_Soul1,0,../images/tempSkill8.png\n82,BurningSoul2,2,12,1,80,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,22,,0,0,0,0,0,Burning_Soul,0,../images/tempSkill8.png\n83,BurningSoul3,3,12,1,80,84,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,,0,0,0,0,0,Burning_Soul3,0,../images/tempSkill8.png\n84,BurningSoul4,4,12,1,80,85,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24,,0,0,0,0,0,Burning_Soul4,0,../images/tempSkill8.png\n85,BurningSoul5,5,12,1,80,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,25,,0,0,0,0,0,Burning_Soul5,0,../images/tempSkill8.png\n1001,FrostStrike1,1,1,2,1000,1002,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Strike1,150,../images/tempSkill9.png\n1002,FrostStrike2,2,1,2,1000,1003,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,27,0,0,0,0,0,Frost_Strike2,150,../images/tempSkill9.png\n1003,FrostStrike3,3,1,2,1000,1004,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,28,0,0,0,0,0,Frost_Strike3,150,../images/tempSkill9.png\n1004,FrostStrike4,4,1,2,1000,1005,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,29,0,0,0,0,0,Frost_Strike4,150,../images/tempSkill9.png\n1005,FrostStrike5,5,1,2,1000,-1,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,30,0,0,0,0,0,Frost_Strike5,150,../images/tempSkill9.png\n1011,IceSpear1,1,3,2,1010,1012,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear1,150,../images/tempSkill10.png\n1012,IceSpear2,2,3,2,1010,1013,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear2,150,../images/tempSkill10.png\n1013,IceSpear3,3,3,2,1010,1014,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear3,150,../images/tempSkill10.png\n1014,IceSpear4,4,3,2,1010,1015,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear4,150,../images/tempSkill10.png\n1015,IceSpear5,5,3,2,1010,-1,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear5,150,../images/tempSkill10.png\n1021,FrostNova1,1,9,2,1020,1022,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova1,150,../images/tempSkill11.png\n1022,FrostNova2,2,9,2,1020,1023,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova2,150,../images/tempSkill11.png\n1023,FrostNova3,3,9,2,1020,1024,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova3,150,../images/tempSkill11.png\n1024,FrostNova4,4,9,2,1020,1025,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova4,150,../images/tempSkill11.png\n1025,FrostNova5,5,9,2,1020,-1,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova5,150,../images/tempSkill11.png\n1031,FrozenOrb1,1,6,2,1030,1032,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb1,150,../images/tempSkill12.png\n1032,FrozenOrb2,2,6,2,1030,1033,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb2,150,../images/tempSkill12.png\n1033,FrozenOrb3,3,6,2,1030,1034,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb3,150,../images/tempSkill12.png\n1034,FrozenOrb4,4,6,2,1030,1035,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb4,150,../images/tempSkill12.png\n1035,FrozenOrb5,5,6,2,1030,-1,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb5,150,../images/tempSkill12.png\n1041,IceShield1,1,8,2,1040,1042,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,31,,0,0,0,0,0,Ice_Shield1,150,../images/tempSkill1.png\n1042,IceShield2,2,8,2,1040,1043,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,32,,0,0,0,0,0,Ice_Shield2,150,../images/tempSkill1.png\n1043,IceShield3,3,8,2,1040,1044,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,33,,0,0,0,0,0,Ice_Shield3,150,../images/tempSkill1.png\n1044,IceShield4,4,8,2,1040,1045,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,34,,0,0,0,0,0,Ice_Shield4,150,../images/tempSkill1.png\n1045,IceShield5,5,8,2,1040,-1,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,35,,0,0,0,0,0,Ice_Shield5,150,../images/tempSkill1.png\n1051,IceBlock1,1,8,2,1050,1052,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,36,,0,0,0,0,0,Ice_Block1,150,../images/tempSkill2.png\n1052,IceBlock2,2,8,2,1050,1053,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,37,,0,0,0,0,0,Ice_Block2,150,../images/tempSkill2.png\n1053,IceBlock3,3,8,2,1050,1054,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,38,,0,0,0,0,0,Ice_Block3,150,../images/tempSkill2.png\n1054,IceBlock4,4,8,2,1050,1055,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,39,,0,0,0,0,0,Ice_Block4,150,../images/tempSkill2.png\n1055,IceBlock5,5,8,2,1050,-1,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,40,,0,0,0,0,0,Ice_Block5,150,../images/tempSkill2.png\n1061,FrozenSoul1,1,12,2,1060,1062,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,41,,0,0,0,0,0,Frozen_Soul1,0,../images/tempSkill3.png\n1062,FrozenSoul2,2,12,2,1060,1063,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,,0,0,0,0,0,Frozen_Soul2,0,../images/tempSkill3.png\n1063,FrozenSoul3,3,12,2,1060,1064,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43,,0,0,0,0,0,Frozen_Soul3,0,../images/tempSkill3.png\n1064,FrozenSoul4,4,12,2,1060,1065,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44,,0,0,0,0,0,Frozen_Soul4,0,../images/tempSkill3.png\n1065,FrozenSoul5,5,12,2,1060,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,,0,0,0,0,0,Frozen_Soul5,0,../images/tempSkill3.png\n1071,FrostArmor1,1,12,2,1070,1072,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,46,,0,0,0,0,0,Frost_Armor1,0,../images/tempSkill4.png\n1072,FrostArmor2,2,12,2,1070,1073,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,47,,0,0,0,0,0,Frost_Armor2,0,../images/tempSkill4.png\n1073,FrostArmor3,3,12,2,1070,1074,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,48,,0,0,0,0,0,Frost_Armor3,0,../images/tempSkill4.png\n1074,FrostArmor4,4,12,2,1070,1075,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,49,,0,0,0,0,0,Frost_Armor4,0,../images/tempSkill4.png\n1075,FrostArmor5,5,12,2,1070,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,50,,0,0,0,0,0,Frost_Armor5,0,../images/tempSkill4.png\n2001,ArcaneBolt1,1,2,3,2000,2002,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt1,150,../images/tempSkill1.png\n2002,ArcaneBolt2,2,2,3,2000,2003,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt2,150,../images/tempSkill1.png\n2003,ArcaneBolt3,3,2,3,2000,2004,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt3,150,../images/tempSkill1.png\n2004,ArcaneBolt4,4,2,3,2000,2005,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt4,150,../images/tempSkill1.png\n2005,ArcaneBolt5,5,2,3,2000,-1,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt5,150,../images/tempSkill1.png\n2011,ArcaneMissiles1,1,3,3,2010,2012,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles1,150,../images/tempSkill2.png\n2012,ArcaneMissiles2,2,3,3,2010,2013,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles2,150,../images/tempSkill2.png\n2013,ArcaneMissiles3,3,3,3,2010,2014,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles3,150,../images/tempSkill2.png\n2014,ArcaneMissiles4,4,3,3,2010,2015,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles4,150,../images/tempSkill2.png\n2015,ArcaneMissiles5,5,3,3,2010,-1,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles5,150,../images/tempSkill2.png\n2021,ArcaneBomb1,1,4,3,2020,2022,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb1,150,../images/tempSkill3.png\n2022,ArcaneBomb2,2,4,3,2020,2023,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb2,150,../images/tempSkill3.png\n2023,ArcaneBomb3,3,4,3,2020,2024,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb3,150,../images/tempSkill3.png\n2024,ArcaneBomb4,4,4,3,2020,2025,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb4,150,../images/tempSkill3.png\n2025,ArcaneBomb5,5,4,3,2020,-1,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb5,150,../images/tempSkill3.png\n2031,ArcaneBlast1,1,7,3,2030,2032,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast1,150,../images/tempSkill4.png\n2032,ArcaneBlast2,2,7,3,2030,2033,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast2,150,../images/tempSkill4.png\n2033,ArcaneBlast3,3,7,3,2030,2034,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast3,150,../images/tempSkill4.png\n2034,ArcaneBlast4,4,7,3,2030,2035,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast4,150,../images/tempSkill4.png\n2035,ArcaneBlast5,5,7,3,2030,-1,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast5,150,../images/tempSkill4.png\n2041,Blink1,1,11,3,2040,2042,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink1,150,../images/tempSkill5.png\n2042,Blink2,2,11,3,2040,2043,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink2,150,../images/tempSkill5.png\n2043,Blink3,3,11,3,2040,2044,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink3,150,../images/tempSkill5.png\n2044,Blink4,4,11,3,2040,2045,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink4,150,../images/tempSkill5.png\n2045,Blink5,5,11,3,2040,-1,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink5,150,../images/tempSkill5.png\n2051,Silence1,1,7,3,2050,2052,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,51,0,0,0,0,0,Silence1,150,../images/tempSkill6.png\n2052,Silence2,2,7,3,2050,2053,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,52,0,0,0,0,0,Silence2,150,../images/tempSkill6.png\n2053,Silence3,3,7,3,2050,2054,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,53,0,0,0,0,0,Silence3,150,../images/tempSkill6.png\n2054,Silence4,4,7,3,2050,2055,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,54,0,0,0,0,0,Silence4,150,../images/tempSkill6.png\n2055,Silence5,5,7,3,2050,-1,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,55,0,0,0,0,0,Silence5,150,../images/tempSkill6.png\n2061,Blur1,1,8,3,2060,2062,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,56,,0,0,0,0,0,Blur1,150,../images/tempSkill7.png\n2062,Blur2,2,8,3,2060,2063,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,57,,0,0,0,0,0,Blur2,150,../images/tempSkill7.png\n2063,Blur3,3,8,3,2060,2064,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,58,,0,0,0,0,0,Blur3,150,../images/tempSkill7.png\n2064,Blur4,4,8,3,2060,2065,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,59,,0,0,0,0,0,Blur4,150,../images/tempSkill7.png\n2065,Blur5,5,8,3,2060,-1,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,60,,0,0,0,0,0,Blur5,150,../images/tempSkill7.png\n2071,Dispel1,1,7,3,2070,2072,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,61,0,0,0,0,0,Dispel1,150,../images/tempSkill8.png\n2072,Dispel2,2,7,3,2070,2073,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,62,0,0,0,0,0,Dispel2,150,../images/tempSkill8.png\n2073,Dispel3,3,7,3,2070,2074,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,63,0,0,0,0,0,Dispel3,150,../images/tempSkill8.png\n2074,Dispel4,4,7,3,2070,2075,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,64,0,0,0,0,0,Dispel4,150,../images/tempSkill8.png\n2075,Dispel5,5,7,3,2070,-1,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,65,0,0,0,0,0,Dispel5,150,../images/tempSkill8.png\n2081,ArcaneShield1,1,8,3,2080,2082,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,66,,0,0,0,0,0,Arcane_Shield1,150,../images/tempSkill9.png\n2082,ArcaneShield2,2,8,3,2080,2083,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,67,,0,0,0,0,0,Arcane_Shield2,150,../images/tempSkill9.png\n2083,ArcaneShield3,3,8,3,2080,2084,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,68,,0,0,0,0,0,Arcane_Shield3,150,../images/tempSkill9.png\n2084,ArcaneShield4,4,8,3,2080,2085,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,69,,0,0,0,0,0,Arcane_Shield4,150,../images/tempSkill9.png\n2085,ArcaneShield5,5,8,3,2080,-1,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,70,,0,0,0,0,0,Arcane_Shield5,150,../images/tempSkill9.png\n2091,ArcaneIntellect1,1,12,3,2090,2092,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,71,,0,0,0,0,0,Arcane_Intellect1,0,../images/tempSkill10.png\n2092,ArcaneIntellect2,2,12,3,2090,2093,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,72,,0,0,0,0,0,Arcane_Intellect2,0,../images/tempSkill10.png\n2093,ArcaneIntellect3,3,12,3,2090,2094,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,73,,0,0,0,0,0,Arcane_Intellect3,0,../images/tempSkill10.png\n2094,ArcaneIntellect4,4,12,3,2090,2095,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,74,,0,0,0,0,0,Arcane_Intellect4,0,../images/tempSkill10.png\n2095,ArcaneIntellect5,5,12,3,2090,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,75,,0,0,0,0,0,Arcane_Intellect5,0,../images/tempSkill10.png\n2101,ArcaneCloak1,1,12,3,2100,2102,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,76,,0,0,0,0,0,Arcane_Cloak1,0,../images/tempSkill11.png\n2102,ArcaneCloak2,2,12,3,2100,2103,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,77,,0,0,0,0,0,Arcane_Cloak2,0,../images/tempSkill11.png\n2103,ArcaneCloak3,3,12,3,2100,2104,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,78,,0,0,0,0,0,Arcane_Cloak3,0,../images/tempSkill11.png\n2104,ArcaneCloak4,4,12,3,2100,2105,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,79,,0,0,0,0,0,Arcane_Cloak4,0,../images/tempSkill11.png\n2105,ArcaneCloak5,5,12,3,2100,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,80,,0,0,0,0,0,Arcane_Cloak5,0,../images/tempSkill11.png\n",
+  "buffGroupData" : "index,name,desc,isBuff,buff1,buff2,buff3,buff4,buff5,buffLifeTime,buffApplyRate,buffIcon\n1,ignite1,,0,1,,,,,10000,20,../images/tempSkill1.png\n2,ignite2,,0,2,,,,,10000,25,../images/tempSkill1.png\n3,ignite3,,0,3,,,,,10000,30,../images/tempSkill1.png\n4,ignite4,,0,4,,,,,10000,35,../images/tempSkill1.png\n5,ignite5,,0,5,,,,,10000,40,../images/tempSkill1.png\n6,FireShield1,,1,21,16,11,,,30000,100,../images/tempSkill5.png\n7,FireShield2,,1,22,17,12,,,30000,100,../images/tempSkill5.png\n8,FireShield3,,1,23,18,13,,,30000,100,../images/tempSkill5.png\n9,FireShield4,,1,24,19,14,,,30000,100,../images/tempSkill5.png\n10,FireShield5,,1,25,20,15,,,30000,100,../images/tempSkill5.png\n11,Incinerate1,,1,1,11,,,,30000,100,../images/tempSkill6.png\n12,Incinerate2,,1,2,12,,,,30000,100,../images/tempSkill6.png\n13,Incinerate3,,1,3,13,,,,30000,100,../images/tempSkill6.png\n14,Incinerate4,,1,4,14,,,,30000,100,../images/tempSkill6.png\n15,Incinerate5,,1,5,15,,,,30000,100,../images/tempSkill6.png\n16,InnerFire1,,1,26,31,,,,30000,100,../images/tempSkill7.png\n17,InnerFire2,,1,27,32,,,,30000,100,../images/tempSkill7.png\n18,InnerFire3,,1,28,33,,,,30000,100,../images/tempSkill7.png\n19,InnerFire4,,1,29,34,,,,30000,100,../images/tempSkill7.png\n20,InnerFire5,,1,30,35,,,,30000,100,../images/tempSkill7.png\n21,BurningSoul1,,1,6,11,,,,30000,100,../images/tempSkill8.png\n22,BurningSoul2,,1,7,12,,,,30000,100,../images/tempSkill8.png\n23,BurningSoul3,,1,8,13,,,,30000,100,../images/tempSkill8.png\n24,BurningSoul4,,1,9,14,,,,30000,100,../images/tempSkill8.png\n25,BurningSoul5,,1,10,15,,,,30000,100,../images/tempSkill8.png\n26,chill1,,0,36,,,,,10000,20,../images/tempSkill1.png\n27,chill2,,0,37,,,,,10000,25,../images/tempSkill1.png\n28,chill3,,0,38,,,,,10000,30,../images/tempSkill1.png\n29,chill4,,0,39,,,,,10000,35,../images/tempSkill1.png\n30,chill5,,0,40,,,,,10000,40,../images/tempSkill1.png\n31,IceShield1,,1,41,16,61,,,30000,100,../images/tempSkill2.png\n32,IceShield2,,1,42,17,62,,,30000,100,../images/tempSkill2.png\n33,IceShield3,,1,43,18,63,,,30000,100,../images/tempSkill2.png\n34,IceShield4,,1,44,19,64,,,30000,100,../images/tempSkill2.png\n35,IceShield5,,1,45,20,65,,,30000,100,../images/tempSkill2.png\n36,IceBlock1,,0,46,51,,,,30000,100,../images/tempSkill3.png\n37,IceBlock2,,0,47,52,,,,30000,100,../images/tempSkill3.png\n38,IceBlock3,,0,48,53,,,,30000,100,../images/tempSkill3.png\n39,IceBlock4,,0,49,54,,,,30000,100,../images/tempSkill3.png\n40,IceBlock5,,0,50,55,,,,30000,100,../images/tempSkill3.png\n41,FrozenSoul1,,1,56,61,,,,30000,100,../images/tempSkill4.png\n42,FrozenSoul2,,1,57,62,,,,30000,100,../images/tempSkill4.png\n43,FrozenSoul3,,1,58,63,,,,30000,100,../images/tempSkill4.png\n44,FrozenSoul4,,1,59,64,,,,30000,100,../images/tempSkill4.png\n45,FrozenSoul5,,1,60,65,,,,30000,100,../images/tempSkill4.png\n46,FrostArmor1,,1,41,66,71,,,30000,100,../images/tempSkill5.png\n47,FrostArmor2,,1,41,67,72,,,30000,100,../images/tempSkill5.png\n48,FrostArmor3,,1,41,68,73,,,30000,100,../images/tempSkill5.png\n49,FrostArmor4,,1,41,69,74,,,30000,100,../images/tempSkill5.png\n50,FrostArmor5,,1,41,70,75,,,30000,100,../images/tempSkill5.png\n51,Silence1,,0,76,,,,,10000,100,../images/tempSkill1.png\n52,Silence2,,0,76,,,,,10000,100,../images/tempSkill1.png\n53,Silence3,,0,76,,,,,10000,100,../images/tempSkill1.png\n54,Silence4,,0,76,,,,,10000,100,../images/tempSkill1.png\n55,Silence5,,0,76,,,,,10000,100,../images/tempSkill1.png\n56,Blur1,,1,81,,,,,30000,100,../images/tempSkill2.png\n57,Blur2,,1,81,,,,,30000,100,../images/tempSkill2.png\n58,Blur3,,1,81,,,,,30000,100,../images/tempSkill2.png\n59,Blur4,,1,81,,,,,30000,100,../images/tempSkill2.png\n60,Blur5,,1,81,,,,,30000,100,../images/tempSkill2.png\n61,Dispel1,,0,86,,,,,100,100,../images/tempSkill3.png\n62,Dispel2,,0,87,,,,,100,100,../images/tempSkill3.png\n63,Dispel3,,0,88,,,,,100,100,../images/tempSkill3.png\n64,Dispel4,,0,89,,,,,100,100,../images/tempSkill3.png\n65,Dispel5,,0,90,,,,,100,100,../images/tempSkill3.png\n66,ArcaneShield1,,1,41,61,,,,30000,100,../images/tempSkill4.png\n67,ArcaneShield2,,1,42,62,,,,30000,100,../images/tempSkill4.png\n68,ArcaneShield3,,1,43,63,,,,30000,100,../images/tempSkill4.png\n69,ArcaneShield4,,1,44,64,,,,30000,100,../images/tempSkill4.png\n70,ArcaneShield5,,1,45,65,,,,30000,100,../images/tempSkill4.png\n71,ArcaneIntellect1,,1,91,56,61,,,0,100,../images/tempSkill5.png\n72,ArcaneIntellect2,,1,92,57,62,,,0,100,../images/tempSkill5.png\n73,ArcaneIntellect3,,1,93,58,63,,,0,100,../images/tempSkill5.png\n74,ArcaneIntellect4,,1,94,59,64,,,0,100,../images/tempSkill5.png\n75,ArcaneIntellect5,,1,95,60,65,,,0,100,../images/tempSkill5.png\n76,ArcaneCloak1,,1,91,96,,,,0,100,../images/tempSkill6.png\n77,ArcaneCloak2,,1,92,97,,,,0,100,../images/tempSkill6.png\n78,ArcaneCloak3,,1,93,98,,,,0,100,../images/tempSkill6.png\n79,ArcaneCloak4,,1,94,99,,,,0,100,../images/tempSkill6.png\n80,ArcaneCloak5,,1,95,100,,,,0,100,../images/tempSkill6.png\n",
+  "buffData" : "index,name,buffTickTime,buffType,buffEffectType,buffAmount,buffApplyHPTickPercent\n1,ignite1,0,5,5,,0\n2,ignite2,0,5,5,,0\n3,ignite3,0,5,5,,0\n4,ignite4,0,5,5,,0\n5,ignite5,0,5,5,,0\n6,maxHP1,0,2,1,100,0\n7,maxHP2,0,2,1,110,0\n8,maxHP3,0,2,1,120,0\n9,maxHP4,0,2,1,130,0\n10,maxHP5,0,2,1,140,0\n11,HPRegen1,0,2,5,10,0\n12,HPRegen2,0,2,5,11,0\n13,HPRegen3,0,2,5,12,0\n14,HPRegen4,0,2,5,13,0\n15,HPRegen5,0,2,5,14,0\n16,reductionFire1,0,2,23,5,0\n17,reductionFire2,0,2,23,6,0\n18,reductionFire3,0,2,23,7,0\n19,reductionFire4,0,2,23,8,0\n20,reductionFire5,0,2,23,9,0\n21,reductionFrost1,0,2,24,5,0\n22,reductionFrost2,0,2,24,6,0\n23,reductionFrost3,0,2,24,7,0\n24,reductionFrost4,0,2,24,8,0\n25,reductionFrost5,0,2,24,9,0\n26,damageByLife1,0,2,27,10,10\n27,damageByLife2,0,2,27,11,10\n28,damageByLife3,0,2,27,12,10\n29,damageByLife4,0,2,27,13,10\n30,damageByLife5,0,2,27,14,10\n31,moveSpeedByLife1,0,2,28,10,10\n32,moveSpeedByLife2,0,2,28,11,10\n33,moveSpeedByLife3,0,2,28,12,10\n34,moveSpeedByLife4,0,2,28,13,10\n35,moveSpeedByLife5,0,2,28,14,10\n36,chill1,0,5,2,0,0\n37,chill2,0,5,2,0,0\n38,chill3,0,5,2,0,0\n39,chill4,0,5,2,0,0\n40,chill5,0,5,2,0,0\n41,reductionAll1,0,2,26,10,0\n42,reductionAll2,0,2,26,10,0\n43,reductionAll3,0,2,26,10,0\n44,reductionAll4,0,2,26,10,0\n45,reductionAll5,0,2,26,10,0\n46,setImmortal1,0,5,1,0,0\n47,setImmortal2,0,5,1,0,0\n48,setImmortal3,0,5,1,0,0\n49,setImmortal4,0,5,1,0,0\n50,setImmortal5,0,5,1,0,0\n51,setFreeze1,0,5,3,0,0\n52,setFreeze2,0,5,3,0,0\n53,setFreeze3,0,5,3,0,0\n54,setFreeze4,0,5,3,0,0\n55,setFreeze5,0,5,3,0,0\n56,MaxMP1,0,2,2,100,0\n57,MaxMP2,0,2,2,100,0\n58,MaxMP3,0,2,2,100,0\n59,MaxMP4,0,2,2,100,0\n60,MaxMP5,0,2,2,100,0\n61,MPRegen1,0,2,7,10,0\n62,MPRegen2,0,2,7,10,0\n63,MPRegen3,0,2,7,10,0\n64,MPRegen4,0,2,7,10,0\n65,MPRegen5,0,2,7,10,0\n66,ResistAll1,0,2,22,10,0\n67,ResistAll2,0,2,22,10,0\n68,ResistAll3,0,2,22,10,0\n69,ResistAll4,0,2,22,10,0\n70,ResistAll5,0,2,22,10,0\n71,ResistFire1,0,2,19,10,0\n72,ResistFire2,0,2,19,10,0\n73,ResistFire3,0,2,19,10,0\n74,ResistFire4,0,2,19,10,0\n75,ResistFire5,0,2,19,10,0\n76,Silence,0,5,4,0,0\n81,Blur,0,5,6,0,0\n86,DispelBuff1,0,4,1,1,0\n87,DispelBuff2,1,4,1,2,0\n88,DispelBuff3,2,4,1,3,0\n89,DispelBuff4,3,4,1,4,0\n90,DispelBuff5,4,4,1,5,0\n91,damageRate1,0,2,18,10,0\n92,damageRate2,1,2,18,11,0\n93,damageRate3,2,2,18,12,0\n94,damageRate4,3,2,18,13,0\n95,damageRate5,4,2,18,14,0\n96,castSpeed1,0,2,10,10,0\n97,castSpeed2,1,2,10,11,0\n98,castSpeed3,2,2,10,12,0\n99,castSpeed4,3,2,10,13,0\n100,castSpeed5,4,2,10,14,0\n",
   "chestData" : "index,grade,HP,minExpCount,maxExpCount,minExpAmount,maxExpAmount,minSkillCount,maxSkillCount,SkillIndex1,SkillDropRate1,SkillIndex2,SkillDropRate2,SkillIndex3,SkillDropRate3,SkillIndex4,SkillDropRate4,SkillIndex5,SkillDropRate5,SkillIndex6,SkillDropRate6,SkillIndex7,SkillDropRate7,SkillIndex7,SkillDropRate7,SkillIndex8,SkillDropRate8,SkillIndex9,SkillDropRate9,SkillIndex10,SkillDropRate10,SkillIndex11,SkillDropRate11,SkillIndex12,SkillDropRate12,SkillIndex13,SkillDropRate13,SkillIndex14,SkillDropRate14,SkillIndex15,SkillDropRate15,SkillIndex16,SkillDropRate16,SkillIndex17,SkillDropRate17,SkillIndex18,SkillDropRate18,SkillIndex19,SkillDropRate19,SkillIndex20,SkillDropRate20\n1,1,100,3,5,30,50,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n2,2,200,4,6,50,75,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n3,3,300,5,7,75,100,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n"
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 module.exports={
+  "MAX_SERVER_RESPONSE_TIME" : 5000,
   "INTERVAL" : 60,
 
   "CANVAS_MAX_SIZE" : {"width" : 3200 , "height" : 3200},
@@ -1242,6 +1965,9 @@ module.exports={
 
   "DRAW_MODE_NORMAL" : 1,
   "DRAW_MODE_SKILL_RANGE" : 2,
+
+  "SKILL_CHANGE_PANEL_CONTAINER" : 1,
+  "SKILL_CHANGE_PANEL_EQUIP" : 2,
 
   "OBJECT_STATE_IDLE" : 1,
   "OBJECT_STATE_MOVE" : 2,
@@ -1275,26 +2001,31 @@ module.exports={
   "USER_CONDITION_FREEZE" : 3,
   "USER_CONDITION_SILENCE" : 4,
   "USER_CONDITION_IGNITE" : 5,
+  "USER_CONDITION_BLUR" : 6,
 
   "SKILL_PROPERTY_FIRE" : 1,
   "SKILL_PROPERTY_FROST" : 2,
   "SKILL_PROPERTY_ARCANE" : 3,
 
-  "SKILL_TYPE_BASIC" : 1,
-  "SKILL_TYPE_PROJECTILE" : 2,
-  "SKILL_TYPE_PROJECTILE_EXPLOSION" : 3,
-  "SKILL_TYPE_PROJECTILE_TICK" : 4,
-  "SKILL_TYPE_RANGE" : 5,
-  "SKILL_TYPE_SELF" : 6,
-  "SKILL_TYPE_SELF_EXPLOSION" : 7,
-  "SKILL_TYPE_SELF_TRIGGER" : 8,
-  "SKILL_TYPE_TELEPORT" : 9,
-  "SKILL_TYPE_PASSIVE" : 10,
+  "SKILL_TYPE_INSTANT_RANGE" : 1,
+  "SKILL_TYPE_INSTANT_PROJECTILE" : 2,
+  "SKILL_TYPE_PROJECTILE" : 3,
+  "SKILL_TYPE_PROJECTILE_EXPLOSION" : 4,
+  "SKILL_TYPE_PROJECTILE_TICK" : 5,
+  "SKILL_TYPE_PROJECTILE_TICK_EXPLOSION" : 6,
+  "SKILL_TYPE_RANGE" : 7,
+  "SKILL_TYPE_SELF" : 8,
+  "SKILL_TYPE_SELF_EXPLOSION" : 9,
+  "SKILL_TYPE_SELF_TRIGGER" : 10,
+  "SKILL_TYPE_TELEPORT" : 11,
+  "SKILL_TYPE_PASSIVE" : 12,
+
+  "MULTI_PROJECTILE_DEGREE" : 20,
 
   "OBJ_SKILL_RADIUS" : 30
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 module.exports={
   "Trees" : [
     {"id" : "OT1", "posX" : 200, "posY" : 200},
@@ -1306,11 +2037,11 @@ module.exports={
   ]
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 !function(e,t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&module.exports?module.exports=t():e.Quadtree=t()}(this,function(){return function(){function e(t){var n,i;if(this.x=t.x,this.y=t.y,this.width=t.width,this.height=t.height,this.maxElements=t.maxElements,null==this.width||null==this.height)throw new Error("Missing quadtree dimensions.");if(null==this.x&&(this.x=0),null==this.y&&(this.y=0),null==this.maxElements&&(this.maxElements=1),this.contents=[],this.oversized=[],this.size=0,this.width<1||this.height<1)throw new Error("Dimensions must be positive integers.");if(!Number.isInteger(this.x)||!Number.isInteger(this.y))throw new Error("Coordinates must be integers");if(this.maxElements<1)throw new Error("The maximum number of elements before a split must be a positive integer.");i=this,this.children={NW:{create:function(){return new e({x:i.x,y:i.y,width:Math.max(Math.floor(i.width/2),1),height:Math.max(Math.floor(i.height/2),1),maxElements:i.maxElements})},tree:null},NE:{create:function(){return new e({x:i.x+Math.max(Math.floor(i.width/2),1),y:i.y,width:Math.ceil(i.width/2),height:Math.max(Math.floor(i.height/2),1),maxElements:i.maxElements})},tree:null},SW:{create:function(){return new e({x:i.x,y:i.y+Math.max(Math.floor(i.height/2),1),width:Math.max(Math.floor(i.width/2),1),height:Math.ceil(i.height/2),maxElements:i.maxElements})},tree:null},SE:{create:function(){return new e({x:i.x+Math.max(Math.floor(i.width/2),1),y:i.y+Math.max(Math.floor(i.height/2),1),width:Math.ceil(i.width/2),height:Math.ceil(i.height/2),maxElements:i.maxElements})},tree:null}};for(n in this.children)this.children[n].get=function(){return null!=this.tree?this.tree:(this.tree=this.create(),this.tree)}}var t,n,i,r,h,l,o,s;return r=function(e){var t,n;return{x:Math.floor((null!=(t=e.width)?t:1)/2)+e.x,y:Math.floor((null!=(n=e.height)?n:1)/2)+e.y}},t=function(e,t){var n,i,r,h;return!(e.x>=t.x+(null!=(n=t.width)?n:1)||e.x+(null!=(i=e.width)?i:1)<=t.x||e.y>=t.y+(null!=(r=t.height)?r:1)||e.y+(null!=(h=e.height)?h:1)<=t.y)},n=function(e,t){var n;return n=r(t),e.x<n.x?e.y<n.y?"NW":"SW":e.y<n.y?"NE":"SE"},s=function(e){if("object"!=typeof e)throw new Error("Element must be an Object.");if(null==e.x||null==e.y)throw new Error("Coordinates properties are missing.");if((null!=e?e.width:void 0)<0||(null!=e?e.height:void 0)<0)throw new Error("Width and height must be positive integers.")},l=function(e){var t,n,i,r;return n=Math.max(Math.floor(e.width/2),1),i=Math.ceil(e.width/2),r=Math.max(Math.floor(e.height/2),1),t=Math.ceil(e.height/2),{NW:{x:e.x,y:e.y,width:n,height:r},NE:{x:e.x+n,y:e.y,width:i,height:r},SW:{x:e.x,y:e.y+r,width:n,height:t},SE:{x:e.x+n,y:e.y+r,width:i,height:t}}},i=function(e,n){var i,r,h,o;o=[],h=l(n);for(r in h)i=h[r],t(e,i)&&o.push(r);return o},h=function(e,t){var n;return n=function(n){return e["_"+n]=e[n],Object.defineProperty(e,n,{set:function(e){return t.remove(this,!0),this["_"+n]=e,t.push(this)},get:function(){return this["_"+n]},configurable:!0})},n("x"),n("y"),n("width"),n("height")},o=function(e){var t;return t=function(t){if(null!=e["_"+t])return delete e[t],e[t]=e["_"+t],delete e["_"+t]},t("x"),t("y"),t("width"),t("height")},e.prototype.push=function(e,t){return this.pushAll([e],t)},e.prototype.pushAll=function(e,t){var n,r,l,o,u,f,c,d,a,g,p,m,x,y,v,w,E,M,z,b;for(p=0,y=e.length;p<y;p++)g=e[p],s(g),t&&h(g,this);for(c=[{tree:this,elements:e}];c.length>0;){for(E=c.shift(),b=E.tree,f=E.elements,d={NW:null,NE:null,SW:null,SE:null},m=0,v=f.length;m<v;m++)if(u=f[m],b.size++,a=i(u,b),1!==a.length||1===b.width||1===b.height)b.oversized.push(u);else if(b.size-b.oversized.length<=b.maxElements)b.contents.push(u);else{for(o=a[0],z=b.children[o],null==d[o]&&(d[o]={tree:z.get(),elements:[]}),d[o].elements.push(u),M=b.contents,x=0,w=M.length;x<w;x++)r=M[x],l=i(r,b)[0],null==d[l]&&(d[l]={tree:b.children[l].get(),elements:[]}),d[l].elements.push(r);b.contents=[]}for(o in d)null!=(n=d[o])&&c.push(n)}return this},e.prototype.remove=function(e,t){var i,r;return s(e),(i=this.oversized.indexOf(e))>-1?(this.oversized.splice(i,1),this.size--,t||o(e),!0):(i=this.contents.indexOf(e))>-1?(this.contents.splice(i,1),this.size--,t||o(e),!0):(r=this.children[n(e,this)],!(null==r.tree||!r.tree.remove(e,t))&&(this.size--,0===r.tree.size&&(r.tree=null),!0))},e.prototype.colliding=function(e,n){var r,h,l,o,u,f,c,d,a,g,p,m,x,y;for(null==n&&(n=t),s(e),u=[],l=[this];l.length>0;){for(y=l.shift(),m=y.oversized,f=0,a=m.length;f<a;f++)(h=m[f])!==e&&n(e,h)&&u.push(h);for(x=y.contents,c=0,g=x.length;c<g;c++)(h=x[c])!==e&&n(e,h)&&u.push(h);for(o=i(e,y),0===o.length&&(o=[],e.x>=y.x+y.width&&o.push("NE"),e.y>=y.y+y.height&&o.push("SW"),o.length>0&&(1===o.length?o.push("SE"):o=["SE"])),d=0,p=o.length;d<p;d++)r=o[d],null!=y.children[r].tree&&l.push(y.children[r].tree)}return u},e.prototype.onCollision=function(e,n,r){var h,l,o,u,f,c,d,a,g,p,m,x,y;for(null==r&&(r=t),s(e),o=[this];o.length>0;){for(y=o.shift(),m=y.oversized,f=0,a=m.length;f<a;f++)(l=m[f])!==e&&r(e,l)&&n(l);for(x=y.contents,c=0,g=x.length;c<g;c++)(l=x[c])!==e&&r(e,l)&&n(l);for(u=i(e,y),0===u.length&&(u=[],e.x>=y.x+y.width&&u.push("NE"),e.y>=y.y+y.height&&u.push("SW"),u.length>0&&(1===u.length?u.push("SE"):u=["SE"])),d=0,p=u.length;d<p;d++)h=u[d],null!=y.children[h].tree&&o.push(y.children[h].tree)}return null},e.prototype.get=function(e){return this.where(e)},e.prototype.where=function(e){var t,i,r,h,l,o,u,f,c,d,a,g,p;if("object"==typeof e&&(null==e.x||null==e.y))return this.find(function(t){var n,i;n=!0;for(i in e)e[i]!==t[i]&&(n=!1);return n});for(s(e),h=[],r=[this];r.length>0;){for(p=r.shift(),d=p.oversized,l=0,f=d.length;l<f;l++){i=d[l],t=!0;for(u in e)e[u]!==i[u]&&(t=!1);t&&h.push(i)}for(a=p.contents,o=0,c=a.length;o<c;o++){i=a[o],t=!0;for(u in e)e[u]!==i[u]&&(t=!1);t&&h.push(i)}g=p.children[n(e,p)],null!=g.tree&&r.push(g.tree)}return h},e.prototype.each=function(e){var t,n,i,r,h,l,o,s,u,f;for(n=[this];n.length>0;){for(f=n.shift(),s=f.oversized,r=0,l=s.length;r<l;r++)i=s[r],"function"==typeof e&&e(i);for(u=f.contents,h=0,o=u.length;h<o;h++)i=u[h],"function"==typeof e&&e(i);for(t in f.children)null!=f.children[t].tree&&n.push(f.children[t].tree)}return this},e.prototype.find=function(e){var t,n,i,r,h,l,o,s,u,f,c;for(n=[this],r=[];n.length>0;){for(c=n.shift(),u=c.oversized,h=0,o=u.length;h<o;h++)i=u[h],("function"==typeof e?e(i):void 0)&&r.push(i);for(f=c.contents,l=0,s=f.length;l<s;l++)i=f[l],("function"==typeof e?e(i):void 0)&&r.push(i);for(t in c.children)null!=c.children[t].tree&&n.push(c.children[t].tree)}return r},e.prototype.filter=function(t){var n;return(n=function(i){var r,h,l,o,s,u,f,c,d,a,g;h=new e({x:i.x,y:i.y,width:i.width,height:i.height,maxElements:i.maxElements}),h.size=0;for(r in i.children)null!=i.children[r].tree&&(h.children[r].tree=n(i.children[r].tree),h.size+=null!=(c=null!=(d=h.children[r].tree)?d.size:void 0)?c:0);for(a=i.oversized,o=0,u=a.length;o<u;o++)l=a[o],(null==t||("function"==typeof t?t(l):void 0))&&h.oversized.push(l);for(g=i.contents,s=0,f=g.length;s<f;s++)l=g[s],(null==t||("function"==typeof t?t(l):void 0))&&h.contents.push(l);return h.size+=h.oversized.length+h.contents.length,0===h.size?null:h})(this)},e.prototype.reject=function(e){return this.filter(function(t){return!("function"==typeof e?e(t):void 0)})},e.prototype.visit=function(e){var t,n,i;for(n=[this];n.length>0;){i=n.shift(),e.bind(i)();for(t in i.children)null!=i.children[t].tree&&n.push(i.children[t].tree)}return this},e.prototype.pretty=function(){var e,t,n,i,r,h,l;for(h="",n=function(e){var t,n,i;for(i="",t=n=e;n<=0?t<0:t>0;n<=0?++t:--t)i+="   ";return i},t=[{label:"ROOT",tree:this,level:0}];t.length>0;){l=t.shift(),i=n(l.level),h+=i+"| "+l.label+"\n"+i+"| ------------\n",l.tree.oversized.length>0&&(h+=i+"| * Oversized elements *\n"+i+"|   "+l.tree.oversized+"\n"),l.tree.contents.length>0&&(h+=i+"| * Leaf content *\n"+i+"|   "+l.tree.contents+"\n"),r=!1;for(e in l.tree.children)null!=l.tree.children[e].tree&&(r=!0,t.unshift({label:e,tree:l.tree.children[e].tree,level:l.level+1}));r&&(h+=i+"└──┐\n")}return h},e}()});
 
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 module.exports={
   "USER_BODY_SRC" : "../images/CharBase.svg",
   "USER_BODY_SIZE" : 64,
@@ -1329,7 +2060,7 @@ module.exports={
   "OBJ_CHEST_SIZE" : 50
 }
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var gameConfig = require('./gameConfig.json');
 var radianFactor = Math.PI/180;
 
@@ -1640,13 +2371,18 @@ exports.distance = function(position1, position2){
 //calcurate targetDirection;
 exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
   switch (skillData.type) {
-    case gameConfig.SKILL_TYPE_BASIC:
+    case gameConfig.SKILL_TYPE_INSTANT_RANGE:
       var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
       var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
 
       return {
         x : user.center.x + addPosX,
         y : user.center.y + addPosY
+      };
+    case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
       };
     case gameConfig.SKILL_TYPE_INSTANT:
       var distSquare = exports.distanceSquare(user.center, clickPosition);
@@ -1697,6 +2433,16 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
       };
     case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
       return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    case gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION :
+      return {
+        x : clickPosition.x,
+        y : clickPosition.y
+      };
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION :
+      return{
         x : clickPosition.x,
         y : clickPosition.y
       };
@@ -1705,7 +2451,9 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
 };
 exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
   switch (skillType) {
-    case gameConfig.SKILL_TYPE_BASIC:
+    case gameConfig.SKILL_TYPE_INSTANT_RANGE:
+      return user.direction;
+    case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
       return user.direction;
     case gameConfig.SKILL_TYPE_INSTANT:
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
@@ -1718,6 +2466,10 @@ exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
     case gameConfig.SKILL_TYPE_PROJECTILE :
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
     case gameConfig.SKILL_TYPE_PROJECTILE_TICK :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION :
+      return exports.calcTargetDirection(targetPosition, user.center, user.direction);
+    case gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION :
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
     default:
   }
@@ -1778,32 +2530,57 @@ exports.findDataWithTwoColumns = function(table, columnName1, value1, columnName
   }
   return data;
 }
-exports.findAndSetBuffs = function(skillData, buffTable, columnName, length, actorID){
+exports.findAndSetBuffs = function(buffGroupData, buffTable, actorID){
   var returnVal = [];
-  for(var i=0; i<length; i++){
-    var buffIndex = skillData[columnName + (i + 1)];
-    if(buffIndex === ''){
-      return returnVal;
-    }else{
+  for(var i=0; i<5; i++){
+    var buffIndex = buffGroupData['buff' + (i + 1)];
+    if(buffIndex){
       var buffData = exports.findData(buffTable, 'index', buffIndex);
       buffData.actorID = actorID;
       returnVal.push(buffData);
+    }else{
+      return returnVal;
     }
   }
   return returnVal;
 }
-exports.generateRandomUniqueID = function(uniqueCheckArray, prefix){
-  var IDisUnique = false;
-  while(!IDisUnique){
-    var randomID = generateRandomID(prefix);
-    IDisUnique = true;
-    for(var index in uniqueCheckArray){
-      if(randomID == uniqueCheckArray[index].objectID){
-        IDisUnique = false;
+exports.generateRandomUniqueID = function(uniqueCheckArray, prefix, idCount){
+  if(!idCount){
+    var IDisUnique = false;
+    while(!IDisUnique){
+      var randomID = generateRandomID(prefix);
+      IDisUnique = true;
+      for(var index in uniqueCheckArray){
+        if(randomID == uniqueCheckArray[index].objectID){
+          IDisUnique = false;
+        }
       }
     }
+    return randomID;
+  }else if(idCount){
+    var IDs = [];
+    for(var i=0; i<idCount; i++){
+      var IDisUnique = false;
+      while(!IDisUnique){
+        var randomID = generateRandomID(prefix);
+        IDisUnique = true;
+        for(var index in uniqueCheckArray){
+          if(randomID == uniqueCheckArray[index].objectID){
+            IDisUnique = false;
+          }
+        }
+        for(var j=0; j<IDs.length; j++){
+          if(randomID == IDs[j]){
+            IDisUnique = false;
+          }
+        }
+        if(IDisUnique){
+          IDs.push(randomID);
+        }
+      }
+    }
+    return IDs;
   }
-  return randomID;
 };
 function generateRandomID(prefix){
   var output = prefix;
@@ -1813,7 +2590,7 @@ function generateRandomID(prefix){
   return output;
 };
 
-},{"./gameConfig.json":7}],12:[function(require,module,exports){
+},{"./gameConfig.json":8}],13:[function(require,module,exports){
 // inner Modules
 var util = require('../../modules/public/util.js');
 var User = require('../../modules/client/CUser.js');
@@ -1823,17 +2600,15 @@ var gameConfig = require('../../modules/public/gameConfig.json');
 var csvJson = require('../../modules/public/csvjson.js');
 var dataJson = require('../../modules/public/data.json');
 var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
+var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
 var socket;
 
 // document elements
-var startScene, gameScene, standingScene;
-var btnType1, btnType2, btnType3, btnType4, btnType5;
-var startButton;
-var hudBaseSkill, hudEquipSkill1, hudEquipSkill2, hudEquipSkill3, hudEquipSkill4, hudPassiveSkill;
-var hudBtnSkillChange;
+// var startScene, gameScene, standingScene;
+// var startButton;
 
-var popUpSkillChange, popUpSkillContainer, popUpBackground;
-var popUpEquipBaseSkill, popUpEquipSkill1, popUpEquipSkill2, popUpEquipSkill3, popUpEquipSkill4, popUpEquipPassiveSkill;
+var CUIManager = require('../../modules/client/CUIManager.js');
+var UIManager;
 
 var canvas, ctx, scaleFactor;
 
@@ -1866,10 +2641,12 @@ var drawMode = gameConfig.DRAW_MODE_NORMAL;
 var mousePoint = {x : 0, y : 0};
 var currentSkillData = null;
 
+var characterType = 1;
+
 var baseSkill = 0;
 var baseSkillData = null;
-var equipSkills = [];
-var equipSkillDatas = [];
+var equipSkills = new Array(4);
+var equipSkillDatas = new Array(4);
 var possessSkills = [];
 
 //state changer
@@ -1921,42 +2698,21 @@ function update(){
 function stateFuncLoad(){
   setBaseSetting();
   setCanvasSize();
-  //event handle config
-  startButton.onclick = function(){
-    changeState(gameConfig.GAME_STATE_GAME_START);
-  };
   window.onresize = function(){
     setCanvasSize();
   };
-  hudBtnSkillChange.onclick = function(){
-    popChange(popUpSkillChange);
-    popUpBackground.onclick = function(){
-      popChange(popUpSkillChange);
-    }
-  }
+  UIManager.setSkillChangeBtn();
   changeState(gameConfig.GAME_STATE_START_SCENE);
 };
 //when all resource loaded. just draw start scene
 function stateFuncStandby(){
-  drawstartScene();
+  drawStartScene();
 };
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
 function stateFuncStart(){
   setupSocket();
-  var userType = 1;
-  if(btnType1.checked){
-    userType = gameConfig.CHAR_TYPE_FIRE;
-  }else if(btnType2.checked){
-    userType = gameConfig.CHAR_TYPE_ICE;
-  }else if(btnType3.checked){
-    userType = gameConfig.CHAR_TYPE_WIND;
-  }else if(btnType4.checked){
-    userType = gameConfig.CHAR_TYPE_VISION;
-  }else{
-    userType = gameConfig.CHAR_TYPE_NATURAL;
-  }
-  socket.emit('reqStartGame', userType);
+  socket.emit('reqStartGame', characterType);
 };
 //game play on
 function stateFuncGame(){
@@ -1975,34 +2731,29 @@ function setBaseSetting(){
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
 
-  startScene = document.getElementById('startScene');
-  btnType1 = document.getElementById('type1');
-  btnType2 = document.getElementById('type2');
-  btnType3 = document.getElementById('type3');
-  btnType1.checked = true;
+  UIManager = new CUIManager(skillTable, buffGroupTable);
+  UIManager.onStartBtnClick = function(charType){
+    characterType = charType;
+    changeState(gameConfig.GAME_STATE_GAME_START);
+  };
+  UIManager.onSkillUpgrade = function(skillIndex){
+    socket.emit('upgradeSkill', skillIndex);
+  };
+  UIManager.onExchangePassive = function(beforeBuffGID, afterBuffGID){
+    socket.emit('exchangePassive', beforeBuffGID, afterBuffGID);
+  };
+  UIManager.onEquipPassive = function(buffGroupIndex){
+    console.log('equip Passive : ' + buffGroupIndex);
+    socket.emit('equipPassive', buffGroupIndex);
+  };
+  UIManager.onUnequipPassive = function(buffGroupIndex){
+    console.log('unequip Passive : ' + buffGroupIndex);
+    socket.emit('unequipPassive', buffGroupIndex);
+  };
 
-  gameScene = document.getElementById('gameScene');
-  hudBaseSkill = document.getElementById('hudBaseSkill');
-  hudEquipSkill1 = document.getElementById('hudEquipSkill1');
-  hudEquipSkill2 = document.getElementById('hudEquipSkill2');
-  hudEquipSkill3 = document.getElementById('hudEquipSkill3');
-  hudEquipSkill4 = document.getElementById('hudEquipSkill4');
-  hudPassiveSkill = document.getElementById('hudPassiveSkill');
-
-  hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
-  popUpSkillChange = document.getElementById('popUpSkillChange');
-  popUpSkillContainer = document.getElementById('popUpSkillContainer');
-  popUpBackground = document.getElementById('popUpBackground');
-
-  popUpEquipBaseSkill = document.getElementById('popUpEquipBaseSkill');
-  popUpEquipSkill1 = document.getElementById('popUpEquipSkill1');
-  popUpEquipSkill2 = document.getElementById('popUpEquipSkill2');
-  popUpEquipSkill3 = document.getElementById('popUpEquipSkill3');
-  popUpEquipSkill4 = document.getElementById('popUpEquipSkill4');
-  popUpEquipPassiveSkill = document.getElementById('popUpEquipPassiveSkill');
-
-  standingScene = document.getElementById('standingScene');
-  startButton = document.getElementById('startButton');
+  UIManager.initStartScene();
+  UIManager.initHUD();
+  UIManager.initPopUpSkillChanger();
 
   // inner Modules
   util = require('../../modules/public/util.js');
@@ -2028,9 +2779,9 @@ function onSkillFireHandler(rawSkillData){
   var skillData = Manager.processSkillData(rawSkillData);
   socket.emit('skillFired', skillData);
 };
-function onProjectileSkillFireHandler(rawProjectileData){
-  var projectileData = Manager.processProjectileData(rawProjectileData);
-  socket.emit('projectileFired', projectileData);
+function onProjectileSkillFireHandler(rawProjectileDatas){
+  var projectileDatas = Manager.processProjectileData(rawProjectileDatas);
+  socket.emit('projectilesFired', projectileDatas);
 };
 function onCancelCastingHandler(){
   var userData = Manager.processUserData();
@@ -2044,23 +2795,14 @@ function setCanvasSize(){
   setCanvasScale(gameConfig);
 };
 
-function drawstartScene(){
-  startScene.classList.add('enable');
-  startScene.classList.remove('disable');
-  gameScene.classList.add('disable');
-  gameScene.classList.remove('enable');
-  standingScene.classList.add('disable');
-  standingScene.classList.remove('enable');
+function drawStartScene(){
+  UIManager.drawStartScene();
 };
 
 function drawGame(){
+  UIManager.drawGameScene();
+
   var startTime = Date.now();
-  startScene.classList.add('disable');
-  startScene.classList.remove('enable');
-  gameScene.classList.add('enable');
-  gameScene.classList.remove('disable');
-  standingScene.classList.add('disable');
-  standingScene.classList.remove('enable');
 
   gameConfig.userOffset = calcOffset();
 
@@ -2103,15 +2845,25 @@ function setupSocket(){
     baseSkill = user.baseSkill;
     baseSkillData = util.findData(skillTable, 'index', user.baseSkill);
 
-    equipSkills = user.equipSkills;
-    equipSkillDatas = [];
-    for(var i=0; i<user.equipSkills.length; i++){
-      equipSkillDatas.push(util.findData(skillTable, 'index', user.equipSkills[i]));
+    for(var i=0; i<4; i++){
+      if(user.equipSkills[i]){
+        equipSkills[i] = user.equipSkills[i];
+      }else{
+        equipSkills[i] = undefined;
+      }
+    }
+    for(var i=0; i<4; i++){
+      if(user.equipSkills[i]){
+        equipSkillDatas[i] = util.findData(skillTable, 'index', user.equipSkills[i]);
+      }else{
+        equipSkillDatas[i] = undefined;
+      }
     };
-
     possessSkills = user.possessSkills;
-    setHUDSkills();
-    setPopUpSkillChange();
+
+    UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills);
+    UIManager.setHUDSkills();
+    UIManager.setPopUpSkillChange();
   });
 
   //change state game on
@@ -2147,10 +2899,27 @@ function setupSocket(){
 
     skillData.targetPosition = userData.skillTargetPosition;
     skillData.direction = userData.skillDirection;
-    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
-      skillData.projectileID = userData.skillProjectileID;
+    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE ||
+       skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+       skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION ||
+       skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION ||
+       skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+      skillData.projectileIDs = userData.skillProjectileIDs;
     }
     Manager.useSkill(userData.objectID, skillData);
+  });
+  socket.on('skillUpgrade', function(beforeSkillIndex, afterSkillIndex){
+    if(beforeSkillIndex === baseSkill){
+      baseSkill = afterSkillIndex;
+      baseSkillData = util.findData(skillTable, 'index', afterSkillIndex);
+      UIManager.upgradeBaseSkill(baseSkill, baseSkillData);
+    }
+    for(var i=0; i<possessSkills.length; i++){
+      if(possessSkills[i] === beforeSkillIndex){
+        UIManager.upgradePossessionSkill(beforeSkillIndex, afterSkillIndex);
+        break;
+      }
+    }
   });
   socket.on('deleteProjectile', function(projectileID){
     Manager.deleteProjectile(projectileID);
@@ -2174,10 +2943,14 @@ function setupSocket(){
   socket.on('changeUserStat', function(userData){
     Manager.changeUserStat(userData);
   });
+  socket.on('updateBuff', function(buffData){
+    UIManager.updateBuffIcon(buffData.passiveList, buffData.buffList);
+  })
   socket.on('updateSkillPossessions', function(possessSkillIndexes){
     Manager.updateSkillPossessions(gameConfig.userID, possessSkillIndexes);
     possessSkills = possessSkillIndexes;
-    setPopUpSkillChange();
+    UIManager.updatePossessionSkills(possessSkills);
+    UIManager.setPopUpSkillChange();
   });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
@@ -2399,18 +3172,20 @@ var documentEventHandler = function(e){
   if(keyCode === 69 || keyCode === 32){
     var skillData = baseSkillData;
   }else if(keyCode === 49){
-    skillData = equipSkills[0];
+    skillData = equipSkillDatas[0];
   }else if(keyCode === 50){
-    skillData = equipSkills[1];
+    skillData = equipSkillDatas[1];
   }else if(keyCode === 51){
-    skillData = equipSkills[2];
+    skillData = equipSkillDatas[2];
   }else if(keyCode === 52){
-    skillData = equipSkills[3];
+    skillData = equipSkillDatas[3];
   }
 
   if(skillData){
     if(Manager.user.MP > skillData.consumeMP){
-      if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
+      if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION
+        || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
+        || skillData.type === gameConfig.SKILL_TYPE_RANGE){
         if(drawMode === gameConfig.DRAW_MODE_NORMAL){
           currentSkillData = skillData;
           changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
@@ -2441,8 +3216,9 @@ function useSkill(skillData, clickPosition, user){
   skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
   skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
   if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
-     skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
-    skillData.projectileID = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+     skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
+     || skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+    skillData.projectileIDs = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE, skillData.projectileCount);
   }
   Manager.useSkill(gameConfig.userID, skillData);
 
@@ -2450,6 +3226,9 @@ function useSkill(skillData, clickPosition, user){
   userData.skillIndex = skillData.index;
   userData.skillDirection = skillData.direction;
   userData.skillTargetPosition = skillData.targetPosition;
+  if(skillData.projectileIDs){
+    userData.projectileIDs = skillData.projectileIDs;
+  }
 
   socket.emit('userUseSkill', userData);
 }
@@ -2480,109 +3259,5 @@ function calcOffset(){
     y : Manager.user.center.y - gameConfig.canvasSize.height/(2 * gameConfig.scaleFactor)
   };
 };
-function setHUDSkills(){
-  hudBaseSkill.innerHtml = '';
-  hudEquipSkill1.innerHtml = '';
-  hudEquipSkill2.innerHtml = '';
-  hudEquipSkill3.innerHtml = '';
-  hudEquipSkill4.innerHtml = '';
-  hudPassiveSkill.innerHtml = '';
 
-  popUpEquipBaseSkill.innerHtml = '';
-  popUpEquipSkill1.innerHtml = '';
-  popUpEquipSkill2.innerHtml = '';
-  popUpEquipSkill3.innerHtml = '';
-  popUpEquipSkill4.innerHtml = '';
-  popUpEquipPassiveSkill.innerHtml = '';
-
-  var baseImg = document.createElement('img');
-  baseImg.src = baseSkillData.skillIcon;
-  baseImg.style.width = '50px';
-  baseImg.style.height = '50px';
-  hudBaseSkill.appendChild(baseImg);
-  var baseCloneImg = baseImg.cloneNode(true);
-  popUpEquipBaseSkill.appendChild(baseCloneImg);
-
-  if(equipSkillDatas[0]){
-    var equipSkills1 = document.createElement('img');
-    equipSkills1.src = equipSkillDatas[0].skillIcon;
-    equipSkills1.style.width = '50px';
-    equipSkills1.style.height = '50px';
-    hudEquipSkill1.appendChild(equipSkills1);
-    var equipSkillClone1 = equipSkills1.cloneNode(true);
-    popUpEquipSkill1.appendChild(equipSkillClone1);
-  }
-  if(equipSkillDatas[1]){
-    var equipSkills2 = document.createElement('img');
-    equipSkills2.src = equipSkillDatas[1].skillIcon;
-    hudEquipSkill2.appendChild(equipSkills2);
-    var equipSkillClone2 = equipSkills2.cloneNode(true);
-    popUpEquipSkill2.appendChild(equipSkillClone2);
-  }
-  if(equipSkillDatas[2]){
-    var equipSkills3 = document.createElement('img');
-    equipSkills3.src = equipSkillDatas[2].skillIcon;
-    hudEquipSkill3.appendChild(equipSkills3);
-    var equipSkillClone3 = equipSkills3.cloneNode(true);
-    popUpEquipSkill3.appendChild(equipSkillClone3);
-    }
-  if(equipSkillDatas[3]){
-    var equipSkills4 = document.createElement('img');
-    equipSkills4.src = equipSkillDatas[3].skillIcon;
-    hudEquipSkill4.appendChild(equipSkills4);
-    var equipSkillClone4 = equipSkills4.cloneNode(true);
-    popUpEquipSkill4.appendChild(equipSkillClone4);
-        // gameSceneHudCenter.appendChild(equipSkills4);
-  }
-};
-function popChange(popWindow){
-  if(popWindow.classList.contains('disable')){
-    popWindow.classList.add('enable');
-    popWindow.classList.remove('disable');
-    popUpBackground.classList.add('enable');
-    popUpBackground.classList.remove('disable');
-  }else if(popWindow.classList.contains('enable')){
-    popWindow.classList.add('disable');
-    popWindow.classList.remove('enable');
-    popUpBackground.classList.add('disable')
-    popUpBackground.classList.remove('enable');
-  }
-};
-
-var sellectedItemIndex = null;
-function setPopUpSkillChange(){
-  while (popUpSkillContainer.firstChild) {
-    popUpSkillContainer.removeChild(popUpSkillContainer.firstChild);
-  }
-
-  for(var i=0; i<possessSkills.length; i++){
-    var skillData = util.findData(skillTable, 'index', possessSkills[i]);
-    var skillDiv = document.createElement('div');
-    var skillImg = document.createElement('img');
-
-    skillDiv.setAttribute("skillIndex", possessSkills[i]);
-    skillImg.style.width = '80px';
-    skillImg.style.height = '80px';
-
-    skillDiv.classList.add('popUpSkillContainerItem');
-    skillImg.src = skillData.skillIcon;
-    skillDiv.appendChild(skillImg);
-    popUpSkillContainer.appendChild(skillDiv);
-
-    skillDiv.onclick = function(){
-      if(sellectedItemIndex){
-        //change
-        sellectedItemIndex = null;
-      }else{
-        sellectedItemIndex = this.getAttribute('skillIndex');
-        console.log(sellectedItemIndex);
-      }
-    }
-  }
-};
-
-function skillChangeHandler(){
-
-}
-
-},{"../../modules/client/CManager.js":1,"../../modules/client/CUser.js":4,"../../modules/public/csvjson.js":5,"../../modules/public/data.json":6,"../../modules/public/gameConfig.json":7,"../../modules/public/resources.json":10,"../../modules/public/util.js":11}]},{},[12]);
+},{"../../modules/client/CManager.js":1,"../../modules/client/CUIManager.js":4,"../../modules/client/CUser.js":5,"../../modules/public/csvjson.js":6,"../../modules/public/data.json":7,"../../modules/public/gameConfig.json":8,"../../modules/public/resources.json":11,"../../modules/public/util.js":12}]},{},[13]);

@@ -16,18 +16,23 @@ var SkillCollider = function(user, skillData){
   this.damageToMP = 0;
   setDamage.call(this, user, skillData);
 
-  this.buffsToTarget = skillData.buffsToTarget;
+  this.buffToTarget = skillData.buffToTarget;
 
-  this.latency = user.latency;
+  this.latency = user.latency || serverConfig.USER_DEFAULT_LATENCY;
 };
 
 var ProjectileCollider = function(user, projectileData){
-  this.id = userID;
+  this.id = user.objectID;
   this.objectID = projectileData.objectID;
   this.x = projectileData.position.x;
   this.y = projectileData.position.y;
   this.width = projectileData.radius * 2;
   this.height = projectileData.radius * 2;
+
+  this.speed = {
+    x : projectileData.speed.x,
+    y : projectileData.speed.y
+  };
 
   this.type = projectileData.type;
 
@@ -35,9 +40,11 @@ var ProjectileCollider = function(user, projectileData){
   this.frostDamage = 0;
   this.arcaneDamage = 0;
   this.damageToMP = 0;
-  setDamage.call(this, user, projectileData);
+  setDamage(user, projectileData);
 
-  this.buffsToTarget = projectileData.buffsToTarget;
+  this.explosionDamageRate = projectileData.explosionDamageRate;
+
+  this.buffToTarget = projectileData.buffToTarget;
 
   this.startTime = projectileData.startTime;
   this.lifeTime = projectileData.lifeTime;
@@ -50,16 +57,16 @@ var ProjectileCollider = function(user, projectileData){
   this.timer = Date.now();
   this.tickStartTime = Date.now();
 
-  this.latency = user.latency;
+  this.latency = user.latency || serverConfig.USER_DEFAULT_LATENCY;
 };
 
 ProjectileCollider.prototype = {
   move : function(){
     var deltaTime = (Date.now() - this.timer)/1000;
-    this.x += projectileData.speed.x * deltaTime;
-    this.y += projectileData.speed.y * deltaTime;
+    this.x += this.speed.x * deltaTime;
+    this.y += this.speed.y * deltaTime;
     this.timer = Date.now();
-    if(this.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
+    if(this.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || this.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
       if(this.tickStartTime > this.tickTime){
         this.isCollide = false;
         this.tickStartTime = Date.now();
@@ -73,9 +80,13 @@ ProjectileCollider.prototype = {
     return false;
   },
   explode : function(){
+    if(this.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
+      this.fireDamage = this.fireDamage * this.explosionDamageRate/100;
+      this.frostDamage = this.frostDamage * this.explosionDamageRate/100;
+      this.arcaneDamage = this.arcaneDamage * this.explosionDamageRate/100;
+    }
     this.width = this.explosionRadius * 2;
     this.height = this.explosionRadius * 2;
-    this.isCollide = true;
     console.log('projectile is explode');
   }
 }

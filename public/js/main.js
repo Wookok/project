@@ -7,17 +7,15 @@ var gameConfig = require('../../modules/public/gameConfig.json');
 var csvJson = require('../../modules/public/csvjson.js');
 var dataJson = require('../../modules/public/data.json');
 var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
+var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
 var socket;
 
 // document elements
-var startScene, gameScene, standingScene;
-var btnType1, btnType2, btnType3, btnType4, btnType5;
-var startButton;
-var hudBaseSkill, hudEquipSkill1, hudEquipSkill2, hudEquipSkill3, hudEquipSkill4, hudPassiveSkill;
-var hudBtnSkillChange;
+// var startScene, gameScene, standingScene;
+// var startButton;
 
-var popUpSkillChange, popUpSkillContainer, popUpBackground;
-var popUpEquipBaseSkill, popUpEquipSkill1, popUpEquipSkill2, popUpEquipSkill3, popUpEquipSkill4, popUpEquipPassiveSkill;
+var CUIManager = require('../../modules/client/CUIManager.js');
+var UIManager;
 
 var canvas, ctx, scaleFactor;
 
@@ -50,10 +48,12 @@ var drawMode = gameConfig.DRAW_MODE_NORMAL;
 var mousePoint = {x : 0, y : 0};
 var currentSkillData = null;
 
+var characterType = 1;
+
 var baseSkill = 0;
 var baseSkillData = null;
-var equipSkills = [];
-var equipSkillDatas = [];
+var equipSkills = new Array(4);
+var equipSkillDatas = new Array(4);
 var possessSkills = [];
 
 //state changer
@@ -105,42 +105,21 @@ function update(){
 function stateFuncLoad(){
   setBaseSetting();
   setCanvasSize();
-  //event handle config
-  startButton.onclick = function(){
-    changeState(gameConfig.GAME_STATE_GAME_START);
-  };
   window.onresize = function(){
     setCanvasSize();
   };
-  hudBtnSkillChange.onclick = function(){
-    popChange(popUpSkillChange);
-    popUpBackground.onclick = function(){
-      popChange(popUpSkillChange);
-    }
-  }
+  UIManager.setSkillChangeBtn();
   changeState(gameConfig.GAME_STATE_START_SCENE);
 };
 //when all resource loaded. just draw start scene
 function stateFuncStandby(){
-  drawstartScene();
+  drawStartScene();
 };
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
 function stateFuncStart(){
   setupSocket();
-  var userType = 1;
-  if(btnType1.checked){
-    userType = gameConfig.CHAR_TYPE_FIRE;
-  }else if(btnType2.checked){
-    userType = gameConfig.CHAR_TYPE_ICE;
-  }else if(btnType3.checked){
-    userType = gameConfig.CHAR_TYPE_WIND;
-  }else if(btnType4.checked){
-    userType = gameConfig.CHAR_TYPE_VISION;
-  }else{
-    userType = gameConfig.CHAR_TYPE_NATURAL;
-  }
-  socket.emit('reqStartGame', userType);
+  socket.emit('reqStartGame', characterType);
 };
 //game play on
 function stateFuncGame(){
@@ -159,34 +138,29 @@ function setBaseSetting(){
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
 
-  startScene = document.getElementById('startScene');
-  btnType1 = document.getElementById('type1');
-  btnType2 = document.getElementById('type2');
-  btnType3 = document.getElementById('type3');
-  btnType1.checked = true;
+  UIManager = new CUIManager(skillTable, buffGroupTable);
+  UIManager.onStartBtnClick = function(charType){
+    characterType = charType;
+    changeState(gameConfig.GAME_STATE_GAME_START);
+  };
+  UIManager.onSkillUpgrade = function(skillIndex){
+    socket.emit('upgradeSkill', skillIndex);
+  };
+  UIManager.onExchangePassive = function(beforeBuffGID, afterBuffGID){
+    socket.emit('exchangePassive', beforeBuffGID, afterBuffGID);
+  };
+  UIManager.onEquipPassive = function(buffGroupIndex){
+    console.log('equip Passive : ' + buffGroupIndex);
+    socket.emit('equipPassive', buffGroupIndex);
+  };
+  UIManager.onUnequipPassive = function(buffGroupIndex){
+    console.log('unequip Passive : ' + buffGroupIndex);
+    socket.emit('unequipPassive', buffGroupIndex);
+  };
 
-  gameScene = document.getElementById('gameScene');
-  hudBaseSkill = document.getElementById('hudBaseSkill');
-  hudEquipSkill1 = document.getElementById('hudEquipSkill1');
-  hudEquipSkill2 = document.getElementById('hudEquipSkill2');
-  hudEquipSkill3 = document.getElementById('hudEquipSkill3');
-  hudEquipSkill4 = document.getElementById('hudEquipSkill4');
-  hudPassiveSkill = document.getElementById('hudPassiveSkill');
-
-  hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
-  popUpSkillChange = document.getElementById('popUpSkillChange');
-  popUpSkillContainer = document.getElementById('popUpSkillContainer');
-  popUpBackground = document.getElementById('popUpBackground');
-
-  popUpEquipBaseSkill = document.getElementById('popUpEquipBaseSkill');
-  popUpEquipSkill1 = document.getElementById('popUpEquipSkill1');
-  popUpEquipSkill2 = document.getElementById('popUpEquipSkill2');
-  popUpEquipSkill3 = document.getElementById('popUpEquipSkill3');
-  popUpEquipSkill4 = document.getElementById('popUpEquipSkill4');
-  popUpEquipPassiveSkill = document.getElementById('popUpEquipPassiveSkill');
-
-  standingScene = document.getElementById('standingScene');
-  startButton = document.getElementById('startButton');
+  UIManager.initStartScene();
+  UIManager.initHUD();
+  UIManager.initPopUpSkillChanger();
 
   // inner Modules
   util = require('../../modules/public/util.js');
@@ -212,9 +186,9 @@ function onSkillFireHandler(rawSkillData){
   var skillData = Manager.processSkillData(rawSkillData);
   socket.emit('skillFired', skillData);
 };
-function onProjectileSkillFireHandler(rawProjectileData){
-  var projectileData = Manager.processProjectileData(rawProjectileData);
-  socket.emit('projectileFired', projectileData);
+function onProjectileSkillFireHandler(rawProjectileDatas){
+  var projectileDatas = Manager.processProjectileData(rawProjectileDatas);
+  socket.emit('projectilesFired', projectileDatas);
 };
 function onCancelCastingHandler(){
   var userData = Manager.processUserData();
@@ -228,23 +202,14 @@ function setCanvasSize(){
   setCanvasScale(gameConfig);
 };
 
-function drawstartScene(){
-  startScene.classList.add('enable');
-  startScene.classList.remove('disable');
-  gameScene.classList.add('disable');
-  gameScene.classList.remove('enable');
-  standingScene.classList.add('disable');
-  standingScene.classList.remove('enable');
+function drawStartScene(){
+  UIManager.drawStartScene();
 };
 
 function drawGame(){
+  UIManager.drawGameScene();
+
   var startTime = Date.now();
-  startScene.classList.add('disable');
-  startScene.classList.remove('enable');
-  gameScene.classList.add('enable');
-  gameScene.classList.remove('disable');
-  standingScene.classList.add('disable');
-  standingScene.classList.remove('enable');
 
   gameConfig.userOffset = calcOffset();
 
@@ -287,15 +252,25 @@ function setupSocket(){
     baseSkill = user.baseSkill;
     baseSkillData = util.findData(skillTable, 'index', user.baseSkill);
 
-    equipSkills = user.equipSkills;
-    equipSkillDatas = [];
-    for(var i=0; i<user.equipSkills.length; i++){
-      equipSkillDatas.push(util.findData(skillTable, 'index', user.equipSkills[i]));
+    for(var i=0; i<4; i++){
+      if(user.equipSkills[i]){
+        equipSkills[i] = user.equipSkills[i];
+      }else{
+        equipSkills[i] = undefined;
+      }
+    }
+    for(var i=0; i<4; i++){
+      if(user.equipSkills[i]){
+        equipSkillDatas[i] = util.findData(skillTable, 'index', user.equipSkills[i]);
+      }else{
+        equipSkillDatas[i] = undefined;
+      }
     };
-
     possessSkills = user.possessSkills;
-    setHUDSkills();
-    setPopUpSkillChange();
+
+    UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills);
+    UIManager.setHUDSkills();
+    UIManager.setPopUpSkillChange();
   });
 
   //change state game on
@@ -331,10 +306,27 @@ function setupSocket(){
 
     skillData.targetPosition = userData.skillTargetPosition;
     skillData.direction = userData.skillDirection;
-    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
-      skillData.projectileID = userData.skillProjectileID;
+    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE ||
+       skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+       skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION ||
+       skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION ||
+       skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+      skillData.projectileIDs = userData.skillProjectileIDs;
     }
     Manager.useSkill(userData.objectID, skillData);
+  });
+  socket.on('skillUpgrade', function(beforeSkillIndex, afterSkillIndex){
+    if(beforeSkillIndex === baseSkill){
+      baseSkill = afterSkillIndex;
+      baseSkillData = util.findData(skillTable, 'index', afterSkillIndex);
+      UIManager.upgradeBaseSkill(baseSkill, baseSkillData);
+    }
+    for(var i=0; i<possessSkills.length; i++){
+      if(possessSkills[i] === beforeSkillIndex){
+        UIManager.upgradePossessionSkill(beforeSkillIndex, afterSkillIndex);
+        break;
+      }
+    }
   });
   socket.on('deleteProjectile', function(projectileID){
     Manager.deleteProjectile(projectileID);
@@ -358,10 +350,14 @@ function setupSocket(){
   socket.on('changeUserStat', function(userData){
     Manager.changeUserStat(userData);
   });
+  socket.on('updateBuff', function(buffData){
+    UIManager.updateBuffIcon(buffData.passiveList, buffData.buffList);
+  })
   socket.on('updateSkillPossessions', function(possessSkillIndexes){
     Manager.updateSkillPossessions(gameConfig.userID, possessSkillIndexes);
     possessSkills = possessSkillIndexes;
-    setPopUpSkillChange();
+    UIManager.updatePossessionSkills(possessSkills);
+    UIManager.setPopUpSkillChange();
   });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
@@ -583,18 +579,20 @@ var documentEventHandler = function(e){
   if(keyCode === 69 || keyCode === 32){
     var skillData = baseSkillData;
   }else if(keyCode === 49){
-    skillData = equipSkills[0];
+    skillData = equipSkillDatas[0];
   }else if(keyCode === 50){
-    skillData = equipSkills[1];
+    skillData = equipSkillDatas[1];
   }else if(keyCode === 51){
-    skillData = equipSkills[2];
+    skillData = equipSkillDatas[2];
   }else if(keyCode === 52){
-    skillData = equipSkills[3];
+    skillData = equipSkillDatas[3];
   }
 
   if(skillData){
     if(Manager.user.MP > skillData.consumeMP){
-      if(skillData.type === gameConfig.SKILL_TYPE_INSTANT || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE){
+      if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION
+        || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
+        || skillData.type === gameConfig.SKILL_TYPE_RANGE){
         if(drawMode === gameConfig.DRAW_MODE_NORMAL){
           currentSkillData = skillData;
           changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
@@ -625,8 +623,9 @@ function useSkill(skillData, clickPosition, user){
   skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
   skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
   if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
-     skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
-    skillData.projectileID = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE);
+     skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
+     || skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+    skillData.projectileIDs = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE, skillData.projectileCount);
   }
   Manager.useSkill(gameConfig.userID, skillData);
 
@@ -634,6 +633,9 @@ function useSkill(skillData, clickPosition, user){
   userData.skillIndex = skillData.index;
   userData.skillDirection = skillData.direction;
   userData.skillTargetPosition = skillData.targetPosition;
+  if(skillData.projectileIDs){
+    userData.projectileIDs = skillData.projectileIDs;
+  }
 
   socket.emit('userUseSkill', userData);
 }
@@ -664,132 +666,3 @@ function calcOffset(){
     y : Manager.user.center.y - gameConfig.canvasSize.height/(2 * gameConfig.scaleFactor)
   };
 };
-function setHUDSkills(){
-  hudBaseSkill.innerHtml = '';
-  hudEquipSkill1.innerHtml = '';
-  hudEquipSkill2.innerHtml = '';
-  hudEquipSkill3.innerHtml = '';
-  hudEquipSkill4.innerHtml = '';
-  hudPassiveSkill.innerHtml = '';
-
-  popUpEquipBaseSkill.innerHtml = '';
-  popUpEquipSkill1.innerHtml = '';
-  popUpEquipSkill2.innerHtml = '';
-  popUpEquipSkill3.innerHtml = '';
-  popUpEquipSkill4.innerHtml = '';
-  popUpEquipPassiveSkill.innerHtml = '';
-
-  var baseImg = document.createElement('img');
-  baseImg.src = baseSkillData.skillIcon;
-  baseImg.style.width = '50px';
-  baseImg.style.height = '50px';
-  hudBaseSkill.appendChild(baseImg);
-  var baseCloneImg = baseImg.cloneNode(true);
-  popUpEquipBaseSkill.appendChild(baseCloneImg);
-  popUpEquipBaseSkill.onclick = changeEquipSkillHandler();
-
-  if(equipSkillDatas[0]){
-    var equipSkills1 = document.createElement('img');
-    equipSkills1.src = equipSkillDatas[0].skillIcon;
-    equipSkills1.style.width = '50px';
-    equipSkills1.style.height = '50px';
-    hudEquipSkill1.appendChild(equipSkills1);
-    var equipSkillClone1 = equipSkills1.cloneNode(true);
-    popUpEquipSkill1.appendChild(equipSkillClone1);
-    popUpEquipSkill1.onclick = changeEquipSkillHandler();
-  }
-  if(equipSkillDatas[1]){
-    var equipSkills2 = document.createElement('img');
-    equipSkills2.src = equipSkillDatas[1].skillIcon;
-    hudEquipSkill2.appendChild(equipSkills2);
-    var equipSkillClone2 = equipSkills2.cloneNode(true);
-    popUpEquipSkill2.appendChild(equipSkillClone2);
-    popUpEquipSkill2.onclick = changeEquipSkillHandler();
-  }
-  if(equipSkillDatas[2]){
-    var equipSkills3 = document.createElement('img');
-    equipSkills3.src = equipSkillDatas[2].skillIcon;
-    hudEquipSkill3.appendChild(equipSkills3);
-    var equipSkillClone3 = equipSkills3.cloneNode(true);
-    popUpEquipSkill3.appendChild(equipSkillClone3);
-    popUpEquipSkill3.onclick = changeEquipSkillHandler();
-    }
-  if(equipSkillDatas[3]){
-    var equipSkills4 = document.createElement('img');
-    equipSkills4.src = equipSkillDatas[3].skillIcon;
-    hudEquipSkill4.appendChild(equipSkills4);
-    var equipSkillClone4 = equipSkills4.cloneNode(true);
-    popUpEquipSkill4.appendChild(equipSkillClone4);
-    popUpEquipSkill4.onclick = changeEquipSkillHandler();
-        // gameSceneHudCenter.appendChild(equipSkills4);
-  }
-};
-function popChange(popWindow){
-  if(popWindow.classList.contains('disable')){
-    popWindow.classList.add('enable');
-    popWindow.classList.remove('disable');
-    popUpBackground.classList.add('enable');
-    popUpBackground.classList.remove('disable');
-  }else if(popWindow.classList.contains('enable')){
-    popWindow.classList.add('disable');
-    popWindow.classList.remove('enable');
-    popUpBackground.classList.add('disable')
-    popUpBackground.classList.remove('enable');
-  }
-};
-
-var sellectedPanel = null;
-var sellectedItemIndex = null;
-
-function setPopUpSkillChange(){
-  while (popUpSkillContainer.firstChild) {
-    popUpSkillContainer.removeChild(popUpSkillContainer.firstChild);
-  }
-
-  for(var i=0; i<possessSkills.length; i++){
-    var skillData = util.findData(skillTable, 'index', possessSkills[i]);
-    var skillDiv = document.createElement('div');
-    var skillImg = document.createElement('img');
-
-    skillDiv.setAttribute("skillIndex", possessSkills[i]);
-    skillImg.style.width = '80px';
-    skillImg.style.height = '80px';
-
-    skillDiv.classList.add('popUpSkillContainerItem');
-    skillImg.src = skillData.skillIcon;
-    skillDiv.appendChild(skillImg);
-    popUpSkillContainer.appendChild(skillDiv);
-
-    skillDiv.onclick = changeEquipSkillHandler(gameConfig.SKILL_CHANGE_PANEL_CONTAINER);
-  }
-};
-
-function changeEquipSkillHandler(sellectPanel){
-  if(sellectedItemIndex && sellectedPanel){
-    switch (sellectedPanel) {
-      case gameConfig.SKILL_CHANGE_PANEL_CONTAINER:
-        if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_CONTAINER){
-
-        }else if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP){
-
-        }
-        break;
-      case gameConfig.SKILL_CHANGE_PANEL_EQUIP:
-        if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_CONTAINER){
-
-        }else if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP){
-
-        }
-        break;
-      default:
-    }
-  }else{
-    sellectedItemIndex = this.getAttribute('skillIndex');
-    sellectedPanel = sellectPanel;
-    if(sellectedPanel === gameConfig.SKILL_CHANGE_PANEL_CONTAINER){
-      //disable
-    }else if(sellectedPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP){
-
-    }
-  }
-}

@@ -4,14 +4,14 @@
 3. intellect : range + 마나 + 마나 회복
 
 캐릭터 기본 스텟
-power intellect
+power intellect perception
 
 캐릭터 종류??
 레벨 업 시 스텟 상승
 power(might) intellect spirit(perception)
-might damage, 체력, 체력 회복
-intellect castSpeed, 마나, 마나 회복
-perception range, radius, defence
+might damage %, 체력, 체력 회복
+intellect cast speed, 마나, 마나 회복
+perception resistance %, 쿨 다운 감소 %
 
 3종?
 불 물 비전arcane(wow)
@@ -50,9 +50,20 @@ resistance, defenceRate damageReducetion, 쿨다운 감소
 
 화염(지속 데미지, 확률)
 화염 액티브
+화염 기본 > fire strike
+화염구 > fire ball
+화염 폭발 > explosion
+불덩이 > rolling fire
+
+화염 보호막 > fire shield
+불타는 신체 > incinerate
+
+내면의 불길 > inner fire
+불타는 영혼 > burning soul
+
 화염구 - 발사체 충돌 시 폭발한다.(티어 2)
 화염 폭발 - 범위 즉시 데미지 (티어 3)
-살아있는 폭탄 - 자신과 주위 모두 데미지(티어 3) *신규
+//살아있는 폭탄 - 자신과 주위 모두 데미지(티어 3) *신규
 불덩이 - 발사체 충돌 시에도 폭발하지 않으며 계속해서 데미지를 준다.(티어 4)
 레벨 업 효과 : 데미지 증가, 폭발 범위 증가, 디버프(화염) 확률 증가, 디버프 데미지 증가, 디버프 지속 시간 증가,
               발사체 속도 증가, 발사체 지속 시간 증가
@@ -62,7 +73,7 @@ resistance, defenceRate damageReducetion, 쿨다운 감소
 
 화염 패시브
 불타는 영혼 : 체력 상승, 체력 회복 상승(티어 2)
-버서커 : 체력 낮을수록 데미지 추가, 체력 낮을수록 데미지 경감(티어 3)
+내면의 불길 : 체력 비례 데미지 추가, 이동 속도 상승(티어 3)
 
 화염 캐릭터 패시브
 화염 스킬 데미지 증가
@@ -71,10 +82,21 @@ resistance, defenceRate damageReducetion, 쿨다운 감소
 화염 스킬 사용 시 자신 화염 디버프 걸 확률 생성
 
 냉기(슬로우 100%)
+기본 공격 > frostbite
+얼음 창 > ice spear
+냉기 돌풍 > frost nova, ice vortex, cold snap
+얼음 볼 > frozen orb
+
+얼음 방패 > ice shield
+동결 > ice block
+
+얼어붙은 영혼 > frozen soul
+냉기 가호 > frost armor
+
 얼음 창 - 발사체 충돌 시 데미지(티어 1)
-얼음 불꽃 창 - 발사체 충돌 시 데미지(티어 2) 화염과 냉기 데미지
+//얼음 불꽃 창 - 발사체 충돌 시 데미지(티어 2) 화염과 냉기 데미지
 냉기 돌풍 - 넓은 범위 낮은 데미지(티어 3)
-얼음 회오리 - 범위 지속 데미지(티어 4) *신규 캐스팅?
+//얼음 회오리 - 범위 지속 데미지(티어 4) *신규 캐스팅?
 얼음 볼 - 발사체 충돌 시 폭발 X 마지막에 폭발 (티어 4) *신규
 
 얼음 방패 - 데미지 경감(화염 많이 냉기 조금), 마나 회복 증가(티어 1)
@@ -90,6 +112,23 @@ resistance, defenceRate damageReducetion, 쿨다운 감소
 냉기 디버프에 걸린 대상 데미지 추가
 얼어 붙은 적 데미지 추가
 데미지 감소 추가
+
+비전
+기본 공격 > arcane bolt
+비전 화살 > arcane missiles
+비전 폭탄 > arcane bomb
+비전 폭발 > arcane blast
+
+점멸 > blink
+침묵 > silence
+투명화 > fade, invisibility, blur
+디스펠 > dispel
+
+비전 보호막 > arcane shield
+//헤이스트 > heiste
+
+신비한 지능 > arcane intellect
+비전 강화 > strong spirit, arcane cloak
 
 비전(마나 태움, *신규 마나 태울 경우 캐스팅 취소 추가) 기본 공격 - 발사체
 비전 화살 - 발사체 여러개 (티어 2)*신규

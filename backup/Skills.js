@@ -19,7 +19,7 @@ deleteObj function 삭제
 자신에게 죽을 수 있음.
 버프 추가 확인
 시작 타입 변경
-projectiel 화살표 이미지로 변경
+projectile 화살표 이미지로 변경
 
 css 중앙 정렬
 메인 화면 기획

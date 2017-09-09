@@ -186,93 +186,188 @@ CManager.prototype = {
 		var thisOnProjectileSkillFire = this.onProjectileSkillFire;
 
 		this.users[userID].targetDirection = skillData.direction;
-		switch (skillData.type) {
-			case gameConfig.SKILL_TYPE_BASIC:
-	      // skillInstance = this.users[userID].makeSkillInstance(skillData);
-	      skillInstance.onFire = function(){
-					//inform to server
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
+		if(skillData.type === gameConfig.SKILL_TYPE_INSTANT_RANGE){
+			skillInstance.onFire = function(){
+				//inform to server
+				if(thisUser === mainUser){
+					thisOnSkillFire(skillData)
+				}
+				mainUser.skillCastEffectPlay = false;
+				skillInstance.startEffectTimer();
+				thisEffects.push(skillInstance.effect);
+			};
+			//on attack can cast skill but on attack cant attack;
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+		}else if(skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+			if(thisUser === mainUser){
+				thisOnProjectileSkillFire(projectile);
+			}
+			thisProjectiles.push(projectile);
+			mainUser.skillCastEffectPlay = false;
+			//on attack can cast skill but on attack cant attack;
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+		}else if(skillData.type === gameConfig.SKILL_TYPE_RANGE || skillData.type === gameConfig.SKILL_TYPE_SELF ||
+						 skillData.type === gameConfig.SKILL_TYPE_SELF_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_TELEPORT){
+			skillInstance.onFire = function(){
+				if(thisUser === mainUser){
+					thisOnSkillFire(skillData)
+				}
+				mainUser.skillCastEffectPlay = false;
+				skillInstance.startEffectTimer();
+				thisEffects.push(skillInstance.effect);
+			};
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		}else if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+						 skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
+			skillInstance.onFire = function(){
+				var projectiles = [];
+				var direction = skillData.direction;
+				for(var i=0; i<skillData.projectileCount; i++){
+					if(skillData.projectileCount % 2 === 0){
+						var midPoint = skillData.projectileCount/2 - 0.5;
+						var factor = i - midPoint;
+						direction = skillData.direction + factor * gameConfig.MULTI_PROJECTILE_DEGREE;
+					}else if(skillData.projectileCount % 2 === 1){
+						var midPoint = Math.floor(skillData.projectileCount/2);
+						factor = i - midPoint;
+						direction = skillData.direction + factor * gameConfig.MULTI_PROJECTILE_DEGREE;
 					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-	      };
-	      //on attack can cast skill but on attack cant attack;
-	      this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
-	      break;
-	    case gameConfig.SKILL_TYPE_INSTANT:
-	      skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-	      };
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-	      break;
-	    case gameConfig.SKILL_TYPE_SELF:
-	      skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-	      };
-	      this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-	      break;
-			case gameConfig.SKILL_TYPE_SELF_EXPLOSION:
-				skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-			case gameConfig.SKILL_TYPE_TELEPORT:
-				skillInstance.onFire = function(){
-					if(thisUser === mainUser){
-						thisOnSkillFire(skillData)
-					}
-					mainUser.skillCastEffectPlay = false;
-					skillInstance.startEffectTimer();
-					thisEffects.push(skillInstance.effect);
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-			case gameConfig.SKILL_TYPE_PROJECTILE:
-				skillInstance.onFire = function(){
-					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
-					if(thisUser === mainUser){
-						thisOnProjectileSkillFire(projectile);
-					}
+					var projectile = mainUser.makeProjectile(skillData.projectileIDs[i], skillInstance, direction);
 					thisProjectiles.push(projectile);
-					mainUser.skillCastEffectPlay = false;
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-			case gameConfig.SKILL_TYPE_PROJECTILE_TICK:
-				skillInstance.onFire = function(){
-					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
-					if(thisUser === mainUser){
-						thisOnProjectileSkillFire(projectile);
+					projectiles.push(projectile);
+					if(thisUser === mainUser && projectiles.length === skillData.projectileCount){
+						thisOnProjectileSkillFire(projectiles);
 					}
-					thisProjectiles.push(projectile);
 					mainUser.skillCastEffectPlay = false;
-
-				};
-				this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
-				break;
-	    default:
-				console.log('skill type error!!!');
-	      break;
+				}
+			};
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		}else{
+			console.log('skill type error!!!');
 		}
 		this.users[userID].setSkill(skillInstance);
+		//
+		// switch (skillData.type) {
+		// 	case gameConfig.SKILL_TYPE_INSTANT_RANGE:
+		//
+	  //     // skillInstance = this.users[userID].makeSkillInstance(skillData);
+	  //     skillInstance.onFire = function(){
+		// 			//inform to server
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+	  //     };
+	  //     //on attack can cast skill but on attack cant attack;
+	  //     this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+	  //     break;
+		// 	case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
+		// 		var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 		if(thisUser === mainUser){
+		// 			thisOnProjectileSkillFire(projectile);
+		// 		}
+		// 		thisProjectiles.push(projectile);
+		// 		mainUser.skillCastEffectPlay = false;
+		// 		//on attack can cast skill but on attack cant attack;
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
+		// 		break;
+	  //   case gameConfig.SKILL_TYPE_RANGE:
+	  //     skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+	  //     };
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+	  //     break;
+	  //   case gameConfig.SKILL_TYPE_SELF:
+	  //     skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+	  //     };
+	  //     this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+	  //     break;
+		// 	case gameConfig.SKILL_TYPE_SELF_EXPLOSION:
+		// 		skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_TELEPORT:
+		// 		skillInstance.onFire = function(){
+		// 			if(thisUser === mainUser){
+		// 				thisOnSkillFire(skillData)
+		// 			}
+		// 			mainUser.skillCastEffectPlay = false;
+		// 			skillInstance.startEffectTimer();
+		// 			thisEffects.push(skillInstance.effect);
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE_TICK:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		//
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+		// 	case gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION:
+		// 		skillInstance.onFire = function(){
+		// 			var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+		// 			if(thisUser === mainUser){
+		// 				thisOnProjectileSkillFire(projectile);
+		// 			}
+		// 			thisProjectiles.push(projectile);
+		// 			mainUser.skillCastEffectPlay = false;
+		// 		};
+		// 		this.users[userID].changeState(gameConfig.OBJECT_STATE_CAST);
+		// 		break;
+	  //   default:
+		// 		console.log('skill type error!!!');
+	  //     break;
+		// }
+		// this.users[userID].setSkill(skillInstance);
 	},
 	cancelCasting : function(userID){
 		if(userID in this.users){
@@ -302,19 +397,23 @@ CManager.prototype = {
 		}
 	},
 	changeUserStat : function(userData){
-		this.users[userData.objectID].maxHP = userData.maxHP;
-		this.users[userData.objectID].maxMP = userData.maxMP;
-		this.users[userData.objectID].HP = userData.HP;
-		this.users[userData.objectID].MP = userData.MP;
-		this.users[userData.objectID].castSpeed = userData.castSpeed;
-		this.users[userData.objectID].maxSpeed = userData.maxSpeed;
-		this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
-		this.users[userData.objectID].conditions = userData.conditions;
+		if(userData.objectID in this.users){
+			this.users[userData.objectID].maxHP = userData.maxHP;
+			this.users[userData.objectID].maxMP = userData.maxMP;
+			this.users[userData.objectID].HP = userData.HP;
+			this.users[userData.objectID].MP = userData.MP;
+			this.users[userData.objectID].castSpeed = userData.castSpeed;
+			this.users[userData.objectID].maxSpeed = userData.maxSpeed;
+			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
+			this.users[userData.objectID].conditions = userData.conditions;
+			this.users[userData.objectID].buffList = userData.buffList;
+			this.users[userData.objectID].passiveList = userData.passiveList;
 
-		//apply maxSpeed
-		this.users[userData.objectID].setSpeed();
-		if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
+			//apply maxSpeed
+			this.users[userData.objectID].setSpeed();
+			if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
 
+			}
 		}
 	},
 	updateSkillPossessions : function(userID, possessSkills){
@@ -365,16 +464,28 @@ CManager.prototype = {
 			skillTargetPosition : skillData.targetPosition
 		};
 	},
-	processProjectileData : function(projectileData){
-		return {
-			// userID : this.user.objectID,
-			objectID : projectileData.objectID,
-			skillIndex : projectileData.index,
-			position : projectileData.position,
-			speed : projectileData.speed,
-			startTime : projectileData.startTime,
-			lifeTime : projectileData.lifeTime
-		};
+	processProjectileData : function(projectileDatas){
+		var projectiles = [];
+		for(var i=0; i<projectileDatas.length; i++){
+			projectiles.push({
+				objectID : projectileDatas[i].objectID,
+				skillIndex : projectileDatas[i].index,
+				position : projectileDatas[i].position,
+				speed : projectileDatas[i].speed,
+				startTime : projectileDatas[i].startTime,
+				lifeTime : projectileDatas[i].lifeTime
+			});
+		}
+		return projectiles;
+		// return {
+		// 	// userID : this.user.objectID,
+		// 	objectID : projectileData.objectID,
+		// 	skillIndex : projectileData.index,
+		// 	position : projectileData.position,
+		// 	speed : projectileData.speed,
+		// 	startTime : projectileData.startTime,
+		// 	lifeTime : projectileData.lifeTime
+		// };
 	}
 };
 

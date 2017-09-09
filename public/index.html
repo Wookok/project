@@ -9,35 +9,90 @@
 <body>
   <div id="startScene" class="enable">
     <div class="startSceneHud">
-      <div class="startSceneHudTitle">
-        <h1>Title</h1>
-      </div>
-      <div class="startSceneHudCenterLeft">
-      </div>
       <div class="startSceneHudCenter">
-        <input type="text" placeholder="Enter Your Nickname" id="userNickName"/>
-        <input type="radio" name="charType" id="type1"> type1<br>
-        <input type="radio" name="charType" id="type2"> type2<br>
-        <input type="radio" name="charType" id="type3"> type3<br>
-        <br>
-        <button id="startButton">Start</button>
+        <div class="startSceneHudTitle">
+          <h1>Title</h1>
+        </div>
+        <div class="startSceneHudCenterLeft">
+        </div>
+        <div class="startSceneHudCenterCenter">
+          <input type="text" placeholder="Enter Your Nickname" id="userNickName"/>
+          <div class="startSceneHudCenterCenterCharSelect" id="startSceneHudCenterCenterCharSelect">
+            <div type="1" class="select">
+              <img src="/css/tempChar1.png" />
+              <div class="startSceneHudCenterCenterCharDesc">
+                <p>character 1 desc</p>
+              </div>
+            </div>
+            <div type="2">
+              <img src="/css/tempChar2.png" />
+              <div class="startSceneHudCenterCenterCharDesc">
+                <p>character 2 desc</p>
+              </div>
+            </div>
+            <div type="3">
+              <img src="/css/tempChar3.png" />
+              <div class="startSceneHudCenterCenterCharDesc">
+                <p>character 3 desc</p>
+              </div>
+            </div>
+          </div>
+          <button id="startButton">Start</button>
+        </div>
+        <div class="startSceneHudCenterRight">
+          <div class="startSceneHudCenterRightServerSelect">
+            <h3>Server</h3>
+            <select>
+              <option value="server1">server1</option>
+              <option value="server2">server2</option>
+              <option value="server3">server3</option>
+            </select>
+          </div>
+          <div class="startSceneHudCenterRightHowToPlay">
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+            <p>blablablablablablablablablablablabla</p>
+          </div>
+        </div>
       </div>
-      <div class="startSceneHudCenterRight">
-      </div>
-      <div class="startSceneHudBottomLeft">
-      </div>
-      <div class="startSceneHudBottomRight">
+      <div class="startSceneHudBottom">
+        <div class="startSceneHudBottomLeft">
+        </div>
+        <div class="startSceneHudBottomRight">
+        </div>
       </div>
     </div>
   </div>
   <div id="gameScene" class="disable">
-    <div class="gameSceneHudCenter">
-      <div id="hudBaseSkill" class="hudBaseSkill"></div>
-      <div id="hudEquipSkill1" class="hudEquipSkill1"></div>
-      <div id="hudEquipSkill2" class="hudEquipSkill2"></div>
-      <div id="hudEquipSkill3" class="hudEquipSkill3"></div>
-      <div id="hudEquipSkill4" class="hudEquipSkill4"></div>
-      <div id="hudPassiveSkill" class="hudPassiveSkill"></div>
+    <div class="gameSceneHudTopRight">
+    </div>
+    <div class="gameSceneHudBottomLeft">
+    </div>
+    <div class="gameSceneHudBottomCenter">
+      <div class="gameSceneHPContainer">
+      </div>
+      <div class="gameSceneBuffsContainer" id="gameSceneBuffsContainer">
+      </div>
+      <div class="gameSceneExpContainer">
+      </div>
+      <div class="gameSceneMPContainer">
+      </div>
+      <div class="gameSceneSkillsContainer">
+        <div id="hudBaseSkill" class="hudBaseSkill"></div>
+        <div class="hudEquipSkills">
+          <div id="hudEquipSkill1" class="hudEquipSkill1"></div>
+          <div id="hudEquipSkill2" class="hudEquipSkill2"></div>
+          <div id="hudEquipSkill3" class="hudEquipSkill3"></div>
+          <div id="hudEquipSkill4" class="hudEquipSkill4"></div>
+        </div>
+        <div id="hudPassiveSkill" class="hudPassiveSkill"></div>
+      </div>
     </div>
     <div class="gameSceneHudBottomRight">
       <div id="hudBtnSkillChange" class="hudBtnSkillChange">
@@ -49,6 +104,12 @@
   </div>
   <div id="popUpSkillChange" class="popUpSkillChange disable">
     <div id="popUpSkillContainer" class="popUpSkillContainer">
+    </div>
+    <div class="popUpSkillInfoAndBtn">
+      <div class="popUpSkillInfo"></div>
+        <div id="popUpSkillInfoIcon" class="popUpSkillInfoIcon"></div>
+        <div id="popUpSkillInfoDesc" class="popUpSkillInfoDesc"></div>
+      <button id="popUpSkillUpgradeBtn" class="popUpSkillUpgradeBtn">Upgrade</button>
     </div>
     <div id="popUpEquipSkillContainer" class="popUpEquipSkillContainer">
       <div id="popUpEquipBaseSkill" class="popUpEquipBaseSkill"></div>

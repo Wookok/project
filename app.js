@@ -44,6 +44,14 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var io = socketio.listen(server);
 
+GM.onNeedInformBuffUpdate = function(user){
+  var buffData = GM.processBuffDataSetting(user);
+  console.log(buffData);
+  io.to(user.socketID).emit('updateBuff', buffData);
+}
+GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
+  io.to(socketID).emit('skillUpgrade', beforeSkillIndex, afterSkillIndex);
+};
 GM.onNeedInformUserChangeStat = function(user){
   var userData = GM.processChangedUserStat(user)
   io.sockets.emit('changeUserStat', userData);
@@ -79,24 +87,30 @@ io.on('connection', function(socket){
   console.log('user connect : ' + socket.id);
   var user;
   socket.on('reqStartGame', function(userType){
+    console.log(userType);
     var userStat = util.findDataWithTwoColumns(userStatTable, 'type', userType, 'level', 1);
     var userBase = util.findData(userBaseTable, 'type', userType);
     user = new User(socket.id, userStat, userBase, 0);
-
+    console.log(user.type);
     var baseSkill = userBase.baseSkillGroupIndex + 1;
     var equipSkills = [];
     for(var i=0; i<3; i++){
       if(userBase['baseEquipSkill' + (i + 1)]){
-        equipSkills.push(userBase['basePossessionSkill' + (i + 1)]);
+        equipSkills.push(userBase['baseEquipSkill' + (i + 1)]);
       }
     }
     var possessSkills = [];
     for(var i=0; i<4; i++){
-      if(userBase['baseEquipSkill' + (i + 1)]){
+      if(userBase['basePossessionSkill' + (i + 1)]){
         possessSkills.push(userBase['basePossessionSkill' + (i + 1)]);
       }
     }
-
+    possessSkills.push(31);
+    possessSkills.push(41);
+    possessSkills.push(51);
+    possessSkills.push(61);
+    possessSkills.push(71);
+    possessSkills.push(81);
     // user init and join game
     GM.initializeUser(user, baseSkill, equipSkills, possessSkills);
     GM.joinUser(user);
@@ -142,8 +156,8 @@ io.on('connection', function(socket){
     userData.skillIndex = userAndSkillData.skillIndex;
     userData.skillDirection = userAndSkillData.skillDirection;
     userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
-    if(userAndSkillData.projectileID){
-      userData.skillProjectileID = userAndSkillData.projectileID;
+    if(userAndSkillData.projectileIDs){
+      userData.skillProjectileIDs = userAndSkillData.projectileIDs;
     }
     socket.broadcast.emit('userDataUpdateAndUseSkill', userData);
   });
@@ -152,29 +166,53 @@ io.on('connection', function(socket){
 
     skillData.targetPosition = data.skillTargetPosition;
 
-    skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3, user.objectID);
-    skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3, user.objectID);
+    // skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3, user.objectID);
+    // skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3, user.objectID);
 
     GM.applySkill(user.objectID, skillData);
   });
-  socket.on('projectileFired', function(data){
-    var projectileData = util.findData(skillTable, 'index', data.skillIndex);
+  socket.on('projectilesFired', function(datas){
+    var projectiles = [];
+    for(var i=0; i<datas.length; i++){
+      var projectileData = util.findData(skillTable, 'index', datas[i].skillIndex);
 
-    projectileData.objectID = data.objectID;
-    projectileData.position = data.position;
-    projectileData.speed = data.speed;
-    projectileData.startTime = data.startTime;
-    projectileData.lifeTime = data.lifeTime;
+      projectileData.objectID = datas[i].objectID;
+      projectileData.position = datas[i].position;
+      projectileData.speed = datas[i].speed;
+      projectileData.startTime = datas[i].startTime;
+      projectileData.lifeTime = datas[i].lifeTime;
 
-    projectileData.buffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'buffToSelf', 3, user.objectID);
-    projectileData.buffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'buffToTarget', 3, user.objectID);
+      projectiles.push(projectileData);
+    }
+    // var projectileData = util.findData(skillTable, 'index', data.skillIndex);
+    //
+    // projectileData.objectID = data.objectID;
+    // projectileData.position = data.position;
+    // projectileData.speed = data.speed;
+    // projectileData.startTime = data.startTime;
+    // projectileData.lifeTime = data.lifeTime;
 
-    GM.applyProjectile(user.objectID, projectileData);
+    // projectileData.buffsToSelf = util.findAndSetBuffs(projectileData, buffTable, 'buffToSelf', 3, user.objectID);
+    // projectileData.buffsToTarget = util.findAndSetBuffs(projectileData, buffTable, 'buffToTarget', 3, user.objectID);
+
+    GM.applyProjectile(user.objectID, projectiles);
   });
   socket.on('castCanceled', function(userData){
     GM.updateUserData(userData);
 
     socket.broadcast.emit('castCanceled', userData.objectID);
+  });
+  socket.on('upgradeSkill', function(skillIndex){
+    GM.upgradeSkill(user, skillIndex);
+  });
+  socket.on('exchangePassive', function(beforeBuffGID, afterBuffGID){
+    GM.exchangePassive(user, beforeBuffGID, afterBuffGID);
+  });
+  socket.on('equipPassive', function(buffIndex){
+    GM.equipPassive(user, buffIndex);
+  });
+  socket.on('unequipPassive', function(buffIndex){
+    GM.unequipPassive(user, buffIndex);
   });
   socket.on('disconnect', function(){
     if(user){

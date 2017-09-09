@@ -71,7 +71,8 @@ function GameManager(){
   this.staticInterval = false;
   this.affectInterval = false;
 
-
+  this.onNeedInformBuffUpdate = new Function();
+  this.onNeedInformSkillUpgrade = new Function();
   this.onNeedInformUserChangeStat = new Function();
 
   this.onNeedInformCreateObjs = new Function();
@@ -84,7 +85,6 @@ function GameManager(){
 };
 
 GameManager.prototype.start = function(){
-
   entityTree = new QuadTree({
     width : gameConfig.CANVAS_MAX_SIZE.width,
     height : gameConfig.CANVAS_MAX_SIZE.height,
@@ -319,34 +319,6 @@ GameManager.prototype.getObj = function(objID, affectNum, userID){
 
   }
 };
-// GameManager.prototype.getObj = function(work){
-//   if(work.type === 'getExpObj'){
-//     for(var i=0; i<Object.keys(this.objExps).length; i++){
-//       if(this.objExps[i].objectID === work.colObj){
-//         this.objExps.splice(i, 1);
-//         if(work.user in this.users){
-//           this.users[work.user].getExp(work.addExp);
-//         }
-//         this.onNeedInformDeleteObj(work.colObj);
-//         return;
-//       }
-//     }
-//   }else if(work.type === 'getSkillObj'){
-//     for(var i=0; i<Object.keys(this.objSkills).length; i++){
-//       if(this.objSkills[i].objectID === work.colObj){
-//         this.objSkills.splice(i, 1);
-//         if(work.user in this.users){
-//           var possessSkills = this.users[work.user].getSkill(work.skillIndex);
-//           if(possessSkills){
-//             this.onNeedInformSkillData(this.users[work.user].socketID, possessSkills);
-//           }
-//         }
-//         this.onNeedInformDeleteObj(work.colObj);
-//         return;
-//       }
-//     }
-//   }
-// };
 GameManager.prototype.deleteObj = function(objID){
   if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
     for(var i=0; i<this.objExps.length; i++){
@@ -371,6 +343,8 @@ GameManager.prototype.deleteObj = function(objID){
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
+  this.users[user.objectID].onBuffExchange = SUtil.onUserBuffExchange.bind(this);
+  this.users[user.objectID].onSkillUpgrade = SUtil.onUserSkillUpgrade.bind(this, user.socketID);
   this.users[user.objectID].onMove = onMoveCalcCompelPos.bind(this);
   this.users[user.objectID].onChangeStat = SUtil.onUserChangeStat.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
@@ -407,7 +381,7 @@ GameManager.prototype.initializeUser = function(user, baseSkill, equipSkills, po
 GameManager.prototype.applySkill = function(userID, skillData){
   if(userID in this.users){
     this.users[userID].consumeMP(skillData.consumeMP);
-    this.users[userID].addBuffs(skillData.buffsToSelf);
+    this.users[userID].addBuff(skillData.buffToSelf, userID);
 
     //doDamageToSelf
     if(skillData.doDamageToSelf){
@@ -416,7 +390,7 @@ GameManager.prototype.applySkill = function(userID, skillData){
       var arcaneDamage = skillData.arcaneDamage * skillData.damageToSelfRate/100;
       var damageToMP = 0;
       this.users[userID].takeDamage(userID, fireDamage, frostDamage, arcaneDamage, damageToMP);
-      this.users[userID].addBuffs(skillData.buffsToTarget);
+      this.users[userID].addBuff(skillData.buffToTarget, userID);
     }
     //healHP, MP
     var healHPAmount = (!isNaN(skillData.healHP) ? skillData.healHP : 0) + this.users[userID].maxHP * (!isNaN(skillData.healHPRate) ? skillData.healHPRate : 0) / 100;
@@ -426,83 +400,35 @@ GameManager.prototype.applySkill = function(userID, skillData){
     }
     var skillCollider = new SkillCollider(this.users[userID], skillData);
     this.skills.push(skillCollider);
-    // this.skills.push({
-    //   id : userID,
-    //   x : skillData.targetPosition.x,
-    //   y : skillData.targetPosition.y,
-    //   width : skillData.explosionRadius * 2,
-    //   height : skillData.explosionRadius * 2,
-    //   damage : skillData.damage,
-    //   buffsToTarget : skillData.buffsToTarget,
-    //
-    //   latency : this.users[userID].latency || 100
-    // });
   }else{
     console.log('cant find user data');
   }
 };
-GameManager.prototype.applyProjectile = function(userID, projectileData){
+GameManager.prototype.applyProjectile = function(userID, projectileDatas){
   if(userID in this.users){
-    this.users[userID].consumeMP(skillData.consumeMP);
-    this.users[userID].addBuffs(projectileData.buffsToSelf);
+    this.users[userID].consumeMP(projectileDatas[0].consumeMP);
+    this.users[userID].addBuff(projectileDatas[0].buffToSelf, userID);
     //doDamageToSelf
-    if(projectileData.doDamageToSelf){
-      var fireDamage = projectileData.fireDamage * projectileData.damageToSelfRate/100;
-      var frostDamage = projectileData.frostDamage * projectileData.damageToSelfRate/100;
-      var arcaneDamage = projectileData.arcaneDamage * projectileData.damageToSelfRate/100;
+    if(projectileDatas[0].doDamageToSelf){
+      var fireDamage = projectileDatas[0].fireDamage * projectileDatas[0].damageToSelfRate/100;
+      var frostDamage = projectileDatas[0].frostDamage * projectileDatas[0].damageToSelfRate/100;
+      var arcaneDamage = projectileDatas[0].arcaneDamage * projectileDatas[0].damageToSelfRate/100;
       var damageToMP = 0;
       this.users[userID].takeDamage(userID, fireDamage, frostDamage, arcaneDamage, damageToMP);
-      this.users[userID].addBuffs(projectileData.buffsToTarget);
+      this.users[userID].addBuff(projectileDatas[0].buffToTarget, userID);
     }
     //healHP, MP
-    var healHPAmount = (!isNaN(projectileData.healHP) ? projectileData.healHP : 0) + this.users[userID].maxHP * (!isNaN(projectileData.healHPRate) ? projectileData.healHPRate : 0) / 100;
-    var healMPAmount = (!isNaN(projectileData.healMP) ? projectileData.healMP : 0) + this.users[userID].maxMP * (!isNaN(projectileData.healMPRate) ? projectileData.healMPRate : 0) / 100;
+    var healHPAmount = (!isNaN(projectileDatas[0].healHP) ? projectileDatas[0].healHP : 0) + this.users[userID].maxHP * (!isNaN(projectileDatas[0].healHPRate) ? projectileDatas[0].healHPRate : 0) / 100;
+    var healMPAmount = (!isNaN(projectileDatas[0].healMP) ? projectileDatas[0].healMP : 0) + this.users[userID].maxMP * (!isNaN(projectileDatas[0].healMPRate) ? projectileDatas[0].healMPRate : 0) / 100;
     if(healHPAmount > 0 || healMPAmount > 0){
       this.users[userID].healHPMP(healHPAmount, healMPAmount);
     }
 
-    var projectileCollider = new ProjectileCollider(this.users[userID], projectileData);
+    for(var i=0; i<projectileDatas.length; i++){
+      var projectileCollider = new ProjectileCollider(this.users[userID], projectileDatas[i]);
 
-    this.projectiles.push(projectileCollider);
-    // this.projectiles.push({
-    //   id : userID,
-    //   objectID : projectileData.objectID,
-    //   x : projectileData.position.x,
-    //   y : projectileData.position.y,
-    //   width : projectileData.radius * 2,
-    //   height : projectileData.radius * 2,
-    //   damage : projectileData.damage,
-    //   buffsToTarget : projectileData.buffsToTarget,
-    //
-    //   startTime : projectileData.startTime,
-    //   lifeTime : projectileData.lifeTime,
-    //   explosionRadius : projectileData.explosionRadius,
-    //   isExplosive : true,
-    //   isCollide : false,
-    //
-    //   timer : Date.now(),
-    //
-    //   latency : this.users[userID].latency || 100,
-    //
-    //   move : function(){
-    //     var deltaTime = (Date.now() - this.timer)/1000;
-    //     this.x += projectileData.speed.x * deltaTime;
-    //     this.y += projectileData.speed.y * deltaTime;
-    //     this.timer = Date.now();
-    //   },
-    //   isExpired : function(){
-    //     if(Date.now() - this.startTime > this.lifeTime){
-    //       return true;
-    //     }
-    //     return false;
-    //   },
-    //   explode : function(){
-    //     this.width = this.explosionRadius * 2;
-    //     this.height = this.explosionRadius * 2;
-    //     this.isCollide = true;
-    //     console.log('projectile is explode');
-    //   }
-    // });
+      this.projectiles.push(projectileCollider);
+    }
   }else{
     console.log('cant find user data');
   }
@@ -628,6 +554,20 @@ GameManager.prototype.processChangedUserStat = function(user){
     conditions : this.conditions
   };
 };
+GameManager.prototype.processBuffDataSetting = function(user){
+  var buffIndexList = [];
+  var passiveIndexList = [];
+  for(var i=0; i<user.buffList.length; i++){
+    buffIndexList.push({index : user.buffList[i].index, startTime : user.buffList[i].startTime});
+  }
+  for(var i=0; i<user.passiveList.length; i++){
+    passiveIndexList.push(user.passiveList[i].index);
+  }
+  return{
+    buffList : buffIndexList,
+    passiveList : passiveIndexList,
+  }
+}
 GameManager.prototype.addSkillData = function(userData){
   if(userData.objectID in this.users){
     userData.baseSkill = this.users[userData.objectID].baseSkill;
@@ -723,6 +663,26 @@ GameManager.prototype.isCreateChest = function(){
     return false;
   }
 };
+GameManager.prototype.upgradeSkill = function(user, skillIndex){
+  if(user.objectID in this.users){
+    user.upgradeSkill(skillIndex);
+  }
+};
+GameManager.prototype.exchangePassive = function(user, beforeBuffGID, afterBuffGID){
+  if(user.objectID in this.users){
+    user.exchangePassive(beforeBuffGID, afterBuffGID);
+  }
+};
+GameManager.prototype.equipPassive = function(user, buffIndex){
+  if(user.objectID in this.users){
+    user.equipPassive(buffIndex);
+  }
+};
+GameManager.prototype.unequipPassive = function(user, buffIndex){
+  if(user.objectID in this.users){
+    user.unequipPassive(buffIndex);
+  }
+};
 function chestIntervalHandler(){
   if(this.isCreateChest()){
     this.createChest('CH1');
@@ -746,7 +706,7 @@ function updateIntervalHandler(){
     }
     if(collisionObjs.length > 0){
       for(var j = 0; j<collisionObjs.length; j++){
-        if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE){
+        if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || tempCollider.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
           if(!tempCollider.isCollide){
             tempCollider.isCollide = true;
             if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
@@ -761,7 +721,7 @@ function updateIntervalHandler(){
           if(!tempCollider.isCollide){
             tempCollider.isCollide = true;
           }
-        }else if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK && !tempCollider.isCollide){
+        }else if((tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION) && !tempCollider.isCollide){
           if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
             affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
           }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
@@ -896,31 +856,39 @@ function updateIntervalHandler(){
   var i = this.projectiles.length;
   if(i > 0){
     while(i--){
-      if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE){
+      if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE || this.projectiles[i].type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
         if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
           this.onNeedInformProjectileDelete(this.projectiles[i]);
           this.projectiles.splice(i, 1);
+        }else{
+          this.projectiles[i].move();
         }
       }else if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
         if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
           this.projectiles[i].explode();
+          this.skills.push(this.projectiles[i]);
           this.onNeedInformProjectileExplode(this.projectiles[i]);
           this.projectiles.splice(i, 1);
-          this.skills.push(this.projectiles[i]);
+        }else{
+          this.projectiles[i].move();
         }
       }else if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_TICK){
         if(this.projectiles[i].isExpired()){
           this.onNeedInformProjectileDelete(this.projectiles[i]);
           this.projectiles.splice(i, 1);
+        }else{
+          this.projectiles[i].move();
+        }
+      }else if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
+        if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
+          this.projectiles[i].explode();
+          this.skills.push(this.projectiles[i]);
+          this.onNeedInformProjectileExplode(this.projectiles[i]);
+          this.projectiles.splice(i, 1);
+        }else{
+          this.projectiles[i].move();
         }
       }
-      // if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
-      //   if(this.projectiles[i].isExplosive){
-      //     this.projectiles[i].explode();
-      //     this.onNeedInformProjectileExplode(this.projectiles[i]);
-      //     this.skills.push(this.projectiles[i]);
-      //   }
-      //   this.projectiles.splice(i, 1);
       // }else{
       //   this.projectiles[i].move();
       //   colliderEles.push(this.projectiles[i]);
@@ -954,9 +922,10 @@ function staticIntervalHandler(){
     var projectileCollider = this.projectiles[i];
     var collisionObjs = util.checkCircleCollision(staticTree, projectileCollider.x, projectileCollider.y, projectileCollider.width/2, projectileCollider.id);
     if(collisionObjs.length > 0 ){
-      if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
-        if(!tempCollider.isCollide){
-          tempCollider.isCollide = true;
+      if(projectileCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || projectileCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION
+          || projectileCollider.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+        if(!projectileCollider.isCollide){
+          projectileCollider.isCollide = true;
         }
       }
     }
@@ -973,7 +942,7 @@ function affectIntervalHandler(){
         if(affectedEles[i].affectedID in this.users){
           this.users[affectedEles[i].affectedID].takeDamage(affectedEles[i].actorID, affectedEles[i].fireDamage, affectedEles[i].frostDamage,
                                                   affectedEles[i].arcaneDamage, affectedEles[i].damageToMP);
-          this.users[affectedEles[i].affectedID].addBuffs(affectedEles[i].buffsToTarget);
+          this.users[affectedEles[i].affectedID].addBuff(affectedEles[i].buffToTarget, affectedEles[i].actorID);
         }
       }else if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_CHEST){
         for(var i=0; i<this.chests.length; i++){
@@ -1008,7 +977,7 @@ function affectIntervalHandler(){
       //       //case hit user
       //       this.users[affectedEles[i].hitObj].takeDamage(affectedEles[i].attackUser, affectedEles[i].damage);
       //       //buff and debuff apply
-      //       this.users[affectedEles[i].hitObj].addBuffs(affectedEles[i].buffsToTarget);
+      //       this.users[affectedEles[i].hitObj].addBuff(affectedEles[i].buffsToTarget);
       //     }
       //   }else if(affectedEles[i].hitObj.substr(0, 3) === gameConfig.PREFIX_CHEST){
       //     //case hit chest

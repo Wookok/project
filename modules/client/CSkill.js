@@ -61,8 +61,8 @@ CSkill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(currentPosition, projectileID){
-    var projectile = new ProjectileSkill(this, currentPosition, projectileID)
+  makeProjectile : function(currentPosition, projectileID, direction){
+    var projectile = new ProjectileSkill(this, currentPosition, projectileID, direction)
     return projectile;
   }
 };
@@ -77,7 +77,7 @@ function totalTimeoutHandler(){
   this.onTimeOver();
 };
 
-var ProjectileSkill = function(skillInstance, currentPosition, ID){
+var ProjectileSkill = function(skillInstance, currentPosition, ID, direction){
   this.startTime = Date.now();
 
   this.objectID = ID;
@@ -87,7 +87,7 @@ var ProjectileSkill = function(skillInstance, currentPosition, ID){
     x : currentPosition.x,
     y : currentPosition.y
   };
-  this.direction = skillInstance.direction;
+  this.direction = direction;
   this.speed = {
     x : skillInstance.maxSpeed * Math.cos(this.direction * Math.PI/180),
     y : skillInstance.maxSpeed * Math.sin(this.direction * Math.PI/180)

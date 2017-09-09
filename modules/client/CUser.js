@@ -162,8 +162,8 @@ User.prototype = {
     console.log('updateSkillPossessions');
     console.log(this.possessSkills);
   },
-  makeProjectile : function(projectileID, skillInstance){
-    var projectile = skillInstance.makeProjectile(this.position, projectileID);
+  makeProjectile : function(projectileID, skillInstance, direction){
+    var projectile = skillInstance.makeProjectile(this.position, projectileID, direction);
     return projectile;
   }
 };

@@ -6,6 +6,8 @@ var csvJson = require('../public/csvjson');
 var dataJson = require('../public/data.json');
 var userStatTable = csvJson.toObject(dataJson.userStatData, {delimiter : ',', quote : '"'});
 var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
+var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
+var buffTable = csvJson.toObject(dataJson.buffData, {delimiter : ',', quote : '"'});
 
 // var userLevelDataTable = csvJson.toObject(dataJson.userLevelData, {delimiter : ',', quote : '"'});
 var gameConfig = require('../public/gameConfig.json');
@@ -61,8 +63,10 @@ function User(socketID, userStat, userBase, exp, baseSkillLevel){
   this.conditions[gameConfig.USER_CONDITION_FREEZE] = false;
   this.conditions[gameConfig.USER_CONDITION_SILENCE] = false;
   this.conditions[gameConfig.USER_CONDITION_IGNITE] = false;
+  this.conditions[gameConfig.USER_CONDITION_BLUR] = false;
 
   this.buffList = [];
+  this.passiveList = [];
 
   //current stat
   this.maxHP = 0;  this.maxMP = 0;  this.HP = 0;  this.MP = 0;  this.HPRegen = 0;
@@ -84,7 +88,8 @@ function User(socketID, userStat, userBase, exp, baseSkillLevel){
   this.buffUpdateInterval = false;
   this.regenInterval = false;
 
-
+  this.onSkillUpgrade = new Function();
+  this.onBuffExchange = new Function();
   this.onChangeStat = new Function();
   this.onDeath = new Function();
 
@@ -150,160 +155,206 @@ User.prototype.updateStatAndCondition = function(){
 
   var disperBuffCount = 0;
   var disperDebuffCount = 0;
+  var disperAllCount = 0;
 
   var beforeConditionImmortal = this.conditions[gameConfig.USER_CONDITION_IMMORTAL];
   var beforeConditionChill = this.conditions[gameConfig.USER_CONDITION_CHILL];
   var beforeConditionFreeze = this.conditions[gameConfig.USER_CONDITION_FREEZE];
   var beforeConditionSilence = this.conditions[gameConfig.USER_CONDITION_SILENCE];
   var beforeConditionIgnite = this.conditions[gameConfig.USER_CONDITION_IGNITE];
+  var beforeConditionBlur = this.conditions[gameConfig.USER_CONDITION_BLUR];
 
   this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = false;
   this.conditions[gameConfig.USER_CONDITION_CHILL] = false;
   this.conditions[gameConfig.USER_CONDITION_FREEZE] = false;
   this.conditions[gameConfig.USER_CONDITION_SILENCE] = false;
   this.conditions[gameConfig.USER_CONDITION_IGNITE] = false;
+  this.conditions[gameConfig.USER_CONDITION_BLUR] = false;
 
-  var buffIndex = this.buffList.length;
+  var buffList = [];
+  //set passive buffs
+  for(var i=0; i<this.passiveList.length; i++){
+    var buffs = util.findAndSetBuffs(this.passiveList[i], buffTable, this.objectID);
+    for(var j=0; j<buffs.length; j++){
+      buffList.push(buffs[j]);
+    }
+  }
+  var beforeBuffListLength = this.buffList.length;
+  for(var i=this.buffList.length-1; i>=0; i--){
+    if(Date.now() - this.buffList[i].startTime > this.buffList[i].buffLifeTime){
+      this.buffList.splice(i, 1);
+    }else{
+      var buffs = util.findAndSetBuffs(this.buffList[i], buffTable, this.buffList[i].actorID);
+      for(var j=0; j<buffs.length; j++){
+        if(Date.now() - this.buffList[i].tickStartTime > buffs[j].buffTickTime){
+          buffList.push(buffs[j]);
+          this.buffList[i].tickStartTime = Date.now();
+        }
+      }
+    }
+  }
+  var buffIndex = buffList.length;
   if(buffIndex > 0){
     while(buffIndex--){
-      if(Date.now() - this.buffList[buffIndex].startTime > this.buffList[buffIndex].buffLifeTime){
-        this.buffList.splice(buffIndex, 1);
-      }else if(Date.now() - this.buffList[buffIndex].tickStartTime > this.buffList[buffIndex].buffTickTime){
-        switch (this.buffList[buffIndex].buffType) {
-          case serverConfig.BUFF_TYPE_ADD_STAT:
-            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_MIGHT){
-              additionalMight += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_INTELLECT){
-              additionalIntellect += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_PERCEPTION){
-              additionalPerception += this.buffList[buffIndex].buffAmount;
-            }else{
-              console.log('check buff index : ' + this.buffList[buffIndex]);
-            }
-            break;
-          case serverConfig.BUFF_TYPE_ADD_SECONDARY_STAT:
-            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_HP){
-              additionalMaxHP += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_MP){
-              additionalMaxMP += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_HP_RATE){
-              additionalMaxHPRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_MP_RATE){
-              additionalMaxMPRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_HP_REGEN){
-              additionalHPRegen += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_HP_REGEN_RATE){
-              additionalHPRegenRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MP_REGEN){
-              additionalMPRegen += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MP_REGEN_RATE){
-              additionalMPRegenRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MOVE_SPEED_RATE){
-              //add MoveSpeed and RotateSpeed
-              additionalMoveSpeedRate += this.buffList[buffIndex].buffAmount;
-              additionalRotateSpeedRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_CAST_SPEED_RATE){
-              additionalCastSpeedRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE){
-              additionalDamage += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE){
-              additionalFireDamage += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE){
-              additionalFrostDamage += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE){
-              additionalArcaneDamage += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE_RATE){
-              additionalDamageRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE_RATE){
-              additionalFireDamageRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE_RATE){
-              additionalFrostDamageRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE_RATE){
-              additionalArcaneDamageRate += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_ALL){
-              additionalResistAll += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_FIRE){
-              additionalResistFire += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_FROST){
-              additionalResistFrost += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_ARCANE){
-              additionalResistArcane += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_ALL){
-              additionalReductionAll += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_FIRE){
-              additionalReductionFire += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_FROST){
-              additionalReductionFrost += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_ARCANE){
-              additionalReductionArcane += this.buffList[buffIndex].buffAmount;
-            }else{
-              console.log('check buff index : ' + this.buffList[buffIndex]);
-            }
-            break;
-          case serverConfig.BUFF_TYPE_HEAL:
-            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_HP){
-              additionalHP += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_HP_RATE){
-              additionalHP += this.maxHP * this.buffList[buffIndex].buffAmount/100;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_MP){
-              additionalMP += this.buffList[buffIndex].buffAmount/100;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_MP_RATE){
-              additionalMP += this.maxMP * this.buffList[buffIndex].buffAmount/100;
-            }else{
-              console.log('check buff index : ' + this.buffList[buffIndex]);
-            }
-            break;
-          case serverConfig.BUFF_TYPE_DISPEL:
-            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_BUFF){
-              disperBuffCount += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_DEBUFF){
-              disperDebuffCount += this.buffList[buffIndex].buffAmount;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_ALL){
-              disperBuffCount += this.buffList[buffIndex].buffAmount;
-              disperDebuffCount += this.buffList[buffIndex].buffAmount;
-            }else{
-              console.log('check buff index : ' + this.buffList[buffIndex]);
-            }
-            break;
-          case serverConfig.BUFF_TYPE_SET_CONDITION:
-            if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IMMORTAL){
-              this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = this.buffList[buffIndex].actorID;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_CHILL){
-              this.conditions[gameConfig.USER_CONDITION_CHILL] = this.buffList[buffIndex].actorID;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_FREEZE){
-              this.conditions[gameConfig.USER_CONDITION_FREEZE] = this.buffList[buffIndex].actorID;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_SILENCE){
-              this.conditions[gameConfig.USER_CONDITION_SILENCE] = this.buffList[buffIndex].actorID;
-            }else if(this.buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IGNITE){
-              this.conditions[gameConfig.USER_CONDITION_IGNITE] = this.buffList[buffIndex].actorID;
-            }else{
-              console.log('check buff index : ' + this.buffList[buffIndex]);
-            }
-            break;
-          default:
-            console.log('check buff index : ' + this.buffList[buffIndex]);
-            break;
-        }
-        this.buffList[buffIndex].tickStartTime = Date.now();
+      // skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3, user.objectID);
+      switch (buffList[buffIndex].buffType) {
+        case serverConfig.BUFF_TYPE_ADD_STAT:
+          if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_MIGHT){
+            additionalMight += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_INTELLECT){
+            additionalIntellect += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_STAT_PERCEPTION){
+            additionalPerception += buffList[buffIndex].buffAmount;
+          }else{
+            console.log('check buff index : ' + buffList[buffIndex]);
+          }
+          break;
+        case serverConfig.BUFF_TYPE_ADD_SECONDARY_STAT:
+          if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_HP){
+            additionalMaxHP += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_MP){
+            additionalMaxMP += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_HP_RATE){
+            additionalMaxHPRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MAX_MP_RATE){
+            additionalMaxMPRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_HP_REGEN){
+            additionalHPRegen += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_HP_REGEN_RATE){
+            additionalHPRegenRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MP_REGEN){
+            additionalMPRegen += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MP_REGEN_RATE){
+            additionalMPRegenRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MOVE_SPEED_RATE){
+            //add MoveSpeed and RotateSpeed
+            additionalMoveSpeedRate += buffList[buffIndex].buffAmount;
+            additionalRotateSpeedRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_CAST_SPEED_RATE){
+            additionalCastSpeedRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE){
+            additionalDamage += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE){
+            additionalFireDamage += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE){
+            additionalFrostDamage += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE){
+            additionalArcaneDamage += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE_RATE){
+            additionalDamageRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE_RATE){
+            additionalFireDamageRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE_RATE){
+            additionalFrostDamageRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE_RATE){
+            additionalArcaneDamageRate += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_ALL){
+            additionalResistAll += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_FIRE){
+            additionalResistFire += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_FROST){
+            additionalResistFrost += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_RESIST_ARCANE){
+            additionalResistArcane += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_ALL){
+            additionalReductionAll += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_FIRE){
+            additionalReductionFire += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_FROST){
+            additionalReductionFrost += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_REDUCTION_ARCANE){
+            additionalReductionArcane += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE_RATE_BY_LIFE){
+            var rateOfLife = 100 - (this.HP/this.maxHP) * 100;
+            var rate = parseInt(rateOfLife / buffList[buffIndex].buffApplyHPTickPercent);
+            additionalDamage += rate * buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_MOVE_SPEED_BY_LIFE){
+            var rateOfLife = 100 - (this.HP/this.maxHP) * 100;
+            var rate = parseInt(rateOfLife / buffList[buffIndex].buffApplyHPTickPercent);
+            additionalMoveSpeedRate += rate * buffList[buffIndex].buffAmount;
+            additionalRotateSpeedRate += rate * buffList[buffIndex].buffAmount;
+          }else{
+            console.log('check buff index : ' + buffList[buffIndex]);
+          }
+          break;
+        case serverConfig.BUFF_TYPE_HEAL:
+          if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_HP){
+            additionalHP += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_HP_RATE){
+            additionalHP += this.maxHP * buffList[buffIndex].buffAmount/100;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_MP){
+            additionalMP += buffList[buffIndex].buffAmount/100;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_HEAL_MP_RATE){
+            additionalMP += this.maxMP * buffList[buffIndex].buffAmount/100;
+          }else{
+            console.log('check buff index : ' + buffList[buffIndex]);
+          }
+          break;
+        case serverConfig.BUFF_TYPE_DISPEL:
+          if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_BUFF){
+            disperBuffCount += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_DEBUFF){
+            disperDebuffCount += buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_DISPEL_ALL){
+            disperAllCount += buffList[buffIndex].buffAmount;
+          }else{
+            console.log('check buff index : ' + buffList[buffIndex]);
+          }
+          break;
+        case serverConfig.BUFF_TYPE_SET_CONDITION:
+          if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IMMORTAL){
+            this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = buffList[buffIndex].actorID;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_CHILL){
+            this.conditions[gameConfig.USER_CONDITION_CHILL] = buffList[buffIndex].actorID;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_FREEZE){
+            this.conditions[gameConfig.USER_CONDITION_FREEZE] = buffList[buffIndex].actorID;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_SILENCE){
+            this.conditions[gameConfig.USER_CONDITION_SILENCE] = buffList[buffIndex].actorID;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IGNITE){
+            this.conditions[gameConfig.USER_CONDITION_IGNITE] = buffList[buffIndex].actorID;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_BLUR){
+            this.conditions[gameConfig.USER_CONDITION_BLUR] = buffList[buffIndex].actorID;
+          }else{
+            console.log('check buff index : ' + buffList[buffIndex]);
+          }
+          break;
+        default:
+          console.log('check buff index : ' + buffList[buffIndex]);
+          break;
       }
     }
   }
 
   //disper apply
   for(var i=0; i<disperBuffCount; i++){
-    for(var j=0; j<buffList.length; j++){
-      if(buffList[j].isBuff){
-        buffList.splice(j, 1);
-        break;
+    if(this.buffList.length){
+      for(var j=0; j<this.buffList.length; j++){
+        if(this.buffList[j].isBuff){
+          this.buffList.splice(j, 1);
+          break;
+        }
       }
+    }else{
+      break;
     }
   }
   for(var i=0; i<disperDebuffCount; i++){
-    for(var j=0; j<buffList.length; j++){
-      if(!buffList[j].isBuff){
-        buffList.splice(j, 1);
-        break;
+    if(this.buffList.length){
+      for(var j=0; j<this.buffList.length; j++){
+        if(!this.buffList[j].isBuff){
+          this.buffList.splice(j, 1);
+          break;
+        }
       }
+    }else{
+      break;
+    }
+  }
+  for(var i=0; i<disperAllCount; i++){
+    if(this.buffList.length){
+      this.buffList.splice[0, 1];
+    }else{
+      break;
     }
   }
 
@@ -358,9 +409,13 @@ User.prototype.updateStatAndCondition = function(){
 
   if( beforeConditionImmortal !== this.conditions[gameConfig.USER_CONDITION_IMMORTAL] || beforeConditionChill !== this.conditions[gameConfig.USER_CONDITION_CHILL] ||
       beforeConditionFreeze !== this.conditions[gameConfig.USER_CONDITION_FREEZE] || beforeConditionSilence !== this.conditions[gameConfig.USER_CONDITION_SILENCE] ||
-      beforeConditionIgnite !== this.conditions[gameConfig.USER_CONDITION_IGNITE] || beforeMaxHP !== this.maxHP  || beforeMaxMP !== this.maxMP  ||
+      beforeConditionIgnite !== this.conditions[gameConfig.USER_CONDITION_IGNITE] || beforeConditionBlur !== this.conditions[gameConfig.USER_CONDITION_BLUR] ||
+      beforeMaxHP !== this.maxHP  || beforeMaxMP !== this.maxMP  ||
       beforeHP !== this.HP || beforeMP !== this.MP || beforeCastSpeed !== this.castSpeed || beforeMoveSpeed !== this.moveSpeed || beforeRotateSpeed !== this.rotateSpeed){
         this.onChangeStat(this);
+  }
+  if( beforeBuffListLength !== this.buffList.length){
+    this.onBuffExchange(this);
   }
 };
 User.prototype.regenHPMP = function(){
@@ -390,35 +445,27 @@ function regenIntervalHandler(){
     this.igniteHP(this.conditions[gameConfig.USER_CONDITION_IGNITE]);
   }
 };
-User.prototype.addBuffs = function(buffs){
+User.prototype.addBuff = function(buffGroupIndex, actorID){
   //check apply rate with resist
-  var applyBuffs = [];
-  for(var i=0; i<buffs.length; i++){
+  var buffGroupData = util.findData(buffGroupTable, 'index', buffGroupIndex);
+  if(buffGroupData){
+    var isApply = false;
     var rate = Math.floor(Math.random() * 101);
-    if(buffs[i].buffApplyRate > rate){
-      applyBuffs.push(buffs[i]);
+    if(buffGroupData.buffApplyRate > rate){
+      isApply = true;
+      buffGroupData.actorID = actorID;
+    }
+    //set duration and startTime
+    //if duplicate condition, set as later condition buff. delete fore buff and debuff
+    //set buffTickTime
+    if(isApply){
+      buffGroupData.startTime = Date.now();
+      buffGroupData.tickStartTime = Date.now();
+      this.buffList.push(buffGroupData);
     }
   }
-  //set duration and startTime
-  //if duplicate condition, set as later condition buff. delete fore buff and debuff
-  //set buffTickTime
-  for(var i=0; i<applyBuffs.length; i++){
-    applyBuffs[i].startTime = Date.now();
-    applyBuffs[i].tickStartTime = Date.now();
-    if(applyBuffs[i].buffType === serverConfig.BUFF_TYPE_SET_CONDITION){
-      //if same set condition delete before buff
-      for(var j=0; j<this.buffList.length; j++){
-        if(this.buffList[j].buffType === serverConfig.BUFF_TYPE_SET_CONDITION &&
-           this.buffList[j].buffEffectType === applyBuffs[i].buffEffectType){
-             this.buffList.splice(j, 1);
-           }
-      }
-    }
-    this.buffList.push(applyBuffs[i]);
-    console.log(this.buffList);
-  }
+  this.onBuffExchange(this);
 };
-
 //Instantiate base attack
 User.prototype.changeEquipSkills = function(newSkillList){
   var skillList = [];
@@ -465,6 +512,72 @@ User.prototype.getSkill = function(index){
       console.log('skill reach max level');
     }
   }
+};
+User.prototype.upgradeSkill = function(skillIndex){
+  //check possess skill
+  var isBaseSkill = false;
+  var isPossession = false;
+  if(this.baseSkill === skillIndex){
+    isBaseSkill = true;
+  }
+  for(var i=0; i<this.possessSkills.length; i++){
+    if(this.possessSkills[i] === skillIndex){
+      isPossession = true;
+    }
+  }
+  if(isBaseSkill || isPossession){
+    var skillData = util.findData(skillTable, 'index', skillIndex);
+    var nextSkillIndex = skillData.nextSkillIndex;
+    if(nextSkillIndex !== -1){
+      if(isBaseSkill){
+        this.baseSkill = nextSkillIndex;
+        this.onSkillUpgrade(skillIndex, nextSkillIndex);
+      }else if(isPossession){
+        var index = this.possessSkills.indexOf(skillIndex);
+        this.possessSkills.splice(index, 1);
+        this.possessSkills.push(nextSkillIndex);
+        this.onSkillUpgrade(skillIndex, nextSkillIndex);
+      }
+    }
+  }else{
+    console.log('dont possess skill : ' + skillIndex);
+  }
+  this.onBuffExchange(this);
+};
+User.prototype.exchangePassive = function(beforeBuffGID, afterBuffGID){
+  var beforeBuffGroupDate = util.findData(buffGroupTable, 'index', beforeBuffGID);
+  var afterBuffGroupDate = util.findData(buffGroupTable, 'index', afterBuffGID);
+  for(var i=0; i<this.passiveList.length; i++){
+    if(this.passiveList[i].index === beforeBuffGroupDate.index){
+      var index = i;
+      break;
+    }
+  }
+  if(index >= 0){
+    this.passiveList.splice(index, 1);
+  }
+  if(afterBuffGroupDate){
+    this.passiveList.push(afterBuffGroupDate);
+  }
+  this.onBuffExchange(this);
+}
+User.prototype.equipPassive = function(buffIndex){
+  var buffGroupData = util.findData(buffGroupTable, 'index', buffIndex);
+  this.passiveList.push(buffGroupData);
+  this.onBuffExchange(this);
+};
+User.prototype.unequipPassive = function(buffIndex){
+  var buffGroupData = util.findData(buffGroupTable, 'index', buffIndex);
+  for(var i=0; i<this.passiveList.length; i++){
+    if(this.passiveList[i].index === buffGroupData.index){
+      var index = i;
+      break;
+    }
+  }
+  if(index >= 0){
+    this.passiveList.splice(index, 1);
+  }
+  this.onBuffExchange(this);
 };
 User.prototype.stop = function(){
   if(this.updateInterval){
