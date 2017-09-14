@@ -399,6 +399,9 @@ CManager.prototype = {
 	},
 	changeUserStat : function(userData){
 		if(userData.objectID in this.users){
+			this.users[userData.objectID].level = userData.level;
+			this.users[userData.objectID].exp = userData.exp;
+
 			this.users[userData.objectID].maxHP = userData.maxHP;
 			this.users[userData.objectID].maxMP = userData.maxMP;
 			this.users[userData.objectID].HP = userData.HP;
@@ -718,6 +721,8 @@ var characterType = 1;
 
 var baseSkill = 0;
 var baseSkillData = null;
+var inherentPassiveSkill = 0;
+var inherentPassiveSkillData = null;
 var equipSkills = new Array(4);
 var equipSkillDatas = new Array(4);
 var possessSkills = [];
@@ -725,6 +730,7 @@ var possessSkills = [];
 var hudBaseSkill, hudEquipSkill1, hudEquipSkill2, hudEquipSkill3, hudEquipSkill4, hudPassiveSkill;
 var hudBtnSkillChange;
 var gameSceneBuffsContainer;
+var userHPProgressBar, userMPProgressBar, userExpProgressBar;
 
 var popUpSkillChange, popUpSkillContainer, popUpBackground;
 var popUpSkillInfoIcon, popUpSkillInfoDesc, popUpSkillUpgradeBtn;
@@ -781,6 +787,9 @@ UIManager.prototype = {
     hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
 
     gameSceneBuffsContainer = document.getElementById('gameSceneBuffsContainer');
+    userHPProgressBar = document.getElementById('userHPProgressBar');
+    userExpProgressBar = document.getElementById('userExpProgressBar');
+    userMPProgressBar = document.getElementById('userMPProgressBar');
   },
   drawStartScene : function(){
     startScene.classList.add('enable');
@@ -798,15 +807,38 @@ UIManager.prototype = {
     standingScene.classList.add('disable');
     standingScene.classList.remove('enable');
   },
-  syncSkills : function(bSkill, bSkillData, eSkills, eSkillDatas, pSkills){
+  syncSkills : function(bSkill, bSkillData, eSkills, eSkillDatas, pSkills, iSkill, iSkillData){
     baseSkill = bSkill;
     baseSkillData = bSkillData;
     equipSkills = eSkills;
     equipSkillDatas = eSkillDatas;
     possessSkills = pSkills;
+    inherentPassiveSkill = iSkill;
+    inherentPassiveSkillData = iSkillData;
   },
   updatePossessionSkills : function(pSkills){
     possessSkills = pSkills;
+  },
+  updateHP : function(userData){
+    var percent = userData.HP/userData.maxHP * 100;
+    if(percent > 100){
+      percent = 100;
+    }
+    userHPProgressBar.style.height = percent + "%";
+  },
+  updateMP : function(userData){
+    var percent = userData.MP/userData.maxMP * 100;
+    if(percent > 100){
+      percent = 100;
+    }
+    userMPProgressBar.style.height = percent + "%";
+  },
+  updateExp : function(userData, needExp){
+    var percent = userData.exp / needExp * 100;
+    if(percent > 100){
+      percent = 100;
+    }
+    userExpProgressBar.style.width = percent + "%";
   },
   setHUDSkills : function(){
     while (hudBaseSkill.firstChild) {
@@ -837,6 +869,10 @@ UIManager.prototype = {
     var baseImg = document.createElement('img');
     baseImg.src = baseSkillData.skillIcon;
     hudBaseSkill.appendChild(baseImg);
+
+    var inherentPassiveSkillImg = document.createElement('img');
+    inherentPassiveSkillImg.src = inherentPassiveSkillData.skillIcon;
+    hudPassiveSkill.appendChild(inherentPassiveSkillImg);
 
     if(equipSkillDatas[0]){
       var equipSkills1 = document.createElement('img');
@@ -919,6 +955,20 @@ UIManager.prototype = {
       this.serverResponseTimeout = false;
     }
   },
+  upgradeInherentSkill : function(afterSkillIndex, afterSkillData){
+    var beforeSkillIndex = inherentPassiveSkill;
+    inherentPassiveSkill = afterSkillIndex;
+    inherentPassiveSkillData = afterSkillData;
+    if(sellectedSkillIndex === beforeSkillIndex){
+      this.updateSellectedPanel(afterSkillIndex);
+    }
+    this.updateSkillImageAndIndex(beforeSkillIndex, afterSkillIndex);
+    isServerResponse = true;
+    if(this.serverResponseTimeout){
+      clearTimeout(this.serverResponseTimeout);
+      this.serverResponseTimeout = false;
+    }
+  },
   upgradePossessionSkill : function(beforeSkillIndex, afterSkillIndex){
     for(var i=0; i<possessSkills.length; i++){
       if(possessSkills[i] === beforeSkillIndex){
@@ -974,13 +1024,21 @@ UIManager.prototype = {
     while(popUpEquipSkill4.firstChild){
       popUpEquipSkill4.removeChild(popUpEquipSkill4.firstChild);
     }
-
+    while(popUpEquipPassiveSkill.firstChild){
+      popUpEquipPassiveSkill.removeChild(popUpEquipPassiveSkill.firstChild);
+    }
 
     var baseImg = document.createElement('img');
     baseImg.src = baseSkillData.skillIcon;
     popUpEquipBaseSkill.setAttribute('skillIndex', baseSkill);
     popUpEquipBaseSkill.appendChild(baseImg);
     popUpEquipBaseSkill.onclick = changeEquipSkillHandler.bind(this, popUpEquipBaseSkill, gameConfig.SKILL_CHANGE_PANEL_EQUIP);
+
+    var inherentPassiveSkillImg = document.createElement('img');
+    inherentPassiveSkillImg.src = inherentPassiveSkillData.skillIcon;
+    popUpEquipPassiveSkill.setAttribute('skillIndex', inherentPassiveSkill);
+    popUpEquipPassiveSkill.appendChild(inherentPassiveSkillImg);
+    popUpEquipPassiveSkill.onclick = changeEquipSkillHandler.bind(this, popUpEquipPassiveSkill, gameConfig.SKILL_CHANGE_PANEL_EQUIP);
 
     if(equipSkillDatas[0]){
       var equipSkills1 = document.createElement('img');
@@ -1087,6 +1145,8 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
       sellectEquipIndex = 2;
     }else if(sellectDiv === popUpEquipSkill4){
       sellectEquipIndex = 3;
+    }else if(sellectDiv === popUpEquipPassiveSkill){
+      sellectEquipIndex = -1;
     }
   }
   var skillIndex = parseInt(sellectDiv.getAttribute('skillIndex'));
@@ -1147,7 +1207,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
         }else{
           var nodeIndex = 0;
           for(var i=0; i<popUpSkillContainer.childNodes.length; i++){
-            if(popUpSkillContainer.childNodes[i] === sellectedDiv){
+            if(popUpSkillContainer.childNodes[i] === sellectDiv){
               nodeIndex = i;
               break;
             }
@@ -1194,16 +1254,22 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           var beforeBuffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
           var afterBuffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
           this.onExchangePassive(beforeBuffIndex, afterBuffIndex);
+        }else if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
+          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          this.onEquipPassive(buffIndex);
+        }else if(beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
+          buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          this.onUnequipPassive(buffIndex);
         }
       }else if(skillData){
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
           console.log(buffIndex);
           this.onEquipPassive(buffIndex);
         }
       }else if(beforeSkillData){
         if(beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          var buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
           this.onUnequipPassive(buffIndex);
         }
       }
@@ -1326,6 +1392,9 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 var User = function(userData){
   this.objectID = userData.objectID;
 
+  this.level = userData.level;
+  this.exp = userData.exp;
+  
   this.maxHP = userData.maxHP;
   this.maxMP = userData.maxMP;
   this.HP = userData.HP;
@@ -2384,7 +2453,7 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
         x : clickPosition.x,
         y : clickPosition.y
       };
-    case gameConfig.SKILL_TYPE_INSTANT:
+    case gameConfig.SKILL_TYPE_RANGE:
       var distSquare = exports.distanceSquare(user.center, clickPosition);
       if(Math.pow(skillData.range,2) > distSquare){
         return {
@@ -2455,7 +2524,7 @@ exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
       return user.direction;
     case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
       return user.direction;
-    case gameConfig.SKILL_TYPE_INSTANT:
+    case gameConfig.SKILL_TYPE_RANGE:
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
     case gameConfig.SKILL_TYPE_SELF :
       return user.direction;
@@ -2599,6 +2668,8 @@ var gameConfig = require('../../modules/public/gameConfig.json');
 // var resource = require('../../modules/public/resource.json');
 var csvJson = require('../../modules/public/csvjson.js');
 var dataJson = require('../../modules/public/data.json');
+
+var userStatTable = csvJson.toObject(dataJson.userStatData, {delimiter : ',', quote : '"'});
 var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
 var socket;
@@ -2645,6 +2716,8 @@ var characterType = 1;
 
 var baseSkill = 0;
 var baseSkillData = null;
+var inherentPassiveSkill = 0;
+var inherentPassiveSkillData = null;
 var equipSkills = new Array(4);
 var equipSkillDatas = new Array(4);
 var possessSkills = [];
@@ -2844,7 +2917,8 @@ function setupSocket(){
 
     baseSkill = user.baseSkill;
     baseSkillData = util.findData(skillTable, 'index', user.baseSkill);
-
+    inherentPassiveSkill = user.inherentPassiveSkill;
+    inherentPassiveSkillData = util.findData(skillTable, 'index', user.inherentPassiveSkill);
     for(var i=0; i<4; i++){
       if(user.equipSkills[i]){
         equipSkills[i] = user.equipSkills[i];
@@ -2859,9 +2933,10 @@ function setupSocket(){
         equipSkillDatas[i] = undefined;
       }
     };
+
     possessSkills = user.possessSkills;
 
-    UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills);
+    UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills, inherentPassiveSkill, inherentPassiveSkillData);
     UIManager.setHUDSkills();
     UIManager.setPopUpSkillChange();
   });
@@ -2913,11 +2988,16 @@ function setupSocket(){
       baseSkill = afterSkillIndex;
       baseSkillData = util.findData(skillTable, 'index', afterSkillIndex);
       UIManager.upgradeBaseSkill(baseSkill, baseSkillData);
-    }
-    for(var i=0; i<possessSkills.length; i++){
-      if(possessSkills[i] === beforeSkillIndex){
-        UIManager.upgradePossessionSkill(beforeSkillIndex, afterSkillIndex);
-        break;
+    }else if(beforeSkillIndex === inherentPassiveSkill){
+      inherentPassiveSkill = afterSkillIndex;
+      inherentPassiveSkillData = util.findData(skillTable, 'index', afterSkillIndex);
+      UIManager.upgradeInherentSkill(inherentPassiveSkill, inherentPassiveSkillData);
+    }else{
+      for(var i=0; i<possessSkills.length; i++){
+        if(possessSkills[i] === beforeSkillIndex){
+          UIManager.upgradePossessionSkill(beforeSkillIndex, afterSkillIndex);
+          break;
+        }
       }
     }
   });
@@ -2942,6 +3022,19 @@ function setupSocket(){
   });
   socket.on('changeUserStat', function(userData){
     Manager.changeUserStat(userData);
+    if(userData.objectID === gameConfig.userID){
+      UIManager.updateHP(userData);
+      UIManager.updateMP(userData);
+
+      var needExp = util.findDataWithTwoColumns(userStatTable, 'type', characterType, 'level', userData.level).needExp;
+      UIManager.updateExp(userData, needExp);
+    }
+  });
+  socket.on('userDamaged', function(userData){
+    Manager.changeUserStat(userData);
+    if(userData.objectID === gameConfig.userID){
+      UIManager.updateHP(userData);
+    }
   });
   socket.on('updateBuff', function(buffData){
     UIManager.updateBuffIcon(buffData.passiveList, buffData.buffList);

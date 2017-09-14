@@ -43,7 +43,12 @@ CSkill.prototype = {
   executeSkill : function(){
     this.userAniTimeout = setTimeout(userAniTimeoutHandler.bind(this), this.userAniStartTime);
 
-    this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), this.fireTime);
+    var skillInformTime = this.fireTime - gameConfig.SKILL_INFORM_TIME;
+    if(skillInformTime < 0){
+      skillInformTime = 0;
+    }
+    this.syncFireTime = Date.now() + this.fireTime; // for synchronize
+    this.fireTimeout = setTimeout(fireTimeoutHandler.bind(this), skillInformTime);
     this.totalTimeout = setTimeout(totalTimeoutHandler.bind(this), this.totalTime);
   },
   startEffectTimer : function(){
@@ -71,7 +76,7 @@ function userAniTimeoutHandler(){
 };
 function fireTimeoutHandler(){
   console.log('fireSkill');
-  this.onFire();
+  this.onFire(this.syncFireTime);
 };
 function totalTimeoutHandler(){
   this.onTimeOver();

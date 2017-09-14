@@ -321,7 +321,7 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
         x : clickPosition.x,
         y : clickPosition.y
       };
-    case gameConfig.SKILL_TYPE_INSTANT:
+    case gameConfig.SKILL_TYPE_RANGE:
       var distSquare = exports.distanceSquare(user.center, clickPosition);
       if(Math.pow(skillData.range,2) > distSquare){
         return {
@@ -392,7 +392,7 @@ exports.calcSkillTargetDirection = function(skillType, targetPosition, user){
       return user.direction;
     case gameConfig.SKILL_TYPE_INSTANT_PROJECTILE:
       return user.direction;
-    case gameConfig.SKILL_TYPE_INSTANT:
+    case gameConfig.SKILL_TYPE_RANGE:
       return exports.calcTargetDirection(targetPosition, user.center, user.direction);
     case gameConfig.SKILL_TYPE_SELF :
       return user.direction;

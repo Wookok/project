@@ -17,6 +17,9 @@ var SkillCollider = function(user, skillData){
   setDamage.call(this, user, skillData);
 
   this.buffToTarget = skillData.buffToTarget;
+  this.hitBuffList = skillData.hitBuffList;
+
+  this.additionalBuffToTarget = null;
 
   this.latency = user.latency || serverConfig.USER_DEFAULT_LATENCY;
 };
@@ -45,6 +48,9 @@ var ProjectileCollider = function(user, projectileData){
   this.explosionDamageRate = projectileData.explosionDamageRate;
 
   this.buffToTarget = projectileData.buffToTarget;
+  this.hitBuffList = skillData.hitBuffList;
+
+  this.additionalBuffToTarget = null;
 
   this.startTime = projectileData.startTime;
   this.lifeTime = projectileData.lifeTime;

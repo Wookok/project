@@ -13,6 +13,10 @@ might damage %, 체력, 체력 회복
 intellect cast speed, 마나, 마나 회복
 perception resistance %, 쿨 다운 감소 %
 
+strength	체력 	체 증가, 체 회복 증가, resistance 증가
+magic, intellect	마력	마 증가, 마 회복 증가, damage rate 증가
+
+
 3종?
 불 물 비전arcane(wow)
 Fire Frost Arcane
@@ -179,3 +183,46 @@ resistance, defenceRate damageReducetion, 쿨다운 감소
 monster
 랜덤 무브(수집 ?);
 주위 적 공격
+
+화염 캐릭터 패시브
+화염 스킬 데미지 증가
+자신 화염 디버프 상태일 때 데미지 추가
+자신 화염 디버프 상태일 때 체력 재생 추가
+항상 ignite 상태로 변경 > ignite 데미지가 감소한다.
+
+냉기 캐릭터 패시브
+냉기 스킬 범위 증가
+냉기 디버프에 걸린 대상 확률적으로 얼림
+냉기 디버프에 걸린 대상 데미지 추가
+얼어 붙은 적 데미지 추가
+데미지 감소 추가
+
+비전 캐릭터 패시브
+모든 스킬에 비전 데미지 추가
+기본 능력치 증가
+비전 스킬 사용시 무작위 버프 추가
+비전 축적 최대 횟수 증가
+스킬 사용시, 쿨다운 감소
+
+특정 속성 스킬 사용 시 데미지 증가		property		buffGroup
+BUFF_TYPE_WITH_SKILL_PROPERTY	BUFF_EFFECT_TYPE_ADD_RANDOM_BUFFS	SKILL_PROPERTY_FIRE
+BUFF_TYPE_WITH_TARGET_CHARCTER_PROPERTY		SKILL_PROPERTY_FROST
+BUFF_TYPE_WITH_TARGET_CONDITION		SKILL_PROPERTY_ARCANE
+
+BUFF_TYPE_WITH_SELF_CONDITION	USER_CONDITION_IGNITE
+BUFF_TYPE_
+
+특정 속성 스킬 사용 시 데미지 증가	property
+BUFF_TYPE_WITH_SKILL_PROPERTY	SKILL_PROPERTY_FIRE
+	SKILL_PROPERTY_FROST
+	SKILL_PROPERTY_ARCANE
+BUFF_TYPE_WITH_SELF_CONDITION	USER_CONDITION_IGNITE
+BUFF_TYPE_DECRESS_IGNITE_DAMAGE
+				
+BUFF_TYPE_WITH_TARGET_CONDITION	BUFF_EFFECT_TYPE_FREEZEING
+BUFF_TYPE_WITH_TARGET_CONDITION
+BUFF_TYPE_WITH_TARGET_CONDITION
+
+BUFF_TYPE_ADD_SECONDARY_STAT
+BUFF_TYPE_WITH_SKILL_PROPERTY	BUFF_EFFECT_TYPE_ADD_RANDOM_BUFF_TO_SELF
+	BUFF_EFFECT_TYPE_ADD_RANDOM_BUFF_TO_TARGET

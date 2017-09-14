@@ -1,6 +1,7 @@
 {
   "MAX_SERVER_RESPONSE_TIME" : 5000,
   "INTERVAL" : 60,
+  "SKILL_INFORM_TIME" : 150,
 
   "CANVAS_MAX_SIZE" : {"width" : 3200 , "height" : 3200},
   "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},

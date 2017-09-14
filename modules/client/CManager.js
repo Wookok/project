@@ -398,6 +398,9 @@ CManager.prototype = {
 	},
 	changeUserStat : function(userData){
 		if(userData.objectID in this.users){
+			this.users[userData.objectID].level = userData.level;
+			this.users[userData.objectID].exp = userData.exp;
+
 			this.users[userData.objectID].maxHP = userData.maxHP;
 			this.users[userData.objectID].maxMP = userData.maxMP;
 			this.users[userData.objectID].HP = userData.HP;

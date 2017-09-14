@@ -20,7 +20,7 @@ var csvJsonOption = {delimiter : ',', quote : '"'};
 var userBaseTable = csvJson.toObject(serverDataJson.userBase, csvJsonOption);
 var skillTable = csvJson.toObject(dataJson.skillData, csvJsonOption);
 var userStatTable = csvJson.toObject(dataJson.userStatData, csvJsonOption);
-var buffTable = csvJson.toObject(dataJson.buffData, csvJsonOption);
+// var buffTable = csvJson.toObject(dataJson.buffData, csvJsonOption);
 
 var util = require('./modules/public/util.js');
 
@@ -44,13 +44,29 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var io = socketio.listen(server);
 
+GM.onNeedInformUserTakeDamage = function(user, dmg){
+  var userData = GM.processChangedUserStat(user);
+  userData.damagedAmount = dmg;
+  io.sockets.emit('userDamaged', userData);
+};
+GM.onNeedInformUserReduceMP = function(user){
+  var userData = GM.processChangedUserStat(user);
+  io.sockets.emit('changeUserStat', userData);
+};
+GM.onNeedInformUserGetExp = function(user){
+  var userData = GM.processChangedUserStat(user);
+  io.to(user.socketID).emit('changeUserStat', userData);
+};
+GM.onNeedInformUserLevelUp = function(user){
+  var userData = GM.processChangedUserStat(user);
+  io.sockets.emit('changeUserStat', userData);
+};
 GM.onNeedInformBuffUpdate = function(user){
   var buffData = GM.processBuffDataSetting(user);
-  console.log(buffData);
   io.to(user.socketID).emit('updateBuff', buffData);
 }
 GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
-  io.to(socketID).emit('skillUpgrade', beforeSkillIndex, afterSkillIndex);
+  io.to(socketID).emit('upgradeSkill', beforeSkillIndex, afterSkillIndex);
 };
 GM.onNeedInformUserChangeStat = function(user){
   var userData = GM.processChangedUserStat(user)
@@ -105,6 +121,8 @@ io.on('connection', function(socket){
         possessSkills.push(userBase['basePossessionSkill' + (i + 1)]);
       }
     }
+    var inherentPassiveSkill = userBase.basePassiveSkillGroupIndex + 1;
+
     possessSkills.push(31);
     possessSkills.push(41);
     possessSkills.push(51);
@@ -112,7 +130,7 @@ io.on('connection', function(socket){
     possessSkills.push(71);
     possessSkills.push(81);
     // user init and join game
-    GM.initializeUser(user, baseSkill, equipSkills, possessSkills);
+    GM.initializeUser(user, baseSkill, equipSkills, possessSkills, inherentPassiveSkill);
     GM.joinUser(user);
 
     var userData = GM.processUserDataSetting(user);

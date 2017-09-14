@@ -1,4 +1,7 @@
 var util = require('../public/util.js');
+var dataJson = require('../public/data.json');
+
+var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
 
 exports.generateRandomUniqueID = function(uniqueCheckArray, prefix){
   var IDisUnique = false;
@@ -71,6 +74,18 @@ exports.onUserSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillInde
 exports.onUserChangeStat = function(user){
   this.onNeedInformUserChangeStat(user);
 };
+exports.onUserTakeDamage = function(user, dmg){
+  this.onNeedInformUserTakeDamage(user, dmg);
+};
+exports.onUserReduceMP = function(user){
+  this.onNeedInformUserReduceMP(user);
+};
+exports.onUserGetExp = function(user){
+  this.onNeedInformUserGetExp(user);
+};
+exports.onUserLevelUP = function(user){
+  this.onNeedInformUserLevelUp(user);
+};
 exports.onUserDeath = function(attackUserID, exp, deadUser){
   if(attackUserID in this.users){
     this.users[attackUserID].getExp(exp);
@@ -92,7 +107,8 @@ exports.setAffectedEleColSkillWithEntity = function(skill, affectedID, collision
     arcaneDamage : skill.arcaneDamage || 0,
     damageToMP : skill.damageToMP || 0,
 
-    buffToTarget : skill.buffToTarget
+    buffToTarget : skill.buffToTarget,
+    additionalBuffToTarget : skill.additionalBuffToTarget
   }
 };
 exports.setAffectedEleColUserWithCollection = function(userID, affectedObj, collisionType){
@@ -105,4 +121,133 @@ exports.setAffectedEleColUserWithCollection = function(userID, affectedObj, coll
     goldAmount : affectedObj.goldAmount || 0,
     skillIndex : affectedObj.skillIndex || 0
   }
+};
+exports.checkUserBuff = function(user, skillData){
+  var fireBuffList = [];
+  var hitBuffList = [];
+  for(var i=0; i<user.passiveList.length; i++){
+    var buffs = util.findAndSetBuffs(user.passiveList[i], buffTable, user.objectID);
+    for(var j=0; j<buffs.length; j++){
+      if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_FIRE){
+        if(buffs[j].skillProperty){
+          if(buffs[j].skillProperty === skillData.property){
+            if(buffs[j].fireUserCondition){
+              if(user.conditions[buffs[j].fireUserCondition]){
+                fireBuffList.push(buffs[j]);
+              }
+            }else{
+              fireBuffList.push(buffs[j]);
+            }
+          }
+        }else{
+          fireBuffList.push(buffs[j]);
+        }
+      }else if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_FIRE_AND_HIT){
+        if(buffs[j].skillProperty){
+          if(buffs[j].skillProperty === skillData.property){
+            if(buffs[j].fireUserCondition){
+              if(user.conditions[buffs[j].fireUserCondition]){
+                hitBuffList.push(user.passiveList[i]);
+                break;
+              }
+            }else{
+              hitBuffList.push(user.passiveList[i]);
+              break;
+            }
+          }
+        }else{
+          hitBuffList.push(user.passiveList[i]);
+          break;
+        }
+      }
+    }
+  }
+  for(var i=0; i<user.buffList.length; i++){
+    var buffs = util.findAndSetBuffs(user.buffList[i], buffTable, user.objectID);
+    for(var j=0; j<buffs.length; j++){
+      if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_FIRE){
+        if(buffs[j].skillProperty){
+          if(buffs[j].skillProperty === skillData.property){
+            if(buffs[j].fireUserCondition){
+              if(user.conditions[buffs[j].fireUserCondition]){
+                fireBuffList.push(buffs[j]);
+              }
+            }else{
+              fireBuffList.push(buffs[j]);
+            }
+          }
+        }else{
+          fireBuffList.push(buffs[j]);
+        }
+      }else if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_FIRE_AND_HIT){
+        if(buffs[j].skillProperty){
+          if(buffs[j].skillProperty === skillData.property){
+            if(buffs[j].fireUserCondition){
+              if(user.conditions[buffs[j].fireUserCondition]){
+                hitBuffList.push(user.buffList[i]);
+                break;
+              }
+            }else{
+              hitBuffList.push(user.buffList[i]);
+              break;
+            }
+          }
+        }else{
+          hitBuffList.push(user.buffList[i]);
+          break;
+        }
+      }
+    }
+  }
+  var additionalDamage = 0,
+      additionalFireDamage = 0,
+      additionalFrostDamage = 0,
+      additionalArcaneDamage = 0,
+      additionalDamageRate = 100,
+      additionalFireDamageRate = 100,
+      additionalFrostDamageRate = 100,
+      additionalArcaneDamageRate = 100;
+
+  for(var i=0; i<fireBuffList.length; i++){
+    if(fireBuffList[i].buffType === serverConfig.BUFF_TYPE_ADD_SECONDARY_STAT){
+      if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE){
+        additionalDamage += fireBuffList[i].buffAmount;
+      }else if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE){
+        additionalFireDamage += fireBuffList[i].buffAmount;
+      }else if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE){
+        additionalFrostDamage += fireBuffList[i].buffAmount;
+      }else if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE){
+        additionalArcaneDamage += fireBuffList[i].buffAmount;
+      }else if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE_RATE){
+        additionalDamageRate += fireBuffList[i].buffAmount;
+      }else if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE_RATE){
+        additionalFireDamageRate += fireBuffList[i].buffAmount;
+      }else if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE_RATE){
+        additionalFrostDamageRate += fireBuffList[i].buffAmount;
+      }else if(fireBuffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE_RATE){
+        additionalArcaneDamageRate += fireBuffList[i].buffAmount;
+      }
+    }else if(fireBuffList[i].buffType === serverConfig.BUFF_TYPE_ADD_BUFF){
+      var addBuffGroupList = [];
+      for(var j=0; j<serverConfig.BUFFTABLE_BUFFGROUP_LENGTH; j++){
+        if(fireBuffList[i]['buffGroup' + (j + 1)]){
+          addBuffGroupList.push(fireBuffList[i]['buffGroup' + (j + 1)]);
+        }else{
+          break;
+        }
+      }
+      var randomIndex = Math.floor(Math.random() * (addBuffGroupList.length));
+      var addBuffGroupIndex = addBuffGroupList[randomIndex];
+      var addBuffGroupData = util.findData(buffGroupTable, 'index', addBuffGroupIndex);
+      if(addBuffGroupData.isBuff){
+        skillData.additionalBuffToSelf = addBuffGroupIndex;
+      }else{
+        skillData.additionalBuffToTarget = addBuffGroupIndex;
+      }
+    }
+  }
+  skillData.fireDamage = (additionalDamage + additionalFireDamage) * additionalFireDamageRate/100 * additionalDamageRate/100;
+  skillData.frostDamage = (additionalDamage + additionalFrostDamage) * additionalFrostDamageRate/100 * additionalDamageRate/100;
+  skillData.arcaneDamage = (additionalDamage + additionalArcaneDamage) * additionalArcaneDamageRate/100 * additionalDamageRate/100;
+  skillData.hitBuffList = hitBuffList;
 };

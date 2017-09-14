@@ -15,7 +15,7 @@ var serverConfig = require('./serverConfig.json');
 
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
-function User(socketID, userStat, userBase, exp, baseSkillLevel){
+function User(socketID, userStat, userBase, exp){
   LivingEntity.call(this);
   // base setting;
   this.type = userStat.type;
@@ -80,6 +80,7 @@ function User(socketID, userStat, userBase, exp, baseSkillLevel){
   this.baseSkill = 0;
   this.equipSkills = [];
   this.possessSkills = [];
+  this.inherentPassiveSkill = 0;
 
   this.socketID = socketID;
 
@@ -91,6 +92,10 @@ function User(socketID, userStat, userBase, exp, baseSkillLevel){
   this.onSkillUpgrade = new Function();
   this.onBuffExchange = new Function();
   this.onChangeStat = new Function();
+  this.onTakeDamage = new Function();
+  this.onReduceMP = new Function();
+  this.onGetExp = new Function();
+  this.onLevelUP = new Function();
   this.onDeath = new Function();
 
   this.getExp(0);
@@ -99,10 +104,11 @@ function User(socketID, userStat, userBase, exp, baseSkillLevel){
 User.prototype = Object.create(LivingEntity.prototype);
 User.prototype.constructor = User;
 
-User.prototype.setSkills = function(baseSkill, equipSkills, possessSkills){
+User.prototype.setSkills = function(baseSkill, equipSkills, possessSkills, inherentPassiveSkill){
   this.baseSkill = baseSkill;
   this.equipSkills = equipSkills;
   this.possessSkills = possessSkills;
+  this.inherentPassiveSkill = inherentPassiveSkill;
 };
 //init user current stat
 User.prototype.initStat = function(){
@@ -176,7 +182,9 @@ User.prototype.updateStatAndCondition = function(){
   for(var i=0; i<this.passiveList.length; i++){
     var buffs = util.findAndSetBuffs(this.passiveList[i], buffTable, this.objectID);
     for(var j=0; j<buffs.length; j++){
-      buffList.push(buffs[j]);
+      if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL){
+        buffList.push(buffs[j]);
+      }
     }
   }
   var beforeBuffListLength = this.buffList.length;
@@ -186,7 +194,7 @@ User.prototype.updateStatAndCondition = function(){
     }else{
       var buffs = util.findAndSetBuffs(this.buffList[i], buffTable, this.buffList[i].actorID);
       for(var j=0; j<buffs.length; j++){
-        if(Date.now() - this.buffList[i].tickStartTime > buffs[j].buffTickTime){
+        if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL && Date.now() - this.buffList[i].tickStartTime > buffs[j].buffTickTime){
           buffList.push(buffs[j]);
           this.buffList[i].tickStartTime = Date.now();
         }
@@ -455,16 +463,34 @@ User.prototype.addBuff = function(buffGroupIndex, actorID){
       isApply = true;
       buffGroupData.actorID = actorID;
     }
+
     //set duration and startTime
     //if duplicate condition, set as later condition buff. delete fore buff and debuff
     //set buffTickTime
     if(isApply){
-      buffGroupData.startTime = Date.now();
-      buffGroupData.tickStartTime = Date.now();
-      this.buffList.push(buffGroupData);
+      var buffs = util.findAndSetBuffs(buffGroupTable, buffTable, actorID);
+      for(var i=buffs.length-1; i>=0; i--){
+        if(buffs[i].hitUserCondition){
+          if(!this.conditions[buffs[i].hitUserCondition]){
+            buffGroupData.splice(i, 1);
+          }
+        }
+      }
+
+      for(var i=0; i<this.buffList.length; i++){
+        if(this.buffList[i].index === buffGroupData.index){
+          this.buffList.splice(i, 1);
+          break;
+        }
+      }
+      if(buffList.length > 0){
+        buffGroupData.startTime = Date.now();
+        buffGroupData.tickStartTime = Date.now();
+        this.buffList.push(buffGroupData);
+        this.onBuffExchange(this);
+      }
     }
   }
-  this.onBuffExchange(this);
 };
 //Instantiate base attack
 User.prototype.changeEquipSkills = function(newSkillList){
@@ -588,30 +614,88 @@ User.prototype.stop = function(){
     this.currentSkill = undefined;
   }
 };
-User.prototype.takeDamage = function(attackUserID, fireDamage, frostDamage, arcaneDamage, damageToMP){
+User.prototype.takeDamage = function(attackUserID, fireDamage, frostDamage, arcaneDamage, damageToMP, hitBuffList){
+  var additionalDamage = 0,
+  additionalFireDamage = 0,
+  additionalFrostDamage = 0,
+  additionalArcaneDamage = 0,
+  additionalDamageRate = 100,
+  additionalFireDamageRate = 100,
+  additionalFrostDamageRate = 100,
+  additionalArcaneDamageRate = 100;
+  if(hitBuffList){
+    var buffList = [];
+    for(var i=0; i<hitBuffList.length; i++){
+      var buffs = util.findAndSetBuffs(hitBuffList[i], buffTable, attackUserID);
+      for(var j=0; j<buffs.length; j++){
+        if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_FIRE_AND_HIT){
+          if(buffs[j].hitUserCondition){
+            if(this.conditions[buffs[j].hitUserCondition]){
+              buffList.push(buffs[j]);
+            }
+          }else{
+            buffList.push(buffs[j]);
+          }
+        }
+      }
+    }
+
+    for(var i=0; i<buffList.length; i++){
+      if(buffList[i].buffType === serverConfig.BUFF_TYPE_ADD_SECONDARY_STAT){
+        if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE){
+          additionalDamage += buffList[i].buffAmount;
+        }else if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE){
+          additionalFireDamage += buffList[i].buffAmount;
+        }else if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE){
+          additionalFrostDamage += buffList[i].buffAmount;
+        }else if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE){
+          additionalArcaneDamage += buffList[i].buffAmount;
+        }else if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_DAMAGE_RATE){
+          additionalDamageRate += buffList[i].buffAmount;
+        }else if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FIRE_DAMAGE_RATE){
+          additionalFireDamageRate += buffList[i].buffAmount;
+        }else if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_FROST_DAMAGE_RATE){
+          additionalFrostDamageRate += buffList[i].buffAmount;
+        }else if(buffList[i].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_ARCANE_DAMAGE_RATE){
+          additionalArcaneDamageRate += buffList[i].buffAmount;
+        }
+      }
+    }
+  }
+
   var dmg = 0;
   var dmgToMP = 0;
   if(!isNaN(fireDamage)){
-    var dmgFire = fireDamage * (1 - this.resistAll/100) * (1 - this.resistFire/100) - (this.reductionAll + this.reductionFire);
+    var dmgFire = (fireDamage + additionalDamage + additionalFireDamage - (this.reductionAll + this.reductionFire)) * additionalDamageRate/100 * additionalFireDamageRate/100 * (1 - this.resistAll/100) * (1 - this.resistFire/100) ;
+    if(dmgFire <= 0){
+      dmgFire = 1;
+    }
     dmg += dmgFire;
   }
   if(!isNaN(frostDamage)){
-    var dmgFrost = frostDamage * (1 - this.resistAll/100) * (1 - this.resistFrost/100) - (this.reductionAll + this.reductionFrost);
+    var dmgFrost = (frostDamage + additionalDamage + additionalFrostDamage - (this.reductionAll + this.reductionFrost)) * additionalDamageRate/100 * additionalFrostDamageRate/100 * (1 - this.resistAll/100) * (1 - this.resistFrost/100);
+    if(dmgFrost <= 0){
+      dmgFrost = 1;
+    }
     dmg += dmgFrost;
   }
   if(!isNaN(arcaneDamage)){
-    var dmgArcane = arcaneDamage * (1 - this.resistAll/100) * (1 - this.resistArcane/100) - (this.reductionAll + this.reductionArcane);
+    var dmgArcane = (arcaneDamage + additionalDamage + additionalArcaneDamage - (this.reductionAll + this.reductionArcane)) * additionalDamageRate/100 * additionalFrostDamageRate/100 * (1 - this.resistAll/100) * (1 - this.resistArcane/100);
+    if(dmgArcane <= 0){
+      dmgArcane = 1 ;
+    }
     dmg += dmgFrost;
     if(!isNaN(damageToMP)){
       dmgToMP = damageToMP;
     }
   }
-  if(dmg < 0){
+  if(dmg <= 0){
     //minimum damage
     dmg = 1;
   }
 
   this.HP -= dmg;
+  this.onTakeDamage(this, dmg);
   console.log(this.objectID + ' : ' + this.HP);
   if(dmgToMP > 0){
     this.takeDamageToMP(dmgToMP);
@@ -633,13 +717,15 @@ User.prototype.consumeMP = function(mpAmount){
   if(this.MP < 0){
     this.MP = 0;
   }
+  this.onReduceMP(this);
 };
 User.prototype.takeDamageToMP = function(dmgToMP){
   if(dmgToMP > 0){
     this.MP -= dmgToMP;
-  }
-  if(this.MP < 0){
-    this.MP = 0;
+    if(this.MP < 0){
+      this.MP = 0;
+    }
+    this.onReduceMP(this);
   }
 };
 User.prototype.healHPMP = function(hpAmount, mpAmount){
@@ -678,11 +764,14 @@ User.prototype.death = function(attackUserID){
 
 
 User.prototype.getExp = function(exp){
-  this.exp += exp;
   var userLevelData = util.findDataWithTwoColumns(userStatTable, 'type', this.type, 'level', this.level);
   if(userLevelData.needExp === -1){
     console.log('user reach max level');
-  }else if(this.exp >= userLevelData.needExp){
+  }else{
+    this.exp += exp;
+    this.onGetExp(this);
+  }
+  if(userLevelData.needExp !== -1 && this.exp >= userLevelData.needExp){
     this.levelUp();
   }
 };
@@ -694,7 +783,11 @@ User.prototype.levelUp = function(){
   //additional level up check.
   this.updateUserBaseStat();
   this.restoreWhenLevelUp();
-  this.getExp(0);
+  // this.getExp(0);
+  this.onLevelUP(this);
+  if(userLevelData.needExp !== -1 && this.exp >= userLevelData.needExp){
+    this.levelUp();
+  }
 };
 
 //execute when level up or down
