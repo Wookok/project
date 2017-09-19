@@ -18,8 +18,10 @@ var resources = require('../public/resources.json');
 var map = require('../public/map.json');
 
 var OBJs = require('./OBJs.js');
-var OBJExp = OBJs.OBJExp;
+// var OBJExp = OBJs.OBJExp;
 var OBJSkill = OBJs.OBJSkill;
+var OBJGold = OBJs.OBJGold;
+var OBJJewel = OBJs.OBJJewel;
 var OBJChest = OBJs.OBJChest;
 
 var QuadTree = require('quadtree-lib');
@@ -53,18 +55,25 @@ var affectedEles = [];
 
 function GameManager(){
   this.users = [];
-  this.obstacles = [];
-  this.chestLocations = [];
-  this.chests = [];
+
   this.skills = [];
   this.projectiles = [];
 
-  this.objExps = [];
-  this.addedObjExps = [];
+  this.obstacles = [];
+  this.chests = [];
+  this.chestLocations = [];
+  // this.objExps = [];
+  // this.addedObjExps = [];
   this.objSkills = [];
   this.addedObjSkills = [];
-  this.objExpsCount = serverConfig.OBJ_EXP_MIN_COUNT;
-  this.objSkillsCount = serverConfig.OBJ_SKILL_MIN_COUNT;
+  this.objGolds = [];
+  this.addedObjGolds = [];
+  this.objJewels = [];
+  this.addedObjJewels = [];
+  // this.objExpsCount = serverConfig.OBJ_EXP_MIN_COUNT;
+  // this.objSkillsCount = serverConfig.OBJ_SKILL_MIN_COUNT;
+  this.objGoldsCount = serverConfig.OBJ_GOLD_MIN_COUNT;
+  // this.objJewelsCount = serverConfig.OBJ_JEWEL_MIN_COUNT;
 
   this.chestInterval = false;
   this.updateInteval = false;
@@ -73,6 +82,7 @@ function GameManager(){
 
   this.onNeedInformBuffUpdate = new Function();
   this.onNeedInformSkillUpgrade = new Function();
+  this.onNeedInformUserChangePrivateStat = new Function();
   this.onNeedInformUserChangeStat = new Function();
   this.onNeedInformUserTakeDamage = new Function();
   this.onNeedInformUserReduceMP = new Function();
@@ -123,8 +133,9 @@ GameManager.prototype.mapSetting = function(){
   this.setObstacles();
   this.setChestsLocation();
   this.setStaticTreeEle();
-  this.setOBJExps();
+  // this.setOBJExps();
   this.setOBJSkills();
+  this.setOBJGolds();
 };
 GameManager.prototype.updateGame = function(){
   if(this.chestInterval === false){
@@ -165,23 +176,23 @@ GameManager.prototype.setChestsLocation = function(){
 GameManager.prototype.setStaticTreeEle = function(){
   staticTree.pushAll(staticEles);
 };
-GameManager.prototype.setOBJExps = function(){
-  for(var i=0; i<this.objExpsCount; i++){
-    var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
-    var objExp = new OBJExp(randomID);
-    var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
-    var radius = SUtil.expToRadius(expAmount);
-    var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
-                                      radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
-
-    objExp.initOBJExp(randomPos, radius, expAmount);
-    objExp.setCollectionEle();
-    // this.staticTree.push(food.staticEle);
-    this.objExps.push(objExp);
-    collectionEles.push(objExp.collectionEle);
-    collectionTree.push(objExp.collectionEle);
-  }
-};
+// GameManager.prototype.setOBJExps = function(){
+//   for(var i=0; i<this.objExpsCount; i++){
+//     var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
+//     var objExp = new OBJExp(randomID);
+//     var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
+//     var radius = SUtil.expToRadius(expAmount);
+//     var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
+//                                       radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
+//
+//     objExp.initOBJExp(randomPos, radius, expAmount);
+//     objExp.setCollectionEle();
+//     // this.staticTree.push(food.staticEle);
+//     this.objExps.push(objExp);
+//     collectionEles.push(objExp.collectionEle);
+//     collectionTree.push(objExp.collectionEle);
+//   }
+// };
 GameManager.prototype.setOBJSkills = function(){
   for(var i=0; i<this.objSkillsCount; i++){
     var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
@@ -197,6 +208,23 @@ GameManager.prototype.setOBJSkills = function(){
     this.objSkills.push(objSkill);
     collectionEles.push(objSkill.collectionEle);
     collectionTree.push(objSkill.collectionEle);
+  }
+};
+GameManager.prototype.setOBJGolds = function(){
+  for(var i=0; i<this.objGoldsCount; i++){
+    var randomID = SUtil.generateRandomUniqueID(this.objGolds, gameConfig.PREFIX_OBJECT_GOLD);
+    var objGold = new OBJGold(randomID);
+    var goldAmount = SUtil.getRandomNum(serverConfig.OBJ_GOLD_MIN_GOLD_AMOUNT, serverConfig.OBJ_GOLD_MAX_GOLD_AMOUNT);
+    var radius = SUtil.goldToRadius(goldAmount);
+    var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
+                                      radius, serverConfig.OBJ_GOLD_RANGE_WITH_OTHERS, randomID, staticTree);
+
+    objGold.initOBJGold(randomPos, radius, goldAmount);
+    objGold.setCollectionEle();
+    // this.staticTree.push(food.staticEle);
+    this.objGolds.push(objGold);
+    collectionEles.push(objGold.collectionEle);
+    collectionTree.push(objGold.collectionEle);
   }
 };
 GameManager.prototype.createChest = function(chestLocationID){
@@ -226,10 +254,18 @@ GameManager.prototype.createChest = function(chestLocationID){
 };
 var onChestDestroyHandler = function(cht){
   var createdObjs = [];
-  for(var i=0; i<cht.exps.length; i++){
-    var objExp = this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
-    createdObjs.push(objExp[0]);
+  for(var i=0; i<cht.golds.length; i++){
+    var objGold = this.createOBJs(1, gameConfig.PREFIX_OBJECT_GOLD, cht.golds[i], cht.position);
+    createdObjs.push(objGold[0]);
   }
+  for(var i=0; i<cht.jewels.length; i++){
+    var objJewel = this.createOBJs(1, gameConfig.PREFIX_OBJECT_JEWEL, cht.jewels[i], cht.position);
+    createdObjs.push(objJewel[0]);
+  }
+  // for(var i=0; i<cht.exps.length; i++){
+  //   var objExp = this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
+  //   createdObjs.push(objExp[0]);
+  // }
   for(var i=0; i<cht.skills.length; i++){
     var objSkill = this.createOBJs(1, gameConfig.PREFIX_OBJECT_SKILL, cht.skills[i], cht.position);
     createdObjs.push(objSkill[0]);
@@ -240,40 +276,41 @@ var onChestDestroyHandler = function(cht){
     }
   }
   this.onNeedInformCreateObjs(createdObjs);
-}
-GameManager.prototype.createOBJs = function(count, type, expOrSkill, nearPosition){
+};
+GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
   var createdObjs =[];
-  if(type === gameConfig.PREFIX_OBJECT_EXP){
-    for(var i=0; i<count; i++){
-      var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
-      var objExp = new OBJExp(randomID);
-      if(expOrSkill){
-        var expAmount = expOrSkill;
-      }else{
-        var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
-      }
-      var radius = SUtil.expToRadius(expAmount);
-      if(nearPosition){
-        var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
-      }else{
-        var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
-                                          radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
-      }
-
-      objExp.initOBJExp(randomPos, radius, expAmount);
-      objExp.setCollectionEle();
-      this.objExps.push(objExp);
-      this.addedObjExps.push(objExp);
-      createdObjs.push(objExp);
-    }
-  }else if(type === gameConfig.PREFIX_OBJECT_SKILL){
+  // if(type === gameConfig.PREFIX_OBJECT_EXP){
+  //   for(var i=0; i<count; i++){
+  //     var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
+  //     var objExp = new OBJExp(randomID);
+  //     if(expOrSkill){
+  //       var expAmount = expOrSkill;
+  //     }else{
+  //       var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
+  //     }
+  //     var radius = SUtil.expToRadius(expAmount);
+  //     if(nearPosition){
+  //       var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
+  //     }else{
+  //       var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
+  //                                         radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
+  //     }
+  //
+  //     objExp.initOBJExp(randomPos, radius, expAmount);
+  //     objExp.setCollectionEle();
+  //     this.objExps.push(objExp);
+  //     this.addedObjExps.push(objExp);
+  //     createdObjs.push(objExp);
+  //   }
+  // }else
+  if(type === gameConfig.PREFIX_OBJECT_SKILL){
     for(var i=0; i<count; i++){
       var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
       var objSkill = new OBJSkill(randomID);
-      if(expOrSkill){
-        var skillIndex = expOrSkill;
+      if(amount){
+        var skillIndex = amount;
       }else{
-        skillIndex = 21;
+        amount = 21;
       }
       var radius = gameConfig.OBJ_SKILL_RADIUS;
       if(nearPosition){
@@ -290,59 +327,135 @@ GameManager.prototype.createOBJs = function(count, type, expOrSkill, nearPositio
       this.addedObjSkills.push(objSkill);
       createdObjs.push(objSkill);
     }
+  }else if(type === gameConfig.PREFIX_OBJECT_GOLD){
+    for(var i=0; i<count; i++){
+      var randomID = SUtil.generateRandomUniqueID(this.objGolds, gameConfig.PREFIX_OBJECT_GOLD);
+      var objGold = new OBJGold(randomID);
+      if(amount){
+        var goldAmount = amount;
+      }else{
+        goldAmount = serverConfig.OBJ_GOLD_MIN_GOLD_AMOUNT;
+      }
+      var raidus = SUtil.goldToRadius(goldAmount);
+      if(nearPosition){
+        var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
+      }else{
+        randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
+                                            radius, serverConfig.OBJ_GOLD_RANGE_WITH_OTHERS, randomID, staticTree);
+      }
+      objGold.initOBJGold(randomPos, radius, goldAmount);
+      objGold.setCollectionEle();
+
+      this.objGolds.push(objGold);
+      this.addedObjGolds.push(objGold);
+      createdObjs.push(objGold);
+    }
+  }else if(type === gameConfig.PREFIX_OBJECT_JEWEL){
+    for(var i=0; i<count; i++){
+      var randomID = SUtil.generateRandomUniqueID(this.objJewels, gameConfig.PREFIX_OBJECT_JEWEL);
+      var objJewel = new OBJJewel(randomID);
+      if(amount){
+        var jewelAmount = amount;
+      }else{
+        jewelAmount = serverConfig.OBJ_JEWEL_MIN_JEWEL_AMOUNT;
+      }
+      var raidus = gameConfig.OBJ_JEWEL_RADIUS;
+      if(nearPosition){
+        var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
+      }else{
+        randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
+                                            radius, serverConfig.OBJ_GOLD_RANGE_WITH_OTHERS, randomID, staticTree);
+      }
+      objJewel.initOBJJewel(randomPos, radius, jewelAmount);
+      objJewel.setCollectionEle();
+
+      this.objJewels.push(objJewel);
+      this.addedObjJewels.push(objJewel);
+      createdObjs.push(objJewel);
+    }
+  }else{
+    console.log('check objs prefix : ' + type);
   }
   return createdObjs;
 };
 GameManager.prototype.getObj = function(objID, affectNum, userID){
-  if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_EXP){
-    for(var i=0; i<this.objExps.length; i++){
-      if(this.objExps[i].objectID === objID){
-        if(userID in this.users){
-          this.users[userID].getExp(affectNum);
+  if(userID in this.users){
+    // if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_EXP){
+    //   for(var i=0; i<this.objExps.length; i++){
+    //     if(this.objExps[i].objectID === objID){
+    //       this.users[userID].getExp(affectNum);
+    //
+    //       this.objExps.splice(i, 1);
+    //       this.onNeedInformDeleteObj(objID);
+    //       return;
+    //     }
+    //   }
+    // }else
+    if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
+      for(var i=0; i<this.objSkills.length; i++){
+        if(this.objSkills[i].objectID === objID){
+          if(userID in this.users){
+            var possessSkills = this.users[userID].getSkill(affectNum);
+            this.onNeedInformSkillData(this.users[userID].socketID, possessSkills);
 
-          this.objExps.splice(i, 1);
-          this.onNeedInformDeleteObj(objID);
+            this.objSkills.splice(i, 1);
+            this.onNeedInformDeleteObj(objID);
+          }
+          return;
         }
-        return;
       }
-    }
-  }else if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
-    for(var i=0; i<this.objSkills.length; i++){
-      if(this.objSkills[i].objectID === objID){
-        if(userID in this.users){
-          var possessSkills = this.users[userID].getSkill(affectNum);
-          this.onNeedInformSkillData(this.users[userID].socketID, possessSkills);
-
-          this.objSkills.splice(i, 1);
+    }else if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_GOLD){
+      for(var i=0; i<this.objGolds.length; i++){
+        if(this.objGolds[i].objectID === objID){
+          this.users[userID].getGold(affectNum);
+          this.objGolds.splice(i, 1);
           this.onNeedInformDeleteObj(objID);
+          return;
         }
-        return;
       }
     }
-  }else if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_GOLD){
-
-  }
-};
-GameManager.prototype.deleteObj = function(objID){
-  if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
-    for(var i=0; i<this.objExps.length; i++){
-      if(this.objExps[i].objectID === objID){
-        this.objExps.splice(i, 1);
-
+  }else if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_JEWEL){
+    for(var i=0; i<this.objJewels.length; i++){
+      if(this.objJewels[i].objectID === objID){
+        this.users[userID].getJewel(affectNum);
+        this.objJewels.splice(i, 1);
         this.onNeedInformDeleteObj(objID);
-        return;
-      }
-    }
-  }else if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
-    for(var i=0; i<this.objSkills.length; i++){
-      if(this.objSkills[i].objectID === objID){
-        this.objSkills.splice(i, 1);
-        this.onNeedInformDeleteObj(objID);
-        return;
       }
     }
   }
 };
+
+// GameManager.prototype.deleteObj = function(objID){
+//   if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
+//     for(var i=0; i<this.objExps.length; i++){
+//       if(this.objExps[i].objectID === objID){
+//         this.objExps.splice(i, 1);
+//
+//         this.onNeedInformDeleteObj(objID);
+//         return;
+//       }
+//     }
+//   }
+//   // else if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
+//   //   for(var i=0; i<this.objSkills.length; i++){
+//   //     if(this.objSkills[i].objectID === objID){
+//   //       this.objSkills.splice(i, 1);
+//   //       this.onNeedInformDeleteObj(objID);
+//   //       return;
+//   //     }
+//   //   }
+//   // }
+//   else if(objID.substr(0,3) === gameConfig.PREFIX_OBJECT_GOLD){
+//     for(var i=0; i<this.objGolds.lengthl i++){
+//       if(this.objGolds[i].objectID === objID){
+//         this.objGolds.splice(i, 1);
+//
+//         this.onNeedInformDeleteObj(objID);
+//         return;
+//       }
+//     }
+//   }
+// };
 
 // user join, kick, update
 GameManager.prototype.joinUser = function(user){
@@ -350,13 +463,15 @@ GameManager.prototype.joinUser = function(user){
   this.users[user.objectID].onBuffExchange = SUtil.onUserBuffExchange.bind(this);
   this.users[user.objectID].onSkillUpgrade = SUtil.onUserSkillUpgrade.bind(this, user.socketID);
   this.users[user.objectID].onMove = onMoveCalcCompelPos.bind(this);
+  this.users[user.objectID].onChangePrivateStat = SUtil.onUserChangePrivateStat.bind(this);
   this.users[user.objectID].onChangeStat = SUtil.onUserChangeStat.bind(this);
   this.users[user.objectID].onTakeDamage = SUtil.onUserTakeDamage.bind(this);
   this.users[user.objectID].onReduceMP = SUtil.onUserReduceMP.bind(this);
   this.users[user.objectID].onGetExp = SUtil.onUserGetExp.bind(this);
   this.users[user.objectID].onLevelUP = SUtil.onUserLevelUP.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
-  this.objExpsCount += serverConfig.OBJ_EXP_ADD_PER_USER;
+  // this.objExpsCount += serverConfig.OBJ_EXP_ADD_PER_USER;
+  this.objGoldsCount += serverConfig.OBJ_GOLD_ADD_PER_USER;
   console.log(this.users);
   console.log(user.objectID + ' join in GameManager');
 };
@@ -365,7 +480,8 @@ GameManager.prototype.kickUser = function(user){
     console.log("can`t find user`s ID. user already out of game");
   }else{
     delete this.users[user.objectID];
-    this.objExpsCount -= serverConfig.OBJ_EXP_ADD_PER_USER;
+    this.objGoldsCount -= serverConfig.OBJ_GOLD_ADD_PER_USER;
+    // this.objExpsCount -= serverConfig.OBJ_EXP_ADD_PER_USER;
   }
 };
 GameManager.prototype.stopUser = function(user){
@@ -590,6 +706,13 @@ GameManager.prototype.processChangedUserStat = function(user){
     conditions : this.conditions
   };
 };
+GameManager.prototype.processUserPrivateDataSetting = function(user){
+  return {
+    statPower : user.statPower,
+    statMagic : user.statMagic,
+    statSpeed : user.statSpeed
+  };
+};
 GameManager.prototype.processBuffDataSetting = function(user){
   var buffIndexList = [];
   var passiveIndexList = [];
@@ -610,6 +733,13 @@ GameManager.prototype.addSkillData = function(userData){
     userData.equipSkills = this.users[userData.objectID].equipSkills;
     userData.possessSkills = this.users[userData.objectID].possessSkills;
     userData.inherentPassiveSkill= this.users[userData.objectID].inherentPassiveSkill;
+  }
+};
+GameManager.prototype.addStatData = function(userData){
+  if(userData.objectID in this.users){
+    userData.statPower = this.users[userData.objectID].statPower;
+    userData.statMagic = this.users[userData.objectID].statMagic;
+    userData.statSpeed = this.users[userData.objectID].statSpeed;
   }
 };
 GameManager.prototype.processSkillsDataSettings = function(){
@@ -654,21 +784,34 @@ GameManager.prototype.processOBJDataSetting = function(data){
 };
 GameManager.prototype.processOBJDataSettings = function(){
   var objDatas = [];
-  for(var i=0; i<this.objExps.length; i++){
-    var objExp = {
-      objectID : this.objExps[i].objectID,
-      position : this.objExps[i].position,
-      radius : this.objExps[i].size.width/2
-    }
-    objDatas.push(objExp);
+  // for(var i=0; i<this.objExps.length; i++){
+  //   var objExp = {
+  //     objectID : this.objExps[i].objectID,
+  //     position : this.objExps[i].position,
+  //     radius : this.objExps[i].size.width/2
+  //   }
+  //   objDatas.push(objExp);
+  // }
+  for(var i=0; i<this.objGolds.length; i++){
+    objDatas.push({
+      objectID : this.objGolds[i].objectID,
+      position : this.objGolds[i].position,
+      radius : this.objGolds[i].size.width/2
+    });
+  }
+  for(var i=0; i<this.objJewels.length; i++){
+    objDatas.push({
+      objectID : this.objJewels[i].objectID,
+      position : this.objJewels[i].position,
+      radius : this.objJewels[i].size.width/2
+    });
   }
   for(var i=0; i<this.objSkills.length; i++){
-    var objSkill = {
+    objDatas.push({
       objectID : this.objSkills[i].objectID,
       position : this.objSkills[i].position,
       radius : this.objSkills[i].size.width/2
-    }
-    objDatas.push(objSkill);
+    });
   }
   return objDatas;
 };
@@ -797,14 +940,19 @@ function updateIntervalHandler(){
     //collisionObj : exp or skill object
     var collisionObjs = util.checkCircleCollision(collectionTree, tempUser.x, tempUser.y, tempUser.width/2, tempUser.id);
     for(var j=0; j<collisionObjs.length;j++){
-      if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
-        //case objExp
-        affectedEles.push(SUtil.setAffectedEleColUserWithCollection(tempUser.id, collisionObjs[j], serverConfig.COLLISION_USER_WITH_COLLECTION_EXP));
-        // affectedEles.push({type : 'getExpObj',user : tempUser.id, colObj : collisionObjs[j].id, addExp : collisionObjs[j].exp});
-      }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
+      // if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_EXP){
+      //   //case objExp
+      //   affectedEles.push(SUtil.setAffectedEleColUserWithCollection(tempUser.id, collisionObjs[j], serverConfig.COLLISION_USER_WITH_COLLECTION_EXP));
+      //   // affectedEles.push({type : 'getExpObj',user : tempUser.id, colObj : collisionObjs[j].id, addExp : collisionObjs[j].exp});
+      // }else
+      if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_SKILL){
         //case objSkill
         affectedEles.push(SUtil.setAffectedEleColUserWithCollection(tempUser.id, collisionObjs[j], serverConfig.COLLISION_USER_WITH_COLLECTION_SKILL));
         // affectedEles.push({type : 'getSkillObj',user : tempUser.id, colObj : collisionObjs[j].id, skillIndex : collisionObjs[j].skillIndex});
+      }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_GOLD){
+        affectedEles.push(SUtil.setAffectedEleColUserWithCollection(tempUser.id, collisionObjs[j], serverConfig.COLLISION_USER_WITH_COLLECTION_GOLD));
+      }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBJECT_JEWEL){
+        affectedEles.push(SUtil.setAffectedEleColUserWithCollection(tempUser.id, collisionObjs[j], serverConfig.COLLISION_USER_WITH_COLLECTION_JEWEL));
       }else{
         console.log('check id' + collisionObjs[j].id);
       }
@@ -857,26 +1005,40 @@ function updateIntervalHandler(){
     chestEles.push(this.chests[i].entityTreeEle);
   }
   //update collectable objects array
-  var addExpCounts = this.objExpsCount -this.objExps.length;
-  var addSkillCounts = this.objSkillsCount - this.objSkills.length;
-  if(addExpCounts > 0){
-    var createdObjs = this.createOBJs(addExpCounts, gameConfig.PREFIX_OBJECT_EXP);
-    this.onNeedInformCreateObjs(createdObjs);
-  }
-  if(addSkillCounts > 0){
-    var createdObjs = this.createOBJs(addSkillCounts, gameConfig.PREFIX_OBJECT_SKILL);
+  // var addExpCounts = this.objExpsCount -this.objExps.length;
+  // var addSkillCounts = this.objSkillsCount - this.objSkills.length;
+  var addGoldCounts = this.objGoldsCount - this.objGolds.length;
+  // if(addExpCounts > 0){
+  //   var createdObjs = this.createOBJs(addExpCounts, gameConfig.PREFIX_OBJECT_EXP);
+  //   this.onNeedInformCreateObjs(createdObjs);
+  // }
+  // if(addSkillCounts > 0){
+  //   var createdObjs = this.createOBJs(addSkillCounts, gameConfig.PREFIX_OBJECT_SKILL);
+  //   this.onNeedInformCreateObjs(createdObjs);
+  // }
+  if(addGoldCounts > 0){
+    var createdObjs = this.createOBJs(addGoldCounts, gameConfig.PREFIX_OBJECT_GOLD);
     this.onNeedInformCreateObjs(createdObjs);
   }
 
   var addedObjEles = [];
-  for(var i=0; i<this.addedObjExps.length; i++){
-    addedObjEles.push(this.addedObjExps[i].collectionEle);
-  }
+  // for(var i=0; i<this.addedObjExps.length; i++){
+  //   addedObjEles.push(this.addedObjExps[i].collectionEle);
+  // }
   for(var i=0; i<this.addedObjSkills.length; i++){
     addedObjEles.push(this.addedObjSkills[i].collectionEle);
   }
-  this.addedObjExps = [];
+  for(var i=0; i<this.addedObjGolds.length; i++){
+    addedObjEles.push(this.addedObjGolds[i].collectionEle);
+  }
+  for(var i=0; i<this.addedObjJewels.length; i++){
+    addedObjEles.push(this.addedObjJewels[i].collectionEle);
+  }
+  // this.addedObjExps = [];
   this.addedObjSkills = [];
+  this.addedObjGolds = [];
+  this.addedObjJewels = [];
+
   for(var i=0; i<addedObjEles.length; i++){
     collectionEles.push(addedObjEles[i]);
   }
@@ -997,12 +1159,16 @@ function affectIntervalHandler(){
             break;
           }
         }
-      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_EXP){
-        this.getObj(affectedEles[i].affectedID, affectedEles[i].expAmount, affectedEles[i].actorID);
-      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_SKILL){
+      }
+      // else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_EXP){
+      //   this.getObj(affectedEles[i].affectedID, affectedEles[i].expAmount, affectedEles[i].actorID);
+      // }
+      else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_SKILL){
         this.getObj(affectedEles[i].affectedID, affectedEles[i].skillIndex, affectedEles[i].actorID);
       }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_GOLD){
         this.getObj(affectedEles[i].affectedID, affectedEles[i].goldAmount, affectedEles[i].actorID);
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_JEWEL){
+        this.getObj(affectedEles[i].affectedID, affectedEles[i].jewelAmount, affectedEles[i].actorID);
       }else{
         console.log('affectedEle is not specified');
         console.log(affectedEles[i]);

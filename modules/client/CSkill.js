@@ -1,13 +1,11 @@
 var util = require('../public/util.js');
+var gameConfig = require('../public/gameConfig.json');
 
 function CSkill(skillData, userAniStartTime){
-
   this.startTime = Date.now();
-  this.timeSpan = skillData.timeSpan;
 
   this.index = skillData.index;
   this.type = skillData.type;
-  this.name = skillData.name;
   this.totalTime = skillData.totalTime;
   this.fireTime = skillData.fireTime;
   this.range = skillData.range;
@@ -83,8 +81,6 @@ function totalTimeoutHandler(){
 };
 
 var ProjectileSkill = function(skillInstance, currentPosition, ID, direction){
-  this.startTime = Date.now();
-
   this.objectID = ID;
 
   this.index = skillInstance.index;
@@ -97,40 +93,10 @@ var ProjectileSkill = function(skillInstance, currentPosition, ID, direction){
     x : skillInstance.maxSpeed * Math.cos(this.direction * Math.PI/180),
     y : skillInstance.maxSpeed * Math.sin(this.direction * Math.PI/180)
   };
-  this.timer = Date.now();
+  // this.timer = Date.now();
   this.radius = skillInstance.radius;
   this.lifeTime = skillInstance.lifeTime;
   this.explosionRadius = skillInstance.explosionRadius;
-
-  this.effect = {
-    position : this.position,
-    radius : this.explosionRadius,
-    startTime : 0,
-    lifeTime  : skillInstance.effectLastTime
-  };
-
-  this.onExplosion = new Function();
-};
-
-ProjectileSkill.prototype = {
-  move : function(){
-    var deltaTime = (Date.now() - this.timer)/ 1000;
-    this.position.x += this.speed.x * deltaTime;
-    this.position.y += this.speed.y * deltaTime;
-    this.timer = Date.now();
-  },
-  startEffectTimer : function(){
-    this.effect.startTime = Date.now();
-  },
-  isExpired : function(){
-    if(this.lifeTime > Date.now() - this.startTime){
-      return false;
-    }
-    return true;
-  },
-  explode : function(){
-    console.log('explode!!!!!!');
-  }
 };
 
 

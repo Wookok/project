@@ -29,36 +29,89 @@ OBJSkill.prototype.setCollectionEle = function(){
 
 module.exports.OBJSkill = OBJSkill;
 
-var GameObject = require('./GameObject.js');
-
-function OBJExp(objectID){
+function OBJGold(objectID){
   GameObject.call(this);
   this.objectID = objectID;
 
-  this.expAmount;
+  this.goldAmount = 0;
 
   this.collectionEle = {};
 };
-OBJExp.prototype = Object.create(GameObject.prototype);
-OBJExp.prototype.constructor = OBJExp;
+OBJGold.prototype = Object.create(GameObject.prototype);
+OBJGold.prototype.constructor = OBJGold;
 
-OBJExp.prototype.initOBJExp = function(position, radius, expAmount){
+OBJGold.prototype.initOBJGold = function(position, radius, goldAmount){
   this.setSize(radius * 2, radius * 2);
   this.setPosition(position.x, position.y);
-  this.expAmount = expAmount;
+  this.goldAmount = goldAmount;
 };
-OBJExp.prototype.setCollectionEle = function(){
+OBJGold.prototype.setCollectionEle = function(){
   this.collectionEle = {
     id : this.objectID,
     x : this.position.x,
     y : this.position.y,
     width : this.size.width,
     height : this.size.height,
-    expAmount : this.expAmount
-  };
+    goldAmount : this.goldAmount
+  }
 };
+module.exports.OBJGold = OBJGold;
 
-module.exports.OBJExp = OBJExp;
+function OBJJewel(objectID){
+  GameObject.call(this);
+  this.objectID = objectID;
+
+  this.jewelAmount = 1;
+
+  this.collectionEle = {};
+};
+OBJJewel.prototype = Object.create(GameObject.prototype);
+OBJJewel.prototype.constructor = OBJJewel;
+
+OBJJewel.prototype.initOBJJewel = function(position, radius, jewelAmount){
+  this.setSize(radius * 2, radius * 2);
+  this.setPosition(position.x, position.y);
+  this.jewelAmount = jewelAmount;
+};
+OBJJewel.prototype.setCollectionEle = function(){
+  this.collectionEles = {
+    id : this.objectID,
+    x : this.position.x,
+    y : this.position.y,
+    width : this.size.width,
+    height : this.size.height,
+    jewelAmount : this.jewelAmount
+  }
+};
+module.exports.OBJJewel = OBJJewel;
+
+// function OBJExp(objectID){
+//   GameObject.call(this);
+//   this.objectID = objectID;
+//
+//   this.expAmount = 0;
+//
+//   this.collectionEle = {};
+// };
+// OBJExp.prototype = Object.create(GameObject.prototype);
+// OBJExp.prototype.constructor = OBJExp;
+//
+// OBJExp.prototype.initOBJExp = function(position, radius, expAmount){
+//   this.setSize(radius * 2, radius * 2);
+//   this.setPosition(position.x, position.y);
+//   this.expAmount = expAmount;
+// };
+// OBJExp.prototype.setCollectionEle = function(){
+//   this.collectionEle = {
+//     id : this.objectID,
+//     x : this.position.x,
+//     y : this.position.y,
+//     width : this.size.width,
+//     height : this.size.height,
+//     expAmount : this.expAmount
+//   };
+// };
+// module.exports.OBJExp = OBJExp;
 
 function OBJChest(objectID, locationID){
   GameObject.call(this);
@@ -69,7 +122,9 @@ function OBJChest(objectID, locationID){
   this.HP = 0;
 
   this.grade = 0;
-  this.exps = [];
+  // this.exps = [];
+  this.golds = [];
+  this.jewels = [];
   this.skills = [];
 
   this.entityTreeEle = {}
@@ -98,16 +153,33 @@ OBJChest.prototype.initOBJChest = function(position, radius, chestData){
   this.maxHP = chestData.HP;
   this.HP = this.maxHP;
   this.grade = chestData.grade;
-  this.setExps(chestData);
+  this.setGolds(chestData);
+  this.setJewels(chestData);
+  // this.setExps(chestData);
   this.setSkills(chestData);
+  console.log(this);
 };
-OBJChest.prototype.setExps = function(chestData){
-  var expCount = Math.floor(Math.random() * (chestData.maxExpCount - chestData.minExpCount + 1) + chestData.minExpCount);
-  for(var i=0; i<expCount; i++){
-    var expAmount = Math.floor(Math.random() * (chestData.maxExpAmount - chestData.minExpAmount + 1) + chestData.minExpAmount);
-    this.exps.push(expAmount);
+OBJChest.prototype.setGolds = function(chestData){
+  var goldCount = Math.floor(Math.random() * (chestData.maxGoldCount - chestData.minGoldCount + 1) + chestData.minGoldCount);
+  for(var i=0; i<goldCount; i++){
+    var goldAmount = Math.floor(Math.random() * (chestData.maxGoldAmount - chestData.minGoldAmount + 1) + chestData.minGoldAmount);
+    this.golds.push(goldAmount);
   }
 };
+OBJChest.prototype.setJewels = function(chestData){
+  var jewelCount = Math.floor(Math.random() * (chestData.maxJewelCount - chestData.minJewelCount + 1) + chestData.minJewelCount);
+  for(var i=0; i<jewelCount; i++){
+    var jewelAmount = Math.floor(Math.random() * (chestData.maxJewelAmount - chestData.minJewelAmount + 1) + chestData.minJewelAmount);
+    this.jewels.push(jewelAmount);
+  }
+}
+// OBJChest.prototype.setExps = function(chestData){
+//   var expCount = Math.floor(Math.random() * (chestData.maxExpCount - chestData.minExpCount + 1) + chestData.minExpCount);
+//   for(var i=0; i<expCount; i++){
+//     var expAmount = Math.floor(Math.random() * (chestData.maxExpAmount - chestData.minExpAmount + 1) + chestData.minExpAmount);
+//     this.exps.push(expAmount);
+//   }
+// };
 OBJChest.prototype.setSkills = function(chestData){
   var totalRate = 0;
   for(var i=0; i<20; i++){

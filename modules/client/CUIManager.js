@@ -16,14 +16,20 @@ var equipSkills = new Array(4);
 var equipSkillDatas = new Array(4);
 var possessSkills = [];
 
-var hudBaseSkill, hudEquipSkill1, hudEquipSkill2, hudEquipSkill3, hudEquipSkill4, hudPassiveSkill;
+var hudBaseSkillImg, hudEquipSkill1Img, hudEquipSkill2Img, hudEquipSkill3Img, hudEquipSkill4Img, hudPassiveSkillImg;
 var hudBtnSkillChange;
 var gameSceneBuffsContainer;
 var userHPProgressBar, userMPProgressBar, userExpProgressBar;
 
+var isUseableBaseSkill = true, isUseableEquipSkill1 = true, isUseableEquipSkill2 = true, isUseableEquipSkill3 = true, isUseableEquipSkill4 = true;
+var hudBaseSkillMask, hudEquipSkill1Mask, hudEquipSkill2Mask, hudEquipSkill3Mask, hudEquipSkill4Mask;
+var userStatPowerContainer, userStatMagicContainer, userStatSpeedContainer;
+
 var popUpSkillChange, popUpSkillContainer, popUpBackground;
 var popUpSkillInfoIcon, popUpSkillInfoDesc, popUpSkillUpgradeBtn;
 var popUpEquipBaseSkill, popUpEquipSkill1, popUpEquipSkill2, popUpEquipSkill3, popUpEquipSkill4, popUpEquipPassiveSkill;
+
+var blankImg = '../css/blankFrame.png';
 
 var sellectedPanel = null;
 var sellectedDiv = null;
@@ -66,12 +72,12 @@ UIManager.prototype = {
     }
   },
   initHUD : function(){
-    hudBaseSkill = document.getElementById('hudBaseSkill');
-    hudEquipSkill1 = document.getElementById('hudEquipSkill1');
-    hudEquipSkill2 = document.getElementById('hudEquipSkill2');
-    hudEquipSkill3 = document.getElementById('hudEquipSkill3');
-    hudEquipSkill4 = document.getElementById('hudEquipSkill4');
-    hudPassiveSkill = document.getElementById('hudPassiveSkill');
+    hudBaseSkillImg = document.getElementById('hudBaseSkillImg');
+    hudEquipSkill1Img = document.getElementById('hudEquipSkill1Img');
+    hudEquipSkill2Img = document.getElementById('hudEquipSkill2Img');
+    hudEquipSkill3Img = document.getElementById('hudEquipSkill3Img');
+    hudEquipSkill4Img = document.getElementById('hudEquipSkill4Img');
+    hudPassiveSkillImg = document.getElementById('hudPassiveSkillImg');
 
     hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
 
@@ -79,6 +85,22 @@ UIManager.prototype = {
     userHPProgressBar = document.getElementById('userHPProgressBar');
     userExpProgressBar = document.getElementById('userExpProgressBar');
     userMPProgressBar = document.getElementById('userMPProgressBar');
+
+    hudBaseSkillMask = document.getElementById('hudBaseSkillMask');
+    hudEquipSkill1Mask = document.getElementById('hudEquipSkill1Mask');
+    hudEquipSkill2Mask = document.getElementById('hudEquipSkill2Mask');
+    hudEquipSkill3Mask = document.getElementById('hudEquipSkill3Mask');
+    hudEquipSkill4Mask = document.getElementById('hudEquipSkill4Mask');
+
+    hudBaseSkillMask.addEventListener('animationend', cooldownListener.bind(hudBaseSkillMask, gameConfig.USE_SKILL_BASIC), false);
+    hudEquipSkill1Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill1Mask, gameConfig.USE_SKILL_EQUIP1), false);
+    hudEquipSkill2Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill2Mask, gameConfig.USE_SKILL_EQUIP2), false);
+    hudEquipSkill3Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill3Mask, gameConfig.USE_SKILL_EQUIP3), false);
+    hudEquipSkill4Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill4Mask, gameConfig.USE_SKILL_EQUIP4), false);
+
+    userStatPowerContainer = document.getElementById('userStatPowerContainer');
+    userStatMagicContainer = document.getElementById('userStatMagicContainer');
+    userStatSpeedContainer = document.getElementById('userStatSpeedContainer');
   },
   drawStartScene : function(){
     startScene.classList.add('enable');
@@ -129,63 +151,62 @@ UIManager.prototype = {
     }
     userExpProgressBar.style.width = percent + "%";
   },
-  userSkill : function(skillData){
-
+  applySkill : function(skillIndex){
+    //check skill slot
+    var slotMask = null;
+    if(baseSkill === skillIndex){
+      slotMask = hudBaseSkillMask;
+      isUseableBaseSkill = false;
+    }else if(equipSkills[0] === skillIndex){
+      slotMask = hudEquipSkill1Mask;
+      isUseableEquipSkill1 = false;
+    }else if(equipSkills[1] === skillIndex){
+      slotMask = hudEquipSkill2Mask;
+      isUseableEquipSkill2 = false;
+    }else if(equipSkills[2] === skillIndex){
+      slotMask = hudEquipSkill3Mask;
+      isUseableEquipSkill3 = false;
+    }else if(equipSkills[3] === skillIndex){
+      slotMask = hudEquipSkill4Mask;
+      isUseableEquipSkill4 = false;
+    }else{
+      console.log('cant find skill slot');
+    }
+    //cooldown start
+    if(slotMask){
+      var skillData = util.findData(skillTable, 'index', skillIndex);
+      slotMask.style.animationDuration = (skillData.cooldown / 1000) + 's';
+      slotMask.classList.add("cooldownMaskAni");
+    }
+  },
+  checkCooltime : function(skillSlot){
+    switch (skillSlot) {
+      case gameConfig.USE_SKILL_BASIC:
+        return isUseableBaseSkill;
+      case gameConfig.USE_SKILL_EQUIP1:
+        return isUseableEquipSkill1;
+      case gameConfig.USE_SKILL_EQUIP2:
+        return isUseableEquipSkill2;
+      case gameConfig.USE_SKILL_EQUIP3:
+        return isUseableEquipSkill3;
+      case gameConfig.USE_SKILL_EQUIP4:
+        return isUseableEquipSkill4;
+      default:
+        return false;
+    }
   },
   setHUDSkills : function(){
-    while (hudBaseSkill.firstChild) {
-      hudBaseSkill.removeChild(hudBaseSkill.firstChild);
-    }
-    while (hudEquipSkill1.firstChild) {
-      hudEquipSkill1.removeChild(hudEquipSkill1.firstChild);
-    }
-    while (hudEquipSkill2.firstChild) {
-      hudEquipSkill2.removeChild(hudEquipSkill2.firstChild);
-    }
-    while (hudEquipSkill3.firstChild) {
-      hudEquipSkill3.removeChild(hudEquipSkill3.firstChild);
-    }
-    while (hudEquipSkill4.firstChild) {
-      hudEquipSkill4.removeChild(hudEquipSkill4.firstChild);
-    }
-    while (hudPassiveSkill.firstChild) {
-      hudPassiveSkill.removeChild(hudPassiveSkill.firstChild);
-    }
-    hudBaseSkill.innerHtml = '';
-    hudEquipSkill1.innerHtml = '';
-    hudEquipSkill2.innerHtml = '';
-    hudEquipSkill3.innerHtml = '';
-    hudEquipSkill4.innerHtml = '';
-    hudPassiveSkill.innerHtml = '';
-
-    var baseImg = document.createElement('img');
-    baseImg.src = baseSkillData.skillIcon;
-    hudBaseSkill.appendChild(baseImg);
-
-    var inherentPassiveSkillImg = document.createElement('img');
-    inherentPassiveSkillImg.src = inherentPassiveSkillData.skillIcon;
-    hudPassiveSkill.appendChild(inherentPassiveSkillImg);
-
-    if(equipSkillDatas[0]){
-      var equipSkills1 = document.createElement('img');
-      equipSkills1.src = equipSkillDatas[0].skillIcon;
-      hudEquipSkill1.appendChild(equipSkills1);
-    }
-    if(equipSkillDatas[1]){
-      var equipSkills2 = document.createElement('img');
-      equipSkills2.src = equipSkillDatas[1].skillIcon;
-      hudEquipSkill2.appendChild(equipSkills2);
-    }
-    if(equipSkillDatas[2]){
-      var equipSkills3 = document.createElement('img');
-      equipSkills3.src = equipSkillDatas[2].skillIcon;
-      hudEquipSkill3.appendChild(equipSkills3);
-      }
-    if(equipSkillDatas[3]){
-      var equipSkills4 = document.createElement('img');
-      equipSkills4.src = equipSkillDatas[3].skillIcon;
-      hudEquipSkill4.appendChild(equipSkills4);
-    }
+    hudBaseSkillImg.src = baseSkillData ? baseSkillData.skillIcon : blankImg;
+    hudEquipSkill1Img.src = equipSkillDatas[0] ? equipSkillDatas[0].skillIcon : blankImg;
+    hudEquipSkill2Img.src = equipSkillDatas[1] ? equipSkillDatas[1].skillIcon : blankImg;
+    hudEquipSkill3Img.src = equipSkillDatas[2] ? equipSkillDatas[2].skillIcon : blankImg;
+    hudEquipSkill4Img.src = equipSkillDatas[3] ? equipSkillDatas[3].skillIcon : blankImg;
+    hudPassiveSkillImg.src = inherentPassiveSkillData ? inherentPassiveSkillData.skillIcon : blankImg;
+  },
+  setHUDStats : function(power, magic, speed){
+    userStatPowerContainer.children[1].innerHTML = power;
+    userStatMagicContainer.children[1].innerHTML = magic;
+    userStatSpeedContainer.children[1].innerHTML = speed;
   },
   setSkillChangeBtn : function(){
     hudBtnSkillChange.onclick = function(){
@@ -670,5 +691,27 @@ function skillUpgradeBtnHandler(){
 };
 function startBtnClickHandler(){
   this.onStartBtnClick(characterType);
+};
+function cooldownListener(slot, e){
+  this.classList.remove("cooldownMaskAni");
+  this.style.opacity = 0;
+  switch (slot) {
+    case gameConfig.USE_SKILL_BASIC:
+      isUseableBaseSkill = true;
+      break;
+    case gameConfig.USE_SKILL_EQUIP1:
+      isUseableEquipSkill1 = true;
+      break;
+    case gameConfig.USE_SKILL_EQUIP2:
+      isUseableEquipSkill2 = true;
+      break;
+    case gameConfig.USE_SKILL_EQUIP3:
+      isUseableEquipSkill3 = true;
+      break;
+    case gameConfig.USE_SKILL_EQUIP4:
+      isUseableEquipSkill4 = true;
+      break;
+    default:
+  }
 };
 module.exports = UIManager;

@@ -74,6 +74,20 @@
     </div>
     <div class="gameSceneHudBottomLeft">
     </div>
+    <div class="gameSceneHudBottomLeftCenter">
+      <div id="userStatPowerContainer">
+        <div>P</div>
+        <div></div>
+      </div>
+      <div id="userStatMagicContainer">
+        <div>M</div>
+        <div></div>
+      </div>
+      <div id="userStatSpeedContainer">
+        <div>S</div>
+        <div></div>
+      </div>
+    </div>
     <div class="gameSceneHudBottomCenter">
       <div class="gameSceneHPContainer">
         <div class="userHPProgressBar" id="userHPProgressBar">
@@ -90,14 +104,31 @@
         </div>
       </div>
       <div class="gameSceneSkillsContainer">
-        <div id="hudBaseSkill" class="hudBaseSkill"></div>
-        <div class="hudEquipSkills">
-          <div id="hudEquipSkill1" class="hudEquipSkill1"></div>
-          <div id="hudEquipSkill2" class="hudEquipSkill2"></div>
-          <div id="hudEquipSkill3" class="hudEquipSkill3"></div>
-          <div id="hudEquipSkill4" class="hudEquipSkill4"></div>
+        <div class="hudBaseSkill">
+          <div class="hudSkillImgContainer"><img src="" id="hudBaseSkillImg"></div>
+          <div id="hudBaseSkillMask" class="skillMask"></div>
         </div>
-        <div id="hudPassiveSkill" class="hudPassiveSkill"></div>
+        <div class="hudEquipSkills">
+          <div class="hudEquipSkill1">
+            <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill1Img"></div>
+            <div id="hudEquipSkill1Mask" class="skillMask"></div>
+          </div>
+          <div id="hudEquipSkill2" class="hudEquipSkill2">
+            <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill2Img"></div>
+            <div id="hudEquipSkill2Mask" class="skillMask"></div>
+          </div>
+          <div id="hudEquipSkill3" class="hudEquipSkill3">
+            <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill3Img"></div>
+            <div id="hudEquipSkill3Mask" class="skillMask"></div>
+          </div>
+          <div id="hudEquipSkill4" class="hudEquipSkill4">
+            <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill4Img"></div>
+            <div id="hudEquipSkill4Mask" class="skillMask"></div>
+          </div>
+        </div>
+        <div id="hudPassiveSkill" class="hudPassiveSkill">
+          <div class="hudSkillImgContainer"><img src="" id="hudPassiveSkillImg"></div>
+        </div>
       </div>
     </div>
     <div class="gameSceneHudBottomRight">

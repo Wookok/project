@@ -48,7 +48,7 @@ var ProjectileCollider = function(user, projectileData){
   this.explosionDamageRate = projectileData.explosionDamageRate;
 
   this.buffToTarget = projectileData.buffToTarget;
-  this.hitBuffList = skillData.hitBuffList;
+  this.hitBuffList = projectileData.hitBuffList;
 
   this.additionalBuffToTarget = null;
 

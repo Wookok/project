@@ -10,7 +10,7 @@ var User = function(userData){
 
   this.level = userData.level;
   this.exp = userData.exp;
-  
+
   this.maxHP = userData.maxHP;
   this.maxMP = userData.maxMP;
   this.HP = userData.HP;
@@ -145,7 +145,7 @@ User.prototype = {
     };
   },
   makeSkillInstance : function(skillData){
-    var skillInstance = new Skill(skillData, skillData.fireTime - 100);
+    var skillInstance = new Skill(skillData, skillData.fireTime - gameConfig.USER_ANI_TIME);
     skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
     skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
     return skillInstance;

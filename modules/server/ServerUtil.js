@@ -1,7 +1,9 @@
 var util = require('../public/util.js');
+var csvJson = require('../public/csvjson.js')
 var dataJson = require('../public/data.json');
 
 var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
+var buffTable = csvJson.toObject(dataJson.buffData, {delimiter : ',', quote : '"'});
 
 exports.generateRandomUniqueID = function(uniqueCheckArray, prefix){
   var IDisUnique = false;
@@ -64,12 +66,18 @@ exports.getRandomNum = function(minVal, maxVal){
 exports.expToRadius = function(exp){
   return 4 + Math.sqrt(exp) * 6;
 };
+exports.goldToRadius = function(gold){
+  return 4 + Math.sqrt(gold) * 6;
+};
 
 exports.onUserBuffExchange = function(user){
   this.onNeedInformBuffUpdate(user);
 };
 exports.onUserSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
   this.onNeedInformSkillUpgrade(socketID, beforeSkillIndex, afterSkillIndex);
+};
+exports.onUserChangePrivateStat = function(user){
+  this.onNeedInformUserChangePrivateStat(user);
 };
 exports.onUserChangeStat = function(user){
   this.onNeedInformUserChangeStat(user);
@@ -119,6 +127,7 @@ exports.setAffectedEleColUserWithCollection = function(userID, affectedObj, coll
 
     expAmount : affectedObj.expAmount || 0,
     goldAmount : affectedObj.goldAmount || 0,
+    jewelAmount : affectedObj.jewelAmount || 0,
     skillIndex : affectedObj.skillIndex || 0
   }
 };
