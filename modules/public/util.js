@@ -472,7 +472,7 @@ exports.findAndSetBuffs = function(buffGroupData, buffTable, actorID){
   for(var i=0; i<5; i++){
     var buffIndex = buffGroupData['buff' + (i + 1)];
     if(buffIndex){
-      var buffData = exports.findData(buffTable, 'index', buffIndex);
+      var buffData = Object.assign({}, exports.findData(buffTable, 'index', buffIndex));
       buffData.actorID = actorID;
       returnVal.push(buffData);
     }else{
@@ -518,6 +518,18 @@ exports.generateRandomUniqueID = function(uniqueCheckArray, prefix, idCount){
     }
     return IDs;
   }
+};
+exports.getElementsByClassName = function(parentDiv, className){
+  var returnDivs = [];
+  var childrenDivs = parentDiv.getElementsByTagName('div');
+  for(var i=0; i<childrenDivs.length; i++){
+    for(var j=0; j<childrenDivs[i].classList.length; j++){
+      if(childrenDivs[i].classList[j] === className){
+        returnDivs.push(childrenDivs[i]);
+      }
+    }
+  }
+  return returnDivs;
 };
 function generateRandomID(prefix){
   var output = prefix;

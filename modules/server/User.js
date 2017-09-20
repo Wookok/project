@@ -56,6 +56,7 @@ function User(socketID, userStat, userBase, exp){
   this.baseReductionFire = userBase.baseReductionFire;
   this.baseReductionFrost = userBase.baseReductionFrost;
   this.baseReductionArcane = userBase.baseReductionArcane;
+  this.baseCooldownReduceRate = userBase.baseCooldownReduceRate;
 
   this.level = 1;
   this.exp = exp;
@@ -79,6 +80,7 @@ function User(socketID, userStat, userBase, exp){
   this.damageRate = 0; this.fireDamageRate = 0; this.frostDamageRate = 0; this.arcaneDamageRate = 0;
   this.resistAll = 0;  this.resistFire = 0;  this.resistFrost = 0;  this.resistArcane = 0;
   this.reductionAll = 0;  this.reductionFire = 0;  this.reductionFrost = 0;  this.reductionArcane = 0;
+  this.cooldownReduceRate = 0;
 
   this.baseSkill = 0;
   this.equipSkills = [];
@@ -133,7 +135,7 @@ User.prototype.initStat = function(){
   this.fireDamageRate = this.baseFireDamageRate;
   this.frostDamageRate = this.baseFrostDamageRate;
   this.arcaneDamageRate = this.baseArcaneDamageRate;
-  this.resistAll = this.baseResistAll + serverConfig.STAT_CALC_FACTOR_MAGIC_TO_RESISTANCE + this.statMagic;
+  this.resistAll = this.baseResistAll + serverConfig.STAT_CALC_FACTOR_MAGIC_TO_RESISTANCE * this.statMagic;
   this.resistFire = this.baseResistFire;
   this.resistFrost = this.baseResistFrost;
   this.resistArcane = this.baseResistArcane;
@@ -141,6 +143,7 @@ User.prototype.initStat = function(){
   this.reductionFire = this.baseReductionFire;
   this.reductionFrost = this.baseReductionFrost;
   this.reductionArcane = this.baseReductionArcane;
+  this.cooldownReduceRate = this.baseCooldownReduceRate + serverConfig.STAT_CALC_FACTOR_SPEED_TO_COOLDOWN_REDUCE_RATE * this.statSpeed;
 
   this.HP = this.maxHP;
   this.MP = this.maxMP;
@@ -159,7 +162,8 @@ User.prototype.updateStatAndCondition = function(){
       additionalDamage = 0, additionalFireDamage = 0, additionalFrostDamage = 0, additionalArcaneDamage = 0,
       additionalDamageRate = 100, additionalFireDamageRate = 100, additionalFrostDamageRate = 100, additionalArcaneDamageRate = 100,
       additionalResistAll = 0, additionalResistFire = 0, additionalResistFrost = 0, additionalResistArcane = 0,
-      additionalReductionAll = 0, additionalReductionFire = 0, additionalReductionFrost = 0, additionalReductionArcane = 0;
+      additionalReductionAll = 0, additionalReductionFire = 0, additionalReductionFrost = 0, additionalReductionArcane = 0,
+      additionalCooldownReduceRate = 0;;
 
   var additionalHP = 0; additionalMP = 0;
 
@@ -182,9 +186,21 @@ User.prototype.updateStatAndCondition = function(){
   this.conditions[gameConfig.USER_CONDITION_BLUR] = false;
 
   var buffList = [];
+
+  //set inherent passive buffs
+  if(this.inherentPassiveSkill){
+    var inherentPassiveBuffGroupIndex = util.findData(skillTable, 'index', this.inherentPassiveSkill).buffToSelf;
+    var inherentPassiveBuffGroupData = util.findData(buffGroupTable, 'index', inherentPassiveBuffGroupIndex);
+    var buffs = util.findAndSetBuffs(inherentPassiveBuffGroupData, buffTable, this.objectID);
+    for(var i=0; i<buffs.length; i++){
+      if(buffs[i].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL){
+        buffList.push(buffs[j]);
+      }
+    }
+  }
   //set passive buffs
   for(var i=0; i<this.passiveList.length; i++){
-    var buffs = util.findAndSetBuffs(this.passiveList[i], buffTable, this.objectID);
+    buffs = util.findAndSetBuffs(this.passiveList[i], buffTable, this.objectID);
     for(var j=0; j<buffs.length; j++){
       if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL){
         buffList.push(buffs[j]);
@@ -196,7 +212,7 @@ User.prototype.updateStatAndCondition = function(){
     if(Date.now() - this.buffList[i].startTime > this.buffList[i].buffLifeTime){
       this.buffList.splice(i, 1);
     }else{
-      var buffs = util.findAndSetBuffs(this.buffList[i], buffTable, this.buffList[i].actorID);
+      buffs = util.findAndSetBuffs(this.buffList[i], buffTable, this.buffList[i].actorID);
       for(var j=0; j<buffs.length; j++){
         if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL && Date.now() - this.buffList[i].tickStartTime > buffs[j].buffTickTime){
           buffList.push(buffs[j]);
@@ -285,6 +301,8 @@ User.prototype.updateStatAndCondition = function(){
             var rate = parseInt(rateOfLife / buffList[buffIndex].buffApplyHPTickPercent);
             additionalMoveSpeedRate += rate * buffList[buffIndex].buffAmount;
             additionalRotateSpeedRate += rate * buffList[buffIndex].buffAmount;
+          }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_ADD_SECONDARY_STAT_COOLDOWN_REDUCE_RATE){
+            additionalCooldownReduceRate += buffList[buffIndex].buffAmount;
           }else{
             console.log('check buff index : ' + buffList[buffIndex]);
           }
@@ -383,6 +401,7 @@ User.prototype.updateStatAndCondition = function(){
   var beforeCastSpeed = this.castSpeed;
   var beforeMoveSpeed = this.moveSpeed;
   var beforeRotateSpeed = this.rotateSpeed;
+  var beforeCooldownReduceRate = this.cooldownReduceRate;
 
   this.maxHP = (this.baseHP + serverConfig.STAT_CALC_FACTOR_POWER_TO_HP * this.statPower + additionalMaxHP) * additionalMaxHPRate/100;
   this.maxMP = (this.baseMP + serverConfig.STAT_CALC_FACTOR_MAGIC_TO_MP * this.statMagic + additionalMaxMP) * additionalMaxMPRate/100;
@@ -407,6 +426,7 @@ User.prototype.updateStatAndCondition = function(){
   this.reductionFire = this.baseReductionFire + additionalReductionFire;
   this.reductionFrost = this.baseReductionFrost + additionalReductionFrost;
   this.reductionArcane = this.baseReductionArcane + additionalReductionArcane;
+  this.cooldownReduceRate = this.baseCooldownReduceRate  + additionalCooldownReduceRate + serverConfig.STAT_CALC_FACTOR_SPEED_TO_COOLDOWN_REDUCE_RATE * this.statSpeed;
 
   this.moveSpeed = this.baseMoveSpeed * additionalMoveSpeedRate/100;
   this.rotateSpeed = this.baseRotateSpeed * additionalRotateSpeedRate/100;
@@ -432,7 +452,8 @@ User.prototype.updateStatAndCondition = function(){
     this.onBuffExchange(this);
   }
 
-  if( beforeStatPower !== this.statPower || beforeStatMagic !== this.statMagic || beforeStatSpeed !== this.statSpeed){
+  if( beforeStatPower !== this.statPower || beforeStatMagic !== this.statMagic || beforeStatSpeed !== this.statSpeed
+     || beforeCooldownReduceRate !== this.cooldownReduceRate){
     this.onChangePrivateStat(this);
   }
 };
@@ -470,7 +491,7 @@ function regenIntervalHandler(){
 };
 User.prototype.addBuff = function(buffGroupIndex, actorID){
   //check apply rate with resist
-  var buffGroupData = util.findData(buffGroupTable, 'index', buffGroupIndex);
+  var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
   if(buffGroupData){
     var isApply = false;
     var rate = Math.floor(Math.random() * 101);
@@ -483,22 +504,28 @@ User.prototype.addBuff = function(buffGroupIndex, actorID){
     //if duplicate condition, set as later condition buff. delete fore buff and debuff
     //set buffTickTime
     if(isApply){
-      var buffs = util.findAndSetBuffs(buffGroupTable, buffTable, actorID);
+      var buffs = util.findAndSetBuffs(buffGroupData, buffTable, actorID);
       for(var i=buffs.length-1; i>=0; i--){
         if(buffs[i].hitUserCondition){
           if(!this.conditions[buffs[i].hitUserCondition]){
-            buffGroupData.splice(i, 1);
+            buffs.splice(i, 1);
           }
         }
       }
-
+      for(var i=0; i<serverConfig.BUFFGROUPTABLE_BUFF_LENGTH; i++){
+        buffGroupData['buff' + (i+1)] = undefined;
+      }
+      for(var i=0; i<buffs.length; i++){
+        // console.log(buffGroupData['buff' + (i+1)]);
+        buffGroupData['buff' + (i+1)] = buffs[i];
+      }
       for(var i=0; i<this.buffList.length; i++){
         if(this.buffList[i].index === buffGroupData.index){
           this.buffList.splice(i, 1);
           break;
         }
       }
-      if(buffList.length > 0){
+      if(buffs.length > 0){
         buffGroupData.startTime = Date.now();
         buffGroupData.tickStartTime = Date.now();
         this.buffList.push(buffGroupData);
@@ -557,26 +584,43 @@ User.prototype.getSkill = function(index){
 User.prototype.upgradeSkill = function(skillIndex){
   //check possess skill
   var isBaseSkill = false;
+  var isInherentSkill = false;
   var isPossession = false;
   if(this.baseSkill === skillIndex){
     isBaseSkill = true;
+  }
+  if(this.inherentPassiveSkill === skillIndex){
+    isInherentSkill = true;
   }
   for(var i=0; i<this.possessSkills.length; i++){
     if(this.possessSkills[i] === skillIndex){
       isPossession = true;
     }
   }
-  if(isBaseSkill || isPossession){
+  if(isBaseSkill || isInherentSkill || isPossession){
     var skillData = util.findData(skillTable, 'index', skillIndex);
     var nextSkillIndex = skillData.nextSkillIndex;
     if(nextSkillIndex !== -1){
       if(isBaseSkill){
         this.baseSkill = nextSkillIndex;
         this.onSkillUpgrade(skillIndex, nextSkillIndex);
+      }else if(isInherentSkill){
+        this.inherentPassiveSkill = nextSkillIndex;
+        this.onSkillUpgrade(skillIndex, nextSkillIndex);
       }else if(isPossession){
         var index = this.possessSkills.indexOf(skillIndex);
         this.possessSkills.splice(index, 1);
         this.possessSkills.push(nextSkillIndex);
+        //check equip passive
+        for(var i=0; i<this.passiveList.length; i++){
+          var buffGroupIndex = skillData.buffToSelf;
+          if(this.passiveList[i].index === buffGroupIndex){
+            var nextBuffGroupIndex = util.findData(skillTable, 'index', nextSkillIndex).buffToSelf;
+            var nextBuffGroupData = util.findData(buffGroupTable, 'index', nextBuffGroupIndex);
+            this.passiveList.splice(i, 1, nextBuffGroupData);
+            break;
+          }
+        }
         this.onSkillUpgrade(skillIndex, nextSkillIndex);
       }
     }

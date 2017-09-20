@@ -277,7 +277,9 @@ function setupSocket(){
 
     UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills, inherentPassiveSkill, inherentPassiveSkillData);
     UIManager.setHUDSkills();
+    UIManager.updateBuffIcon();
     UIManager.setHUDStats(user.statPower, user.statMagic, user.statSpeed);
+    UIManager.setCooldownReduceRate(user.cooldownReduceRate);
     UIManager.setPopUpSkillChange();
   });
 
@@ -379,6 +381,7 @@ function setupSocket(){
   });
   socket.on('updateUserPrivateStat', function(statData){
     UIManager.setHUDStats(statData.statPower, statData.statMagic, statData.statSpeed);
+    UIManager.setCooldownReduceRate(statData.cooldownReduceRate);
   });
   socket.on('deleteProjectile', function(projectileID, userID){
     Manager.deleteProjectile(projectileID, userID);
@@ -663,23 +666,23 @@ var documentEventHandler = function(e){
   var userPosition = Manager.users[gameConfig.userID].center;
 
   if(keyCode === 69 || keyCode === 32){
-    if(UIManager.checkCooltime(gameConfig.USE_SKILL_BASIC)){
+    if(UIManager.checkCooltime(gameConfig.SKILL_BASIC_INDEX)){
       var skillData = Object.assign({}, baseSkillData);
     }
   }else if(keyCode === 49){
-    if(UIManager.checkCooltime(gameConfig.USE_SKILL_EQUIP1)){
+    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP1_INDEX)){
       skillData = Object.assign({}, equipSkillDatas[0]);
     }
   }else if(keyCode === 50){
-    if(UIManager.checkCooltime(gameConfig.USE_SKILL_EQUIP2)){
+    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP2_INDEX)){
       skillData = Object.assign({}, equipSkillDatas[1]);
     }
   }else if(keyCode === 51){
-    if(UIManager.checkCooltime(gameConfig.USE_SKILL_EQUIP3)){
+    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP3_INDEX)){
       skillData = Object.assign({}, equipSkillDatas[2]);
     }
   }else if(keyCode === 52){
-    if(UIManager.checkCooltime(gameConfig.USE_SKILL_EQUIP4)){
+    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP4_INDEX)){
       skillData = Object.assign({}, equipSkillDatas[3]);
     }
   }

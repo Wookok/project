@@ -710,7 +710,8 @@ GameManager.prototype.processUserPrivateDataSetting = function(user){
   return {
     statPower : user.statPower,
     statMagic : user.statMagic,
-    statSpeed : user.statSpeed
+    statSpeed : user.statSpeed,
+    cooldownReduceRate : user.cooldownReduceRate
   };
 };
 GameManager.prototype.processBuffDataSetting = function(user){
@@ -735,11 +736,13 @@ GameManager.prototype.addSkillData = function(userData){
     userData.inherentPassiveSkill= this.users[userData.objectID].inherentPassiveSkill;
   }
 };
-GameManager.prototype.addStatData = function(userData){
+GameManager.prototype.addPrivateData = function(userData){
   if(userData.objectID in this.users){
     userData.statPower = this.users[userData.objectID].statPower;
     userData.statMagic = this.users[userData.objectID].statMagic;
     userData.statSpeed = this.users[userData.objectID].statSpeed;
+
+    userData.cooldownReduceRate = this.users[userData.objectID].cooldownReduceRate;
   }
 };
 GameManager.prototype.processSkillsDataSettings = function(){

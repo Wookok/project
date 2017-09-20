@@ -1,3 +1,4 @@
+var serverConfig = require('./serverConfig.json');
 var util = require('../public/util.js');
 var csvJson = require('../public/csvjson.js')
 var dataJson = require('../public/data.json');

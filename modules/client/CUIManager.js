@@ -16,6 +16,9 @@ var equipSkills = new Array(4);
 var equipSkillDatas = new Array(4);
 var possessSkills = [];
 
+var statPower = 0, statMagic = 0, statSpeed = 0;
+var cooldownReduceRate = 0;
+
 var hudBaseSkillImg, hudEquipSkill1Img, hudEquipSkill2Img, hudEquipSkill3Img, hudEquipSkill4Img, hudPassiveSkillImg;
 var hudBtnSkillChange;
 var gameSceneBuffsContainer;
@@ -79,6 +82,20 @@ UIManager.prototype = {
     hudEquipSkill4Img = document.getElementById('hudEquipSkill4Img');
     hudPassiveSkillImg = document.getElementById('hudPassiveSkillImg');
 
+    hudBaseSkillImg.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudBaseSkillImg, gameConfig.SKILL_BASIC_INDEX), false);
+    hudEquipSkill1Img.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudEquipSkill1Img, gameConfig.SKILL_EQUIP1_INDEX), false);
+    hudEquipSkill2Img.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudEquipSkill2Img, gameConfig.SKILL_EQUIP2_INDEX), false);
+    hudEquipSkill3Img.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudEquipSkill3Img, gameConfig.SKILL_EQUIP3_INDEX), false);
+    hudEquipSkill4Img.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudEquipSkill4Img, gameConfig.SKILL_EQUIP4_INDEX), false);
+    hudPassiveSkillImg.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudPassiveSkillImg, gameConfig.SKILL_PASSIVE_INDEX), false);
+
+    hudBaseSkillImg.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudBaseSkillImg), false);
+    hudEquipSkill1Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill1Img), false);
+    hudEquipSkill2Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill2Img), false);
+    hudEquipSkill3Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill3Img), false);
+    hudEquipSkill4Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill4Img), false);
+    hudPassiveSkillImg.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudPassiveSkillImg), false);
+
     hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
 
     gameSceneBuffsContainer = document.getElementById('gameSceneBuffsContainer');
@@ -92,15 +109,23 @@ UIManager.prototype = {
     hudEquipSkill3Mask = document.getElementById('hudEquipSkill3Mask');
     hudEquipSkill4Mask = document.getElementById('hudEquipSkill4Mask');
 
-    hudBaseSkillMask.addEventListener('animationend', cooldownListener.bind(hudBaseSkillMask, gameConfig.USE_SKILL_BASIC), false);
-    hudEquipSkill1Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill1Mask, gameConfig.USE_SKILL_EQUIP1), false);
-    hudEquipSkill2Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill2Mask, gameConfig.USE_SKILL_EQUIP2), false);
-    hudEquipSkill3Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill3Mask, gameConfig.USE_SKILL_EQUIP3), false);
-    hudEquipSkill4Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill4Mask, gameConfig.USE_SKILL_EQUIP4), false);
+    hudBaseSkillMask.addEventListener('animationend', cooldownListener.bind(hudBaseSkillMask, gameConfig.SKILL_BASIC_INDEX), false);
+    hudEquipSkill1Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill1Mask, gameConfig.SKILL_EQUIP1_INDEX), false);
+    hudEquipSkill2Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill2Mask, gameConfig.SKILL_EQUIP2_INDEX), false);
+    hudEquipSkill3Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill3Mask, gameConfig.SKILL_EQUIP3_INDEX), false);
+    hudEquipSkill4Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill4Mask, gameConfig.SKILL_EQUIP4_INDEX), false);
 
     userStatPowerContainer = document.getElementById('userStatPowerContainer');
     userStatMagicContainer = document.getElementById('userStatMagicContainer');
     userStatSpeedContainer = document.getElementById('userStatSpeedContainer');
+
+    userStatPowerContainer.addEventListener('mouseover', bottomTooltipOnHandler.bind(userStatPowerContainer, gameConfig.STAT_POWER_INDEX), false);
+    userStatMagicContainer.addEventListener('mouseover', bottomTooltipOnHandler.bind(userStatMagicContainer, gameConfig.STAT_MAGIC_INDEX), false);
+    userStatSpeedContainer.addEventListener('mouseover', bottomTooltipOnHandler.bind(userStatSpeedContainer, gameConfig.STAT_SPEED_INDEX), false);
+
+    userStatPowerContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatPowerContainer), false);
+    userStatMagicContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatMagicContainer), false);
+    userStatSpeedContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatSpeedContainer), false);
   },
   drawStartScene : function(){
     startScene.classList.add('enable');
@@ -175,21 +200,22 @@ UIManager.prototype = {
     //cooldown start
     if(slotMask){
       var skillData = util.findData(skillTable, 'index', skillIndex);
-      slotMask.style.animationDuration = (skillData.cooldown / 1000) + 's';
+      var cooldown = skillData.cooldown * (100 - cooldownReduceRate) / 100000;
+      slotMask.style.animationDuration = (cooldown) + 's';
       slotMask.classList.add("cooldownMaskAni");
     }
   },
   checkCooltime : function(skillSlot){
     switch (skillSlot) {
-      case gameConfig.USE_SKILL_BASIC:
+      case gameConfig.SKILL_BASIC_INDEX:
         return isUseableBaseSkill;
-      case gameConfig.USE_SKILL_EQUIP1:
+      case gameConfig.SKILL_EQUIP1_INDEX:
         return isUseableEquipSkill1;
-      case gameConfig.USE_SKILL_EQUIP2:
+      case gameConfig.SKILL_EQUIP2_INDEX:
         return isUseableEquipSkill2;
-      case gameConfig.USE_SKILL_EQUIP3:
+      case gameConfig.SKILL_EQUIP3_INDEX:
         return isUseableEquipSkill3;
-      case gameConfig.USE_SKILL_EQUIP4:
+      case gameConfig.SKILL_EQUIP4_INDEX:
         return isUseableEquipSkill4;
       default:
         return false;
@@ -204,9 +230,12 @@ UIManager.prototype = {
     hudPassiveSkillImg.src = inherentPassiveSkillData ? inherentPassiveSkillData.skillIcon : blankImg;
   },
   setHUDStats : function(power, magic, speed){
-    userStatPowerContainer.children[1].innerHTML = power;
-    userStatMagicContainer.children[1].innerHTML = magic;
-    userStatSpeedContainer.children[1].innerHTML = speed;
+    userStatPowerContainer.children[1].innerHTML = statPower = power;
+    userStatMagicContainer.children[1].innerHTML = statMagic = magic;
+    userStatSpeedContainer.children[1].innerHTML = statSpeed = speed;
+  },
+  setCooldownReduceRate : function(reduceRate){
+    cooldownReduceRate = reduceRate;
   },
   setSkillChangeBtn : function(){
     hudBtnSkillChange.onclick = function(){
@@ -221,21 +250,42 @@ UIManager.prototype = {
       gameSceneBuffsContainer.removeChild(gameSceneBuffsContainer.firstChild);
     }
     gameSceneBuffsContainer.innerHtml = '';
-    for(var i=0; i<passiveList.length; i++){
-      var passiveData = util.findData(buffGroupTable, 'index', passiveList[i]);
+    if(inherentPassiveSkillData){
+      var buffGroupData = util.findData(buffGroupTable, 'index', inherentPassiveSkillData.buffToSelf);
       var div = document.createElement('div');
+      div.setAttribute('buffGroupIndex', inherentPassiveSkillData.buffToSelf);
       var img = document.createElement('img');
-      img.src = passiveData.buffIcon;
+      img.src = buffGroupData.buffIcon;
       div.appendChild(img);
       gameSceneBuffsContainer.appendChild(div);
+      div.addEventListener('mouseover', bottomTooltipOnHandler.bind(div, gameConfig.BUFF_ICON_INDEX));
+      div.addEventListener('mouseout', bottomTooltipOffHandler.bind(div), false);
     }
-    for(var i=0; i<buffList.length; i++){
-      var buffData = util.findData(buffGroupTable, 'index', buffList[i].index);
-      var div = document.createElement('div');
-      var img = document.createElement('img');
-      img.src = buffData.buffIcon;
-      div.appendChild(img);
-      gameSceneBuffsContainer.appendChild(div);
+    if(passiveList){
+      for(var i=0; i<passiveList.length; i++){
+        var passiveData = util.findData(buffGroupTable, 'index', passiveList[i]);
+        var div = document.createElement('div');
+        div.setAttribute('buffGroupIndex', passiveData.index);
+        var img = document.createElement('img');
+        img.src = passiveData.buffIcon;
+        div.appendChild(img);
+        gameSceneBuffsContainer.appendChild(div);
+        div.addEventListener('mouseover', bottomTooltipOnHandler.bind(div, gameConfig.BUFF_ICON_INDEX));
+        div.addEventListener('mouseout', bottomTooltipOffHandler.bind(div), false);
+      }
+    }
+    if(buffList){
+      for(var i=0; i<buffList.length; i++){
+        var buffData = util.findData(buffGroupTable, 'index', buffList[i].index);
+        var div = document.createElement('div');
+        div.setAttribute('buffGroupIndex', buffData.index);
+        var img = document.createElement('img');
+        img.src = buffData.buffIcon;
+        div.appendChild(img);
+        gameSceneBuffsContainer.appendChild(div);
+        div.addEventListener('mouseover', bottomTooltipOnHandler.bind(div, gameConfig.BUFF_ICON_INDEX));
+        div.addEventListener('mouseout', bottomTooltipOffHandler.bind(div), false);
+      }
     }
   },
   initPopUpSkillChanger : function(){
@@ -696,22 +746,100 @@ function cooldownListener(slot, e){
   this.classList.remove("cooldownMaskAni");
   this.style.opacity = 0;
   switch (slot) {
-    case gameConfig.USE_SKILL_BASIC:
+    case gameConfig.SKILL_BASIC_INDEX:
       isUseableBaseSkill = true;
       break;
-    case gameConfig.USE_SKILL_EQUIP1:
+    case gameConfig.SKILL_EQUIP1_INDEX:
       isUseableEquipSkill1 = true;
       break;
-    case gameConfig.USE_SKILL_EQUIP2:
+    case gameConfig.SKILL_EQUIP2_INDEX:
       isUseableEquipSkill2 = true;
       break;
-    case gameConfig.USE_SKILL_EQUIP3:
+    case gameConfig.SKILL_EQUIP3_INDEX:
       isUseableEquipSkill3 = true;
       break;
-    case gameConfig.USE_SKILL_EQUIP4:
+    case gameConfig.SKILL_EQUIP4_INDEX:
       isUseableEquipSkill4 = true;
       break;
     default:
+  }
+};
+function bottomSkillTooltipOnHandler(slot){
+  switch (slot) {
+    case gameConfig.SKILL_BASIC_INDEX:
+      if(baseSkillData){
+        var skillData = baseSkillData;
+      }
+      break;
+    case gameConfig.SKILL_EQUIP1_INDEX:
+      if(equipSkillDatas[0]){
+        skillData = equipSkillDatas[0];
+      }
+      break;
+    case gameConfig.SKILL_EQUIP2_INDEX:
+      if(equipSkillDatas[1]){
+        skillData = equipSkillDatas[1];
+      }
+      break;
+    case gameConfig.SKILL_EQUIP3_INDEX:
+      if(equipSkillDatas[2]){
+        skillData = equipSkillDatas[2];
+      }
+      break;
+    case gameConfig.SKILL_EQUIP4_INDEX:
+      if(equipSkillDatas[3]){
+        skillData = equipSkillDatas[3];
+      }
+      break;
+    case gameConfig.SKILL_PASSIVE_INDEX:
+      if(inherentPassiveSkillData){
+        skillData = inherentPassiveSkillData;
+      }
+      break;
+    default:
+  }
+  if(skillData){
+    var tooltipDiv = document.createElement('div');
+    tooltipDiv.innerHTML = skillData.name;
+    tooltipDiv.classList.add('bottomTooltip');
+
+    var parentDiv = this.parentNode;
+    parentDiv.appendChild(tooltipDiv);
+  }
+};
+function bottomSkillTooltipOffHandler(){
+  var parentDiv = this.parentNode;
+  var tooltipDivs = parentDiv.getElementsByTagName('div');
+  for(var i=0; tooltipDivs.length; i++){
+    parentDiv.removeChild(tooltipDivs[i]);
+  }
+};
+function bottomTooltipOnHandler(type){
+  var tooltipDiv = document.createElement('div');
+  switch (type) {
+    case gameConfig.STAT_POWER_INDEX:
+      tooltipDiv.innerHTML = statPower;
+      break;
+    case gameConfig.STAT_MAGIC_INDEX:
+      tooltipDiv.innerHTML = statMagic;
+      break;
+    case gameConfig.STAT_SPEED_INDEX:
+      tooltipDiv.innerHTML = statSpeed;
+      break;
+    case gameConfig.BUFF_ICON_INDEX:
+      var buffGroupIndex = parseInt(this.getAttribute('buffGroupIndex'));
+      var buffGroupData = util.findData(buffGroupTable, 'index', buffGroupIndex);
+      tooltipDiv.innerHTML = buffGroupData.name;
+      break;
+    default:
+  }
+  tooltipDiv.classList.add('bottomTooltip');
+  this.appendChild(tooltipDiv);
+};
+function bottomTooltipOffHandler(){
+  var tooltipDivs = util.getElementsByClassName(this, 'bottomTooltip');
+  for(var i=0; i<tooltipDivs.length; i++){
+    this.removeChild(tooltipDivs[i]);
   }
 };
 module.exports = UIManager;

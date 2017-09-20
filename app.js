@@ -70,6 +70,7 @@ GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillInd
 };
 GM.onNeedInformUserChangePrivateStat = function(user){
   var statData = GM.processUserPrivateDataSetting(user);
+  console.log(statData);
   io.to(user.socketID).emit('updateUserPrivateStat', statData);
 };
 GM.onNeedInformUserChangeStat = function(user){
@@ -149,7 +150,7 @@ io.on('connection', function(socket){
     var chestDatas = GM.processChestDataSettings();
 
     GM.addSkillData(userData);
-    GM.addStatData(userData);
+    GM.addPrivateData(userData);
 
     socket.emit('syncAndSetSkills', userData);
     socket.emit('resStartGame', userDatas, skillDatas, projectileDatas, objDatas, chestDatas);
