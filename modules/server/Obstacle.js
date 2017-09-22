@@ -1,10 +1,10 @@
 var GameObject = require('./GameObject.js');
 
-function Obstacle(posX, posY, sizeW, sizeH, id){
+function Obstacle(posX, posY, radius, id){
   GameObject.call(this);
 
   this.objectID = id;
-  this.setSize(sizeW, sizeH);
+  this.setSize(radius * 2, radius * 2);
   this.setPosition(posX, posY);
 
   this.staticEle = {

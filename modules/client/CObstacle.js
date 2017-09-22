@@ -1,4 +1,4 @@
-function CObstacle(posX, posY, sizeW, sizeH, id, src){
+function CObstacle(posX, posY, radius, id, src){
   this.objectID = id;
   this.src = src;
   this.position = {
@@ -8,23 +8,26 @@ function CObstacle(posX, posY, sizeW, sizeH, id, src){
   // this.localPosition = {
   //   x : posX, y : posY
   // };
+
   this.size = {
-    width : sizeW, height : sizeH
+    width : radius * 2, height : radius * 2
   };
   this.center = {
     x : this.position.x + this.size.width/2,
     y : this.position.y + this.size.height/2
   }
 
-  this.setSize(sizeW, sizeH);
-  this.setPosition(posX, posY);
+  // this.setSize(radius * 2, radius * 2);
+  // this.setPosition(posX, posY);
 
   this.staticEle = {
     x : this.position.x,
     y : this.position.y,
     width : this.size.width,
     height : this.size.height,
-    id : this.objectID
+    id : this.objectID,
+
+    isCollide : false
   };
 };
 
@@ -44,6 +47,6 @@ CObstacle.prototype = {
     }
     this.center.x = this.position.x + this.size.width/2;
     this.center.y = this.position.y + this.size.height/2;
-  },
+  }
 };
 module.exports = CObstacle;

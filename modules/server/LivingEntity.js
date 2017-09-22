@@ -19,8 +19,8 @@ function LivingEntity(){
     x : this.position.x, y : this.position.y
   };
   this.beforePositions = [];
-  this.before150msPos = {x : -1000, y : -1000};
-  this.before300msPos = {x : -1000, y : -1000};
+  // this.before150msPos = {x : -1000, y : -1000};
+  // this.before300msPos = {x : -1000, y : -1000};
   this.targetDirection = 0;
 
   this.updateInterval = false;
@@ -33,20 +33,20 @@ function LivingEntity(){
     height : 0,
     id : ''
   };
-  this.entityBefore150msTreeEle = {
-    x : 0,
-    y : 0,
-    width : 0,
-    height : 0,
-    id : ''
-  };
-  this.entityBefore300msTreeEle = {
-    x : 0,
-    y : 0,
-    width : 0,
-    height : 0,
-    id : ''
-  };
+  // this.entityBefore150msTreeEle = {
+  //   x : 0,
+  //   y : 0,
+  //   width : 0,
+  //   height : 0,
+  //   id : ''
+  // };
+  // this.entityBefore300msTreeEle = {
+  //   x : 0,
+  //   y : 0,
+  //   width : 0,
+  //   height : 0,
+  //   id : ''
+  // };
   this.onMove = new Function();
 };
 LivingEntity.prototype = Object.create(GameObject.prototype);

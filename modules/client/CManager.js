@@ -4,7 +4,11 @@ var util = require('../public/util.js');
 
 var gameConfig = require('../public/gameConfig.json');
 var resources = require('../public/resources.json');
-var map = require('../public/map.json');
+// var map = require('../public/map.json');
+var csvJson = require('../public/csvjson.js');
+var dataJson = require('../public/data.json');
+
+var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
 
 var QuadTree = require('../public/quadtree.min.js');
 
@@ -14,6 +18,7 @@ var colliderEles = [];
 
 var staticTree;
 var staticEles = [];
+var checkCollisionEles = [];
 var affectedEles = [];
 
 var CManager = function(){
@@ -62,16 +67,28 @@ CManager.prototype = {
 	  }
 	},
 	createObstacles : function(){
-		for(var i=0; i<map.Trees.length; i++){
-			var tempObstacle = new Obstacle(map.Trees[i].posX, map.Trees[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[i].id, resources.OBJ_TREE_SRC);
-			this.obstacles.push(tempObstacle);
-			staticEles.push(tempObstacle.staticEle);
+		var trees = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_TREE));
+		for(var i=0; i<Object.keys(trees).length; i++){
+				var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius, trees[i].id, resources.OBJ_TREE_SRC);
+				this.obstacles.push(tempTree);
+				staticEles.push(tempTree.staticEle);
 		}
-		for(var i=0; i<map.Chests.length; i++){
-			var chestBase = new Obstacle(map.Chests[i].posX, map.Chests[i].posY, resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id, resources.OBJ_CHEST_SRC);
-			this.obstacles.push(chestBase);
-			staticEles.push(chestBase.staticEle);
+		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
+		for(var i=0; i<Object.keys(chestGrounds).length; i++){
+			var tempChestGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius, chestGrounds[i].id, resources.OBJ_CHEST_GROUND_SRC);
+			this.obstacles.push(tempChestGround);
+			staticEles.push(tempChestGround.staticEle);
 		}
+		// for(var i=0; i<map.Trees.length; i++){
+		// 	var tempObstacle = new Obstacle(map.Trees[i].posX, map.Trees[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[i].id, resources.OBJ_TREE_SRC);
+		// 	this.obstacles.push(tempObstacle);
+		// 	staticEles.push(tempObstacle.staticEle);
+		// }
+		// for(var i=0; i<map.Chests.length; i++){
+		// 	var chestBase = new Obstacle(map.Chests[i].posX, map.Chests[i].posY, resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id, resources.OBJ_CHEST_SRC);
+		// 	this.obstacles.push(chestBase);
+		// 	staticEles.push(chestBase.staticEle);
+		// }
 		staticTree.pushAll(staticEles);
 	},
 	setChests : function(chestDatas){
@@ -81,20 +98,35 @@ CManager.prototype = {
 	},
 	createChest : function(chestData){
 		//find chest location
-		for(var i=0; i<map.Chests.length; i++){
-			if(map.Chests[i].id === chestData.locationID){
-				var chestPosition = {x : map.Chests[i].posX, y : map.Chests[i].posY};
+		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
+		for(var i=0; i<Object.keys(chestGrounds).length; i++){
+			if(chestGrounds[i].id === chestData.locationID){
+				var chestPosition = {x : chestGrounds[i].posX,  y : chestGrounds[i].posY};
 				break;
 			}
 		}
 		if(chestPosition){
-			this.chests.push({
-				objectID : chestData.objectID,
-				grade : chestData.grade,
-				position : chestPosition,
-				size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
-			});
+				this.chests.push({
+					objectID : chestData.objectID,
+					grade : chestData.grade,
+					position : chestPosition,
+					size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
+				});
 		}
+		// for(var i=0; i<map.Chests.length; i++){
+		// 	if(map.Chests[i].id === chestData.locationID){
+		// 		var chestPosition = {x : map.Chests[i].posX, y : map.Chests[i].posY};
+		// 		break;
+		// 	}
+		// }
+		// if(chestPosition){
+		// 	this.chests.push({
+		// 		objectID : chestData.objectID,
+		// 		grade : chestData.grade,
+		// 		position : chestPosition,
+		// 		size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
+		// 	});
+		// }
 	},
 	setUser : function(userData){
 		if(!(userData.objectID in this.users)){
@@ -242,7 +274,7 @@ CManager.prototype = {
 				this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
 			}else if(skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
 				skillInstance.onFire = function(syncFireTime){
-					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+					var projectile = mainUser.makeProjectile(skillData.projectileIDs[0], skillInstance, skillData.direction);
 					if(thisUser === mainUser){
 						thisOnProjectileSkillFire([projectile], syncFireTime);
 					}
@@ -281,7 +313,7 @@ CManager.prototype = {
 								// thisProjectiles.push(projectile);
 								projectiles.push(projectile);
 								if(thisUser === mainUser && projectiles.length === skillData.projectileCount){
-									thisOnProjectileSkillFire(projectiles);
+									thisOnProjectileSkillFire(projectiles, syncFireTime);
 								}
 								mainUser.skillCastEffectPlay = false;
 							}
@@ -298,13 +330,18 @@ CManager.prototype = {
 			position : skillData.targetPosition,
 			radius : skillData.explosionRadius,
 			startTime : Date.now(),
-			lifeTime  : skillData.effectLastTime
+			lifeTime  : skillData.effectLastTime,
+
+			isCheckCollision : false
 		});
 	},
 	applyProjectile : function(skillData){
 		this.projectiles.push({
 			userID : skillData.userID,
 			objectID : skillData.objectID,
+
+			type : skillData.type,
+
 			position : skillData.position,
 			speed : skillData.speed,
 			startTime : skillData.startTime,
@@ -412,6 +449,7 @@ CManager.prototype = {
 			this.users[userData.objectID].targetPosition = userData.targetPosition;
 
 			this.users[userData.objectID].direction = userData.direction;
+			this.users[userData.objectID].maxSpeed = userData.maxSpeed;
 			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
 
 			this.users[userData.objectID].setCenter();
@@ -468,21 +506,61 @@ CManager.prototype = {
 };
 
 function staticIntervalHandler(){
+	var i=checkCollisionEles.length;
+	while(i--){
+		var collisionObjs = util.checkCircleCollision(staticTree, checkCollisionEles[i].position.x, checkCollisionEles[i].position.y, checkCollisionEles[i].radius, gameConfig.PREFIX_SKILL);
+		if(collisionObjs.length){
+			for(var j=0; j<collisionObjs.length; j++){
+				var tempCollider = collisionObjs[j];
+				if(!tempCollider.isCollide){
+					tempCollider.isCollide = true;
+					setTimeout(function(){
+						tempCollider.isCollide = false;
+					}, gameConfig.SKiLL_HIT_EFFECT_TIME);
+				}
+			}
+		}
+		checkCollisionEles.splice(i, 1);
+	}
+
+
 	//user elements update for collision check
 	for(var index in this.users){
 		this.users[index].setEntityEle();
 	}
-
 	var i = this.projectiles.length;
   while(i--){
     if(this.projectiles[i].isExpired()){
       this.projectiles.splice(i, 1);
     }else{
       this.projectiles[i].move();
-    }
+
+			if(this.projectiles[i].type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE || this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE ||
+				 this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
+					 //check collision with obstacles
+					 var collisionObjs = util.checkCircleCollision(staticTree, this.projectiles[i].position.x, this.projectiles[i].position.y, this.projectiles[i].radius, gameConfig.PREFIX_SKILL_PROJECTILE);
+					 if(collisionObjs.length){
+						 for(var j=0; j<collisionObjs.length; j++){
+							 var tempCollider = collisionObjs[j];
+							 if(!tempCollider.isCollide){
+								 tempCollider.isCollide = true;
+								 setTimeout(function(){
+									 tempCollider.isCollide = false;
+								 }, gameConfig.SKiLL_HIT_EFFECT_TIME);
+							 }
+						 }
+					 }
+				 }
+		}
   }
 	var i=this.effects.length;
 	while(i--){
+		if(!this.effects[i].isCheckCollision){
+			if(Date.now() - this.effects[i].startTime > this.effects[i].lifeTime/2){
+				checkCollisionEles.push(this.effects[i]);
+				this.effects[i].isCheckCollision = true;
+			}
+		}
 		if(this.effects[i].startTime + this.effects[i].lifeTime < Date.now()){
 			this.effects.splice(i, 1);
 		}

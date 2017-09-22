@@ -52,6 +52,10 @@ var currentSkillData = null;
 
 var characterType = 1;
 
+var firoBaseSkill = 0, firoInherentPassiveSkill = 0, firoEquipSkills = new Array(4),
+    freezerBaseSkill = 0, freezerInherentPassiveSkill = 0, freezerEquipSkills = new Array(4),
+    mysterBaseSkill = 0, mysterInherentPassiveSkill = 0, mysterEquipSkills = new Array(4);
+
 var baseSkill = 0;
 var baseSkillData = null;
 var inherentPassiveSkill = 0;
@@ -193,6 +197,7 @@ function onSkillFireHandler(rawSkillData, syncFireTime){
 };
 function onProjectileSkillFireHandler(rawProjectileDatas, syncFireTime){
   var projectileDatas = Manager.processProjectileData(rawProjectileDatas);
+  console.log(rawProjectileDatas);
   socket.emit('projectilesFired', projectileDatas, syncFireTime);
 };
 function onCancelCastingHandler(){
@@ -284,9 +289,9 @@ function setupSocket(){
   });
 
   //change state game on
-  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas, chestDatas){
-    Manager.setUsers(userDatas, skillDatas);
-    Manager.setUsersSkills(skillDatas);
+  socket.on('resStartGame', function(userDatas, objDatas, chestDatas){
+    Manager.setUsers(userDatas);
+    // Manager.setUsersSkills(skillDatas);
     // Manager.setProjectiles(projectileDatas);
     Manager.setObjs(objDatas);
     Manager.setChests(chestDatas);
@@ -312,7 +317,7 @@ function setupSocket(){
   });
   socket.on('userDataUpdateAndUseSkill', function(userData){
     Manager.updateUserData(userData);
-    var skillData = Object.assign({}, util.findData(skillTable, 'index', usrData.skillIndex));
+    var skillData = Object.assign({}, util.findData(skillTable, 'index', userData.skillIndex));
 
     Manager.applyCastSpeed(userData.objectID, skillData);
     skillData.targetPosition = userData.skillTargetPosition;
@@ -378,6 +383,7 @@ function setupSocket(){
         }
       }
     }
+    updateCharTypeSkill();
   });
   socket.on('updateUserPrivateStat', function(statData){
     UIManager.setHUDStats(statData.statPower, statData.statMagic, statData.statSpeed);
@@ -408,7 +414,7 @@ function setupSocket(){
       UIManager.updateHP(userData);
       UIManager.updateMP(userData);
 
-      var needExp = util.findDataWithTwoColumns(userStatTable, 'type', characterType, 'level', userData.level).needExp;
+      var needExp = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', characterType, 'level', userData.level)).needExp;
       UIManager.updateExp(userData, needExp);
     }
   });
@@ -439,10 +445,14 @@ function drawScreen(){
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
 function drawObstacles(){
-  ctx.fillStyle ="#000000";
 
   for(var i=0; i<Manager.obstacles.length; i++){
     ctx.beginPath();
+    if(Manager.obstacles[i].staticEle.isCollide){
+      ctx.fillStyle ="#ff0000";
+    }else{
+      ctx.fillStyle ="#000000";
+    }
     var center = util.worldToLocalPosition(Manager.obstacles[i].center, gameConfig.userOffset);
     ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
             resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
@@ -511,6 +521,15 @@ function drawObjs(){
 };
 function drawUsers(){
   for(var index in Manager.users){
+    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_BLUR]){
+      if(index === gameConfig.userID){
+        ctx.globalAlpha = 0.6;
+      }else{
+        ctx.globalAlpha = 0.3;
+      }
+    }else{
+      ctx.globalAlpha = 1;
+    }
     var radian = Manager.users[index].direction * radianFactor;
 
     var centerX = util.worldXCoordToLocalX(Manager.users[index].position.x + Manager.users[index].size.width/2, gameConfig.userOffset.x);
@@ -520,7 +539,6 @@ function drawUsers(){
 
     ctx.beginPath();
     ctx.fillStyle = "#ffff00";
-    ctx.globalAlpha = 0.5;
     ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, 32 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
@@ -552,6 +570,7 @@ function drawEffect(){
   for(var i=0; i<Manager.effects.length; i++){
     ctx.beginPath();
     ctx.fillStyle ="#ff0000";
+
     var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x + Manager.effects[i].radius, gameConfig.userOffset.x);
     var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y + Manager.effects[i].radius, gameConfig.userOffset.y);
     ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
@@ -581,7 +600,7 @@ function drawSkillRange(){
   //draw explosionRadius
   ctx.beginPath();
   ctx.globalAlpha = 0.9;
-  ctx.arc(mousePoint.x, mousePoint.y, currentSkillData.explosionRadius * gameConfig.scaleFactor, 0, Math.PI * 2);
+  ctx.arc(mousePoint.x * gameConfig.scaleFactor, mousePoint.y * gameConfig.scaleFactor, currentSkillData.explosionRadius * gameConfig.scaleFactor, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1
 };
@@ -629,7 +648,7 @@ function drawGrid(){
 };
 function updateUserDataHandler(){
   var userData = Manager.processUserData();
-  userData.latency = latency;
+  // userData.latency = latency;
   socket.emit('userDataUpdate', userData);
 };
 function canvasAddEvent(){
@@ -708,8 +727,6 @@ var documentEventHandler = function(e){
   }else if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
     changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
   }
-  //check conditions
-
 };
 function changeDrawMode(mode){
   if(mode === gameConfig.DRAW_MODE_NORMAL){
@@ -726,24 +743,55 @@ function mouseMoveHandler(e){
   mousePoint.y = e.clientY/gameConfig.scaleFactor;
 };
 function useSkill(skillData, clickPosition, user){
-  skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
-  skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
-  if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
-    skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
-    || skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
-      skillData.projectileIDs = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE, skillData.projectileCount);
-    }
-  Manager.useSkill(gameConfig.userID, skillData);
+  if(!user.conditions[gameConfig.USER_CONDITION_FREEZE] && !user.conditions[gameConfig.USER_CONDITION_SILENCE]){
+    skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
+    skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
+    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+      skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
+      || skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+        skillData.projectileIDs = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE, skillData.projectileCount);
+      }
+      Manager.useSkill(gameConfig.userID, skillData);
 
-  var userData = Manager.processUserData();
-  userData.skillIndex = skillData.index;
-  userData.skillDirection = skillData.direction;
-  userData.skillTargetPosition = skillData.targetPosition;
-  if(skillData.projectileIDs){
-    userData.projectileIDs = skillData.projectileIDs;
+      var userData = Manager.processUserData();
+      userData.skillIndex = skillData.index;
+      userData.skillDirection = skillData.direction;
+      userData.skillTargetPosition = skillData.targetPosition;
+      if(skillData.projectileIDs){
+        userData.projectileIDs = skillData.projectileIDs;
+      }
+      if(user.conditions[gameConfig.USER_CONDITION_BLUR]){
+        userData.cancelBlur = true;
+      }
+      console.log(userData);
+      socket.emit('userUseSkill', userData);
   }
-  socket.emit('userUseSkill', userData);
-}
+};
+function updateCharTypeSkill(){
+  switch (characterType) {
+    case gameConfig.CHAR_TYPE_FIRE:
+      firoBaseSkill = baseSkill;
+      firoInherentPassiveSkill = inherentPassiveSkill;
+      for(var i=0; i<equipSkills.length; i++){
+        firoEquipSkills[i] = equipSkills[i];
+      }
+      break;
+    case gameConfig.CHAR_TYPE_FROST:
+      freezerBaseSkill = baseSkill;
+      freezerInherentPassiveSkill = inherentPassiveSkill;
+      for(var i=0; i<equipSkills.length; i++){
+        freezerEquipSkills[i] = equipSkills[i];
+      }
+      break;
+    case gameConfig.CHAR_TYPE_ARCANE:
+      mysterBaseSkill = baseSkill;
+      mysterInherentPassiveSkill = inherentPassiveSkill;
+      for(var i=0; i<equipSkills.length; i++){
+        mysterEquipSkills[i] = equipSkills[i];
+      }
+      break;
+  }
+};
 function canvasDisableEvent(){
   canvas.removeEventListener('click', canvasEventHandler);
 };

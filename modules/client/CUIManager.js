@@ -199,7 +199,7 @@ UIManager.prototype = {
     }
     //cooldown start
     if(slotMask){
-      var skillData = util.findData(skillTable, 'index', skillIndex);
+      var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
       var cooldown = skillData.cooldown * (100 - cooldownReduceRate) / 100000;
       slotMask.style.animationDuration = (cooldown) + 's';
       slotMask.classList.add("cooldownMaskAni");
@@ -251,7 +251,7 @@ UIManager.prototype = {
     }
     gameSceneBuffsContainer.innerHtml = '';
     if(inherentPassiveSkillData){
-      var buffGroupData = util.findData(buffGroupTable, 'index', inherentPassiveSkillData.buffToSelf);
+      var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', inherentPassiveSkillData.buffToSelf));
       var div = document.createElement('div');
       div.setAttribute('buffGroupIndex', inherentPassiveSkillData.buffToSelf);
       var img = document.createElement('img');
@@ -263,7 +263,7 @@ UIManager.prototype = {
     }
     if(passiveList){
       for(var i=0; i<passiveList.length; i++){
-        var passiveData = util.findData(buffGroupTable, 'index', passiveList[i]);
+        var passiveData = Object.assign({}, util.findData(buffGroupTable, 'index', passiveList[i]));
         var div = document.createElement('div');
         div.setAttribute('buffGroupIndex', passiveData.index);
         var img = document.createElement('img');
@@ -276,7 +276,7 @@ UIManager.prototype = {
     }
     if(buffList){
       for(var i=0; i<buffList.length; i++){
-        var buffData = util.findData(buffGroupTable, 'index', buffList[i].index);
+        var buffData = Object.assign({}, util.findData(buffGroupTable, 'index', buffList[i].index));
         var div = document.createElement('div');
         div.setAttribute('buffGroupIndex', buffData.index);
         var img = document.createElement('img');
@@ -344,7 +344,7 @@ UIManager.prototype = {
       if(equipSkills[i] === beforeSkillIndex){
         var index = equipSkills.indexOf(beforeSkillIndex);
         equipSkills.splice(index, 1, afterSkillIndex);
-        var skillData = util.findData(skillTable, 'index', afterSkillIndex);
+        var skillData = Object.assign({}, util.findData(skillTable, 'index', afterSkillIndex));
         equipSkillDatas.splice(index, 1, skillData);
         break;
       }
@@ -361,7 +361,7 @@ UIManager.prototype = {
   },
   updateSkillImageAndIndex : function(beforeSkillIndex, afterSkillIndex){
     var divs = document.querySelectorAll('[skillIndex="' + beforeSkillIndex + '"]');
-    var afterData = util.findData(skillTable, 'index', afterSkillIndex);
+    var afterData = Object.assign({}, util.findData(skillTable, 'index', afterSkillIndex));
     for(var i=0; i<divs.length; i++){
       divs[i].setAttribute('skillIndex', afterSkillIndex);
       divs[i].getElementsByTagName('img')[0].src = afterData.skillIcon;
@@ -443,7 +443,7 @@ UIManager.prototype = {
         }
       }
       if(!isEquipSkill){
-        var skillData = util.findData(skillTable, 'index', possessSkills[i]);
+        var skillData = Object.assign({}, util.findData(skillTable, 'index', possessSkills[i]));
         var skillDiv = document.createElement('div');
         var skillImg = document.createElement('img');
 
@@ -467,7 +467,7 @@ UIManager.prototype = {
     }
     sellectedSkillIndex = skillIndex;
 
-    var skillData = util.findData(skillTable, 'index', skillIndex);
+    var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
     var skillImg = document.createElement('img');
     var skillDesc = document.createElement('p');
 
@@ -532,7 +532,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           }
           popUpSkillContainer.removeChild(sellectedDiv);
           if(skillIndex){
-            var beforeSkillData = util.findData(skillTable, 'index', skillIndex);
+            var beforeSkillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
             var skillDiv = document.createElement('div');
             var skillImg = document.createElement('img');
             skillDiv.setAttribute('skillIndex', skillIndex);
@@ -556,7 +556,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           equipSkillDatas.splice(sellectEquipIndex, 1);
 
           equipSkills.splice(sellectEquipIndex, 0, sellectedSkillIndex);
-          var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+          var skillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
           equipSkillDatas.splice(sellectEquipIndex, 0, skillData);
 
           var skillImg = document.createElement('img');
@@ -577,7 +577,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           }
           popUpSkillContainer.removeChild(sellectDiv);
           if(sellectedSkillIndex){
-            var beforeSkillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+            var beforeSkillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
             var skillDiv = document.createElement('div');
             var skillImg = document.createElement('img');
 
@@ -601,7 +601,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           equipSkillDatas.splice(sellectedEquipIndex, 1);
 
           equipSkills.splice(sellectedEquipIndex, 0, skillIndex);
-          var skillData = util.findData(skillTable, 'index', skillIndex);
+          var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
           equipSkillDatas.splice(sellectedEquipIndex, 0, skillData);
 
           var skillImg = document.createElement('img');
@@ -614,25 +614,24 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
       if(skillData && beforeSkillData){
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE && beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
           console.log(beforeSkillData.index + ' : ' + skillData.index);
-          var beforeBuffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
-          var afterBuffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          var beforeBuffIndex = Object.assign({}, util.findData(skillTable, 'index', beforeSkillData.index)).buffToSelf;
+          var afterBuffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           this.onExchangePassive(beforeBuffIndex, afterBuffIndex);
         }else if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          var buffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           this.onEquipPassive(buffIndex);
         }else if(beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          buffIndex = Object.assign({}, util.findData(skillTable, 'index', beforeSkillData.index)).buffToSelf;
           this.onUnequipPassive(buffIndex);
         }
       }else if(skillData){
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
-          console.log(buffIndex);
+          buffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           this.onEquipPassive(buffIndex);
         }
       }else if(beforeSkillData){
         if(beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          buffIndex = Object.assign({}, util.findData(skillTable, 'index', beforeSkillData.index)).buffToSelf;
           this.onUnequipPassive(buffIndex);
         }
       }
@@ -647,7 +646,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
     }else if(skillIndex === sellectedSkillIndex){
       //if click same icon
       if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP && sellectEquipIndex !== -1){
-        var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+        var skillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
         var skillDiv = document.createElement('div');
         var skillImg = document.createElement('img');
 
@@ -674,7 +673,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
         equipSkillDatas.splice(sellectedEquipIndex, 0, undefined);
 
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          var buffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           console.log(buffIndex);
           this.onUnequipPassive(buffIndex);
         }
@@ -711,7 +710,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
     popUpSkillUpgradeBtn.removeChild(popUpSkillUpgradeBtn.firstChild);
   }
   if(sellectedSkillIndex){
-    var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+    var skillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
     var skillImg = document.createElement('img');
     var skillDesc = document.createElement('p');
 
@@ -828,7 +827,7 @@ function bottomTooltipOnHandler(type){
       break;
     case gameConfig.BUFF_ICON_INDEX:
       var buffGroupIndex = parseInt(this.getAttribute('buffGroupIndex'));
-      var buffGroupData = util.findData(buffGroupTable, 'index', buffGroupIndex);
+      var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
       tooltipDiv.innerHTML = buffGroupData.name;
       break;
     default:

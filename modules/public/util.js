@@ -440,32 +440,68 @@ exports.calcTargetPosition = function(centerPosition, direction, range){
 //find last coincident data
 exports.findData = function(table, columnName, value){
   var data = undefined;
-  for(var index in table){
-    //use ==, because value can be integer
-    if(table[index][columnName] == value){
-      data = table[index];
+  for(var i=0; i<table.length; i++){
+    if(table[i][columnName] == value){
+      data = table[i];
+      break;
     }
   }
+  // for(var index in table){
+  //   //use ==, because value can be integer
+  //   if(table[index][columnName] == value){
+  //     data = table[index];
+  //     break;
+  //   }
+  // }
   return data;
 };
+exports.findAllDatas = function(table, columnName, value){
+  var datas = [];
+  for(var i=0; i<table.length; i++){
+    if(table[i][columnName] == value){
+      datas.push(table[i]);
+    }
+  }
+  // for(var index in table){
+  //   if(table[index][columnName] == value){
+  //     datas.push(table[index]);
+  //   }
+  // }
+  return datas;
+}
 exports.findDataWithTwoColumns = function(table, columnName1, value1, columnName2, value2){
   var datas = [];
   var data = null;
-  for(var index in table){
-    if(table[index][columnName1] == value1){
-      datas.push(table[index]);
+  for(var i=0; i<table.length; i++){
+    if(table[i][columnName1] == value1){
+      datas.push(table[i]);
     }
   }
   if(datas.length > 0){
-    for(var index in datas){
-      if(datas[index][columnName2] == value2){
-        data = datas[index];
+    for(var i=0; i<datas.length; i++){
+      if(datas[i][columnName2] == value2){
+        data = datas[i];
+        break;
       }
     }
-  }else{
-    return null;
   }
   return data;
+  // for(var index in table){
+  //   if(table[index][columnName1] == value1){
+  //     datas.push(table[index]);
+  //   }
+  // }
+  // if(datas.length > 0){
+  //   for(var index in datas){
+  //     if(datas[index][columnName2] == value2){
+  //       data = datas[index];
+  //       break;
+  //     }
+  //   }
+  // }else{
+  //   return null;
+  // }
+  // return data;
 }
 exports.findAndSetBuffs = function(buffGroupData, buffTable, actorID){
   var returnVal = [];

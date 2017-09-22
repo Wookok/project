@@ -73,7 +73,7 @@ ProjectileCollider.prototype = {
     this.y += this.speed.y * deltaTime;
     this.timer = Date.now();
     if(this.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || this.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
-      if(this.tickStartTime > this.tickTime){
+      if(Date.now() - this.tickStartTime > this.tickTime){
         this.isCollide = false;
         this.tickStartTime = Date.now();
       }

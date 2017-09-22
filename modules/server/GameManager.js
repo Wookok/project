@@ -14,8 +14,9 @@ var csvJson = require('../public/csvjson.js');
 var dataJson = require('../public/data.json');
 
 var chestTable = csvJson.toObject(dataJson.chestData, {delimiter : ',', quote : '"'});
+var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
 var resources = require('../public/resources.json');
-var map = require('../public/map.json');
+// var map = require('../public/map.json');
 
 var OBJs = require('./OBJs.js');
 // var OBJExp = OBJs.OBJExp;
@@ -31,12 +32,12 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 //quadTree var
 //user and chest
 var entityTree;
-var entityBefore150msTree;
-var entityBefore300msTree;
+// var entityBefore150msTree;
+// var entityBefore300msTree;
 
 var userEles = [];
-var userBefore150msEles = [];
-var userBefore300msEles = [];
+// var userBefore150msEles = [];
+// var userBefore300msEles = [];
 
 var chestEles = [];
 //skill
@@ -104,16 +105,16 @@ GameManager.prototype.start = function(){
     height : gameConfig.CANVAS_MAX_SIZE.height,
     maxElements : 5
   });
-  entityBefore150msTree = new QuadTree({
-    width : gameConfig.CANVAS_MAX_SIZE.width,
-    height : gameConfig.CANVAS_MAX_SIZE.height,
-    maxElements : 5
-  });
-  entityBefore300msTree = new QuadTree({
-    width : gameConfig.CANVAS_MAX_SIZE.width,
-    height : gameConfig.CANVAS_MAX_SIZE.height,
-    maxElements : 5
-  });
+  // entityBefore150msTree = new QuadTree({
+  //   width : gameConfig.CANVAS_MAX_SIZE.width,
+  //   height : gameConfig.CANVAS_MAX_SIZE.height,
+  //   maxElements : 5
+  // });
+  // entityBefore300msTree = new QuadTree({
+  //   width : gameConfig.CANVAS_MAX_SIZE.width,
+  //   height : gameConfig.CANVAS_MAX_SIZE.height,
+  //   maxElements : 5
+  // });
 
   collectionTree = new QuadTree({
     width : gameConfig.CANVAS_MAX_SIZE.width,
@@ -157,21 +158,34 @@ GameManager.prototype.updateGame = function(){
 
 //create obstacles and static tree setup
 GameManager.prototype.setObstacles = function(){
-  for(var index in map.Trees){
-    var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
-
-    this.obstacles.push(tempObstacle);
-    staticEles.push(tempObstacle.staticEle);
+  var trees = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_TREE));
+  for(var i=0; i<Object.keys(trees).length; i++){
+    var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius * 2, trees[i].id);
+    this.obstacles.push(tempTree);
+    staticEles.push(tempTree.staticEle);
   }
+  // for(var index in map.Trees){
+  //   var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
+  //
+  //   this.obstacles.push(tempObstacle);
+  //   staticEles.push(tempObstacle.staticEle);
+  // }
 };
 GameManager.prototype.setChestsLocation = function(){
-  for(var i=0; i<map.Chests.length; i++){
-    var tempObj = new Obstacle(map.Chests[i].posX, map.Chests[i].posY,
-      resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id);
+  var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
+  for(var i=0; i<Object.keys(chestGrounds).length; i++){
+    var tempGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius * 2, chestGrounds[i].id);
 
-    this.chestLocations.push(tempObj);
-    staticEles.push(tempObj.staticEle);
+    this.chestLocations.push(tempGround);
+    staticEles.push(tempGround.staticEle);
   }
+  // for(var i=0; i<map.Chests.length; i++){
+  //   var tempObj = new Obstacle(map.Chests[i].posX, map.Chests[i].posY,
+  //     resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id);
+  //
+  //   this.chestLocations.push(tempObj);
+  //   staticEles.push(tempObj.staticEle);
+  // }
 };
 GameManager.prototype.setStaticTreeEle = function(){
   staticTree.pushAll(staticEles);
@@ -228,29 +242,47 @@ GameManager.prototype.setOBJGolds = function(){
   }
 };
 GameManager.prototype.createChest = function(chestLocationID){
-  //find chest data
-  for(var i=0; i<Object.keys(map.Chests).length; i++){
-    if(map.Chests[i].id === chestLocationID){
-      var chestResourceData = map.Chests[i]
+  var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
+  for(var i=0; i<Object.keys(chestGrounds).length; i++){
+    if(chestGrounds[i].id === chestLocationID){
+      var chestGrade = Math.floor(Math.random() * (chestGrounds[i].chestGradeMax - chestGrounds[i].chestGradeMin + 1) + chestGrounds[i].chestGradeMin);
+      var chestData = Object.assign({}, util.findData(chestTable, 'grade', chestGrade));
+      var position = {x : chestGrounds[i].posX, y : chestGrounds[i].posY};
+      var chestID = SUtil.generateRandomUniqueID(this.chests, gameConfig.PREFIX_CHEST);
+
+      var chest = new OBJChest(chestID, chestLocationID);
+      chest.initOBJChest(position, chestGrounds[i].radius, chestData);
+      chest.setEntityEle();
+      this.chests.push(chest);
+      this.onNeedInformCreateChest(chest);
+
+      chest.onDestroy = onChestDestroyHandler.bind(this);
+      break;
     }
   }
-  //set grade of Chest
-  if(chestResourceData){
-    var chestGrade = Math.floor(Math.random() * (chestResourceData.gradeMax - chestResourceData.gradeMin + 1) + chestResourceData.gradeMin);
-    console.log('chest grade : ' + chestGrade);
-    var chestData = util.findData(chestTable, 'grade', chestGrade);
-    var position = {x : chestResourceData.posX, y : chestResourceData.posY};
-    var chestID = SUtil.generateRandomUniqueID(this.chests, gameConfig.PREFIX_CHEST);
-    var radius = resources.OBJ_CHEST_SIZE;
-
-    var chest = new OBJChest(chestID, chestLocationID);
-    chest.initOBJChest(position, radius, chestData);
-    chest.setEntityEle();
-    this.chests.push(chest);
-    this.onNeedInformCreateChest(chest);
-
-    chest.onDestroy = onChestDestroyHandler.bind(this);
-  }
+  // //find chest data
+  // for(var i=0; i<chestGrounds.length; i++){
+  //   if(map.Chests[i].id === chestLocationID){
+  //     var chestResourceData = map.Chests[i]
+  //   }
+  // }
+  // //set grade of Chest
+  // if(chestResourceData){
+  //   var chestGrade = Math.floor(Math.random() * (chestResourceData.gradeMax - chestResourceData.gradeMin + 1) + chestResourceData.gradeMin);
+  //   console.log('chest grade : ' + chestGrade);
+  //   var chestData = Object.assign({}, util.findData(chestTable, 'grade', chestGrade));
+  //   var position = {x : chestResourceData.posX, y : chestResourceData.posY};
+  //   var chestID = SUtil.generateRandomUniqueID(this.chests, gameConfig.PREFIX_CHEST);
+  //   var radius = resources.OBJ_CHEST_SIZE;
+  //
+  //   var chest = new OBJChest(chestID, chestLocationID);
+  //   chest.initOBJChest(position, radius, chestData);
+  //   chest.setEntityEle();
+  //   this.chests.push(chest);
+  //   this.onNeedInformCreateChest(chest);
+  //
+  //   chest.onDestroy = onChestDestroyHandler.bind(this);
+  // }
 };
 var onChestDestroyHandler = function(cht){
   var createdObjs = [];
@@ -488,7 +520,7 @@ GameManager.prototype.stopUser = function(user){
   user.stop();
 };
 //user initialize
-GameManager.prototype.initializeUser = function(user, baseSkill, equipSkills, possessSkills, inherentPassiveSkill){
+GameManager.prototype.initializeUser = function(user, baseSkill, possessSkills, inherentPassiveSkill){
   // check ID is unique
   var randomID = SUtil.generateRandomUniqueID(this.users, gameConfig.PREFIX_USER);
   //initialize variables;
@@ -497,7 +529,7 @@ GameManager.prototype.initializeUser = function(user, baseSkill, equipSkills, po
   user.setSize(resources.USER_BODY_SIZE,resources.USER_BODY_SIZE);
   user.setPosition(10, 10);
 
-  user.setSkills(baseSkill, equipSkills, possessSkills, inherentPassiveSkill);
+  user.setSkills(baseSkill, possessSkills, inherentPassiveSkill);
 
   user.initEntityEle();
   user.buffUpdate();
@@ -602,21 +634,21 @@ GameManager.prototype.updateUserData = function(userData){
         y : this.users[userData.objectID].position.y,
         time : this.users[userData.objectID].time
       });
-      if(this.users[userData.objectID].beforePositions.length > 30){
-        while(this.users[userData.objectID].beforePositions.length > 30){
+      if(this.users[userData.objectID].beforePositions.length > 5){
+        while(this.users[userData.objectID].beforePositions.length > 5){
           this.users[userData.objectID].beforePositions.splice(0, 1);
         }
       }
-      for(var i=0; i<this.users[userData.objectID].beforePositions.length; i++){
-        // console.log(Date.now() - this.users[userData.objectID].beforePositions[i].time);
-        if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 300){
-          this.users[userData.objectID].before300msPos.x = this.users[userData.objectID].beforePositions[i].x;
-          this.users[userData.objectID].before300msPos.y = this.users[userData.objectID].beforePositions[i].y;
-        }else if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 150){
-          this.users[userData.objectID].before150msPos.x = this.users[userData.objectID].beforePositions[i].x;
-          this.users[userData.objectID].before150msPos.y = this.users[userData.objectID].beforePositions[i].y;
-        }
-      }
+      // for(var i=0; i<this.users[userData.objectID].beforePositions.length; i++){
+      //   // console.log(Date.now() - this.users[userData.objectID].beforePositions[i].time);
+      //   if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 300){
+      //     this.users[userData.objectID].before300msPos.x = this.users[userData.objectID].beforePositions[i].x;
+      //     this.users[userData.objectID].before300msPos.y = this.users[userData.objectID].beforePositions[i].y;
+      //   }else if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 150){
+      //     this.users[userData.objectID].before150msPos.x = this.users[userData.objectID].beforePositions[i].x;
+      //     this.users[userData.objectID].before150msPos.y = this.users[userData.objectID].beforePositions[i].y;
+      //   }
+      // }
       this.users[userData.objectID].time = userData.time;
     }
     this.users[userData.objectID].currentState = userData.currentState;
@@ -703,7 +735,7 @@ GameManager.prototype.processChangedUserStat = function(user){
     maxSpeed : user.maxSpeed,
     rotateSpeed : user.rotateSpeed,
 
-    conditions : this.conditions
+    conditions : user.conditions
   };
 };
 GameManager.prototype.processUserPrivateDataSetting = function(user){
@@ -731,7 +763,7 @@ GameManager.prototype.processBuffDataSetting = function(user){
 GameManager.prototype.addSkillData = function(userData){
   if(userData.objectID in this.users){
     userData.baseSkill = this.users[userData.objectID].baseSkill;
-    userData.equipSkills = this.users[userData.objectID].equipSkills;
+    // userData.equipSkills = this.users[userData.objectID].equipSkills;
     userData.possessSkills = this.users[userData.objectID].possessSkills;
     userData.inherentPassiveSkill= this.users[userData.objectID].inherentPassiveSkill;
   }
@@ -745,39 +777,39 @@ GameManager.prototype.addPrivateData = function(userData){
     userData.cooldownReduceRate = this.users[userData.objectID].cooldownReduceRate;
   }
 };
-GameManager.prototype.processSkillsDataSettings = function(){
-  var skillDatas = [];
-  for(var index in this.users){
-    if(this.users[index].currentState === gameConfig.OBJECT_STATE_CAST){
-      var skillData = {
-        userID : this.users[index].objectID,
-        index : this.users[index].currentSkill.index,
-        targetPosition : this.users[index].currentSkill.targetPosition,
-        direction : this.users[index].currentSkill.direction,
-        totalTime : this.users[index].currentSkill.totalTime - (Date.now() - this.users[index].currentSkill.startTime),
-        fireTime : this.users[index].currentSkill.fireTime - (Date.now() - this.users[index].currentSkill.startTime)
-      }
-    }
-  }
-  return skillDatas;
-};
-GameManager.prototype.processProjectilesDataSettings = function(){
-  var projectileDatas = [];
-  for(var i=0; i<this.projectiles; i++){
-    var projectile = {
-      index : this.projectiles[i].index,
-      objectID : this.projectiles[i].objectID,
-      position : this.projectiles[i].position,
-      speed : this.projectiles[i].speed,
-      radius : this.projectiles[i].radius,
-      lifeTime : this.projectiles[i].lifeTime - (Date.now() - this.projectiles[i].startTime),
-      explosionRadius : this.projectiles[i].explosionRadius,
-      explode : this.projectiles[i].colliderEle.isCollide,
-    }
-    projectileDatas.push(projectile);
-  }
-  return projectileDatas;
-};
+// GameManager.prototype.processSkillsDataSettings = function(){
+//   var skillDatas = [];
+//   for(var index in this.users){
+//     if(this.users[index].currentState === gameConfig.OBJECT_STATE_CAST){
+//       var skillData = {
+//         userID : this.users[index].objectID,
+//         index : this.users[index].currentSkill.index,
+//         targetPosition : this.users[index].currentSkill.targetPosition,
+//         direction : this.users[index].currentSkill.direction,
+//         totalTime : this.users[index].currentSkill.totalTime - (Date.now() - this.users[index].currentSkill.startTime),
+//         fireTime : this.users[index].currentSkill.fireTime - (Date.now() - this.users[index].currentSkill.startTime)
+//       }
+//     }
+//   }
+//   return skillDatas;
+// };
+// GameManager.prototype.processProjectilesDataSettings = function(){
+//   var projectileDatas = [];
+//   for(var i=0; i<this.projectiles; i++){
+//     var projectile = {
+//       index : this.projectiles[i].index,
+//       objectID : this.projectiles[i].objectID,
+//       position : this.projectiles[i].position,
+//       speed : this.projectiles[i].speed,
+//       radius : this.projectiles[i].radius,
+//       lifeTime : this.projectiles[i].lifeTime - (Date.now() - this.projectiles[i].startTime),
+//       explosionRadius : this.projectiles[i].explosionRadius,
+//       explode : this.projectiles[i].colliderEle.isCollide,
+//     }
+//     projectileDatas.push(projectile);
+//   }
+//   return projectileDatas;
+// };
 GameManager.prototype.processOBJDataSetting = function(data){
   return {
     objectID : data.objectID,
@@ -822,7 +854,10 @@ GameManager.prototype.processChestDataSetting = function(data){
   return {
     objectID : data.objectID,
     locationID : data.locationID,
-    grade : data.grade
+    grade : data.grade,
+
+    maxHP : data.maxHP,
+    HP : data.HP
   };
 };
 GameManager.prototype.processChestDataSettings = function(){
@@ -866,9 +901,14 @@ GameManager.prototype.unequipPassive = function(user, buffIndex){
     user.unequipPassive(buffIndex);
   }
 };
+GameManager.prototype.cancelBlur = function(userID){
+  if(userID in this.users){
+    this.users[userID].cancelBlur();
+  }
+}
 function chestIntervalHandler(){
   if(this.isCreateChest()){
-    this.createChest('CH1');
+    this.createChest('OCG1');
   }
 };
 function updateIntervalHandler(){
@@ -878,15 +918,15 @@ function updateIntervalHandler(){
     //tempCollider == skill and projectile
     var tempCollider = colliderEles[i];
     //collision with user or chest
-    if(tempCollider.latency >= 225){
-      var collisionObjs = util.checkCircleCollision(entityBefore300msTree, tempCollider.x, tempCollider.y, tempCollider.width/2, tempCollider.id);
-      console.log('check collision to entityBefore300msTree');
-    }else if(tempCollider.latency >= 75){
-      collisionObjs = util.checkCircleCollision(entityBefore150msTree, tempCollider.x, tempCollider.y, tempCollider.width/2, tempCollider.id);
-      console.log('check collision to entityBefore150msTree');
-    }else {
-      collisionObjs = util.checkCircleCollision(entityTree, tempCollider.x, tempCollider.y, tempCollider.width/2, tempCollider.id);
-    }
+    // if(tempCollider.latency >= 225){
+    //   var collisionObjs = util.checkCircleCollision(entityBefore300msTree, tempCollider.x, tempCollider.y, tempCollider.width/2, tempCollider.id);
+    //   // console.log('check collision to entityBefore300msTree');
+    // }else if(tempCollider.latency >= 75){
+    //   collisionObjs = util.checkCircleCollision(entityBefore150msTree, tempCollider.x, tempCollider.y, tempCollider.width/2, tempCollider.id);
+    //   // console.log('check collision to entityBefore150msTree');
+    // }else {
+    collisionObjs = util.checkCircleCollision(entityTree, tempCollider.x, tempCollider.y, tempCollider.width/2, tempCollider.id);
+    // }
     if(collisionObjs.length > 0){
       for(var j = 0; j<collisionObjs.length; j++){
         if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || tempCollider.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
@@ -912,16 +952,18 @@ function updateIntervalHandler(){
               console.log('check id' + collisionObjs[j].id);
             }
           }
-        }else if((tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION) && !tempCollider.isCollide){
-          if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
-            affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
-          }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
-            affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
-          }else{
-            console.log('check id' + collisionObjs[j].id);
-          }
-          if(collisionObjs.length - 1 === j){
-            tempCollider.isCollide = true;
+        }else if((tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION)){
+          if(!tempCollider.isCollide){
+            if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_CHEST){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
+            }else{
+              console.log('check id' + collisionObjs[j].id);
+            }
+            if(collisionObjs.length - 1 === j){
+              tempCollider.isCollide = true;
+            }
           }
         }else{
           if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
@@ -967,16 +1009,16 @@ function updateIntervalHandler(){
   for(var i=0; i<userEles.length; i++){
     entityTree.remove(userEles[i]);
   }
-  for(var i=0; i<userBefore150msEles.length; i++){
-    entityBefore150msTree.remove(userBefore150msEles[i]);
-  }
-  for(var i=0; i<userBefore300msEles.length; i++){
-    entityBefore300msTree.remove(userBefore300msEles[i]);
-  }
+  // for(var i=0; i<userBefore150msEles.length; i++){
+  //   entityBefore150msTree.remove(userBefore150msEles[i]);
+  // }
+  // for(var i=0; i<userBefore300msEles.length; i++){
+  //   entityBefore300msTree.remove(userBefore300msEles[i]);
+  // }
   for(var i=0; i<chestEles.length; i++){
     entityTree.remove(chestEles[i]);
-    entityBefore150msTree.remove(chestEles[i]);
-    entityBefore300msTree.remove(chestEles[i]);
+    // entityBefore150msTree.remove(chestEles[i]);
+    // entityBefore300msTree.remove(chestEles[i]);
   }
 
   for(var i=0; i<removeOBJs.length; i++){
@@ -988,8 +1030,8 @@ function updateIntervalHandler(){
   }
 
   userEles = [];
-  userBefore150msEles = [];
-  userBefore300msEles = [];
+  // userBefore150msEles = [];
+  // userBefore300msEles = [];
   chestEles = [];
   colliderEles = [];
   // collectionEles = [];
@@ -998,11 +1040,11 @@ function updateIntervalHandler(){
   for(var index in this.users){
     this.users[index].setEntityEle();
     userEles.push(this.users[index].entityTreeEle);
-    this.users[index].setBefore150msEntitiyEle();
-    userBefore150msEles.push(this.users[index].entityBefore150msTreeEle);
+    // this.users[index].setBefore150msEntitiyEle();
+    // userBefore150msEles.push(this.users[index].entityBefore150msTreeEle);
 
-    this.users[index].setBefore300msEntityEle();
-    userBefore300msEles.push(this.users[index].entityBefore300msTreeEle);
+    // this.users[index].setBefore300msEntityEle();
+    // userBefore300msEles.push(this.users[index].entityBefore300msTreeEle);
   }
   for(var i=0; i<this.chests.length; i++){
     chestEles.push(this.chests[i].entityTreeEle);
@@ -1105,25 +1147,97 @@ function updateIntervalHandler(){
   entityTree.pushAll(userEles);
   entityTree.pushAll(chestEles);
 
-  entityBefore150msTree.pushAll(userBefore150msEles);
-  entityBefore150msTree.pushAll(chestEles);
+  // entityBefore150msTree.pushAll(userBefore150msEles);
+  // entityBefore150msTree.pushAll(chestEles);
 
-  entityBefore300msTree.pushAll(userBefore300msEles);
-  entityBefore300msTree.pushAll(chestEles);
+  // entityBefore300msTree.pushAll(userBefore300msEles);
+  // entityBefore300msTree.pushAll(chestEles);
 
   // collectionTree.pushAll(collectionEles);
   collectionTree.pushAll(addedObjEles);
 };
 function staticIntervalHandler(){
   //explode when projectile collide with obstacle
-  for(var i=0; i<this.projectiles.length; i++){
-    var projectileCollider = this.projectiles[i];
-    var collisionObjs = util.checkCircleCollision(staticTree, projectileCollider.x, projectileCollider.y, projectileCollider.width/2, projectileCollider.id);
-    if(collisionObjs.length > 0 ){
-      if(projectileCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || projectileCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION
-          || projectileCollider.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
-        if(!projectileCollider.isCollide){
-          projectileCollider.isCollide = true;
+  // for(var i=0; i<this.projectiles.length; i++){
+  //   var projectileCollider = this.projectiles[i];
+  //   var collisionObjs = util.checkCircleCollision(staticTree, projectileCollider.x, projectileCollider.y, projectileCollider.width/2, projectileCollider.id);
+  //   if(collisionObjs.length > 0 ){
+  //     if(projectileCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || projectileCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION
+  //         || projectileCollider.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+  //       if(!projectileCollider.isCollide){
+  //         projectileCollider.isCollide = true;
+  //       }
+  //     }
+  //   }
+  // }
+
+  for(var i=0; i<colliderEles.length; i++){
+    //tempCollider == skill and projectile
+    var tempCollider = colliderEles[i];
+    var collisionObjs = util.checkCircleCollision(staticTree, tempCollider.x, tempCollider.y, tempCollider.width/2, tempCollider.id);
+    //collision with tree or stone
+    if(collisionObjs.length > 0){
+      for(var j = 0; j<collisionObjs.length; j++){
+        if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE || tempCollider.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+          if(!tempCollider.isCollide){
+            tempCollider.isCollide = true;
+            if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_TREE){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_TREE));
+              // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_ROCK){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_ROCK));
+              // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_CHEST_GROUND){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST_GROUND));
+            }else{
+              console.log('check id' + collisionObjs[j].id);
+            }
+          }
+        }else if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
+          if(!tempCollider.isCollide){
+            tempCollider.isCollide = true;
+          }else if(tempCollider.isCollide){
+            if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_TREE){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_TREE));
+              // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_ROCK){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_ROCK));
+              // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_CHEST_GROUND){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST_GROUND));
+            }else{
+              console.log('check id' + collisionObjs[j].id);
+            }
+          }
+        }else if((tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION)){
+          if(!tempCollider.isCollide){
+            if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_TREE){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_TREE));
+              // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_ROCK){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_ROCK));
+              // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
+            }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_CHEST_GROUND){
+              affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST_GROUND));
+            }else{
+              console.log('check id' + collisionObjs[j].id);
+            }
+            if(collisionObjs.length - 1 === j){
+              tempCollider.isCollide = true;
+            }
+          }
+        }else{
+          if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_TREE){
+            affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_TREE));
+            // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
+          }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_ROCK){
+            affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_ROCK));
+            // affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST));
+          }else if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_CHEST_GROUND){
+            affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_CHEST_GROUND));
+          }else{
+            console.log('check id' + collisionObjs[j].id);
+          }
         }
       }
     }
@@ -1166,7 +1280,19 @@ function affectIntervalHandler(){
       // else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_EXP){
       //   this.getObj(affectedEles[i].affectedID, affectedEles[i].expAmount, affectedEles[i].actorID);
       // }
-      else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_SKILL){
+      else if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_TREE){
+        if(affectedEles[i].actorID in this.users){
+          this.users[affectedEles[i].actorID].getExp(1);
+        }
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_ROCK){
+        if(affectedEles[i].actorID in this.users){
+          this.users[affectedEles[i].actorID].getExp(1);
+        }
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_CHEST_GROUND){
+        if(affectedEles[i].actorID in this.users){
+          this.users[affectedEles[i].actorID].getExp(1);
+        }
+      }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_SKILL){
         this.getObj(affectedEles[i].affectedID, affectedEles[i].skillIndex, affectedEles[i].actorID);
       }else if(affectedEles[i].collisionType === serverConfig.COLLISION_USER_WITH_COLLECTION_GOLD){
         this.getObj(affectedEles[i].affectedID, affectedEles[i].goldAmount, affectedEles[i].actorID);

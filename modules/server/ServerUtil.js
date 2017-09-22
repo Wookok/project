@@ -118,20 +118,26 @@ exports.setAffectedEleColSkillWithEntity = function(skill, affectedID, collision
 
     buffToTarget : skill.buffToTarget,
     additionalBuffToTarget : skill.additionalBuffToTarget
-  }
+  };
 };
 exports.setAffectedEleColUserWithCollection = function(userID, affectedObj, collisionType){
-  return{
+  return {
     collisionType : collisionType,
     actorID : userID,
     affectedID : affectedObj.id,
 
-    expAmount : affectedObj.expAmount || 0,
+    // expAmount : affectedObj.expAmount || 0,
     goldAmount : affectedObj.goldAmount || 0,
     jewelAmount : affectedObj.jewelAmount || 0,
     skillIndex : affectedObj.skillIndex || 0
-  }
+  };
 };
+exports.setAffectedEleColSkillWithObject = function(userID, affectedObj, collisionType){
+  return {
+    collisionType : collisionType,
+    actorID : userID
+  };
+}
 exports.checkUserBuff = function(user, skillData){
   var fireBuffList = [];
   var hitBuffList = [];
@@ -248,7 +254,7 @@ exports.checkUserBuff = function(user, skillData){
       }
       var randomIndex = Math.floor(Math.random() * (addBuffGroupList.length));
       var addBuffGroupIndex = addBuffGroupList[randomIndex];
-      var addBuffGroupData = util.findData(buffGroupTable, 'index', addBuffGroupIndex);
+      var addBuffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', addBuffGroupIndex));
       if(addBuffGroupData.isBuff){
         skillData.additionalBuffToSelf = addBuffGroupIndex;
       }else{

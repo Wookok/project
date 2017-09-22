@@ -5,7 +5,11 @@ var util = require('../public/util.js');
 
 var gameConfig = require('../public/gameConfig.json');
 var resources = require('../public/resources.json');
-var map = require('../public/map.json');
+// var map = require('../public/map.json');
+var csvJson = require('../public/csvjson.js');
+var dataJson = require('../public/data.json');
+
+var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
 
 var QuadTree = require('../public/quadtree.min.js');
 
@@ -15,6 +19,7 @@ var colliderEles = [];
 
 var staticTree;
 var staticEles = [];
+var checkCollisionEles = [];
 var affectedEles = [];
 
 var CManager = function(){
@@ -63,16 +68,28 @@ CManager.prototype = {
 	  }
 	},
 	createObstacles : function(){
-		for(var i=0; i<map.Trees.length; i++){
-			var tempObstacle = new Obstacle(map.Trees[i].posX, map.Trees[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[i].id, resources.OBJ_TREE_SRC);
-			this.obstacles.push(tempObstacle);
-			staticEles.push(tempObstacle.staticEle);
+		var trees = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_TREE));
+		for(var i=0; i<Object.keys(trees).length; i++){
+				var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius, trees[i].id, resources.OBJ_TREE_SRC);
+				this.obstacles.push(tempTree);
+				staticEles.push(tempTree.staticEle);
 		}
-		for(var i=0; i<map.Chests.length; i++){
-			var chestBase = new Obstacle(map.Chests[i].posX, map.Chests[i].posY, resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id, resources.OBJ_CHEST_SRC);
-			this.obstacles.push(chestBase);
-			staticEles.push(chestBase.staticEle);
+		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
+		for(var i=0; i<Object.keys(chestGrounds).length; i++){
+			var tempChestGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius, chestGrounds[i].id, resources.OBJ_CHEST_GROUND_SRC);
+			this.obstacles.push(tempChestGround);
+			staticEles.push(tempChestGround.staticEle);
 		}
+		// for(var i=0; i<map.Trees.length; i++){
+		// 	var tempObstacle = new Obstacle(map.Trees[i].posX, map.Trees[i].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[i].id, resources.OBJ_TREE_SRC);
+		// 	this.obstacles.push(tempObstacle);
+		// 	staticEles.push(tempObstacle.staticEle);
+		// }
+		// for(var i=0; i<map.Chests.length; i++){
+		// 	var chestBase = new Obstacle(map.Chests[i].posX, map.Chests[i].posY, resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id, resources.OBJ_CHEST_SRC);
+		// 	this.obstacles.push(chestBase);
+		// 	staticEles.push(chestBase.staticEle);
+		// }
 		staticTree.pushAll(staticEles);
 	},
 	setChests : function(chestDatas){
@@ -82,20 +99,35 @@ CManager.prototype = {
 	},
 	createChest : function(chestData){
 		//find chest location
-		for(var i=0; i<map.Chests.length; i++){
-			if(map.Chests[i].id === chestData.locationID){
-				var chestPosition = {x : map.Chests[i].posX, y : map.Chests[i].posY};
+		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
+		for(var i=0; i<Object.keys(chestGrounds).length; i++){
+			if(chestGrounds[i].id === chestData.locationID){
+				var chestPosition = {x : chestGrounds[i].posX,  y : chestGrounds[i].posY};
 				break;
 			}
 		}
 		if(chestPosition){
-			this.chests.push({
-				objectID : chestData.objectID,
-				grade : chestData.grade,
-				position : chestPosition,
-				size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
-			});
+				this.chests.push({
+					objectID : chestData.objectID,
+					grade : chestData.grade,
+					position : chestPosition,
+					size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
+				});
 		}
+		// for(var i=0; i<map.Chests.length; i++){
+		// 	if(map.Chests[i].id === chestData.locationID){
+		// 		var chestPosition = {x : map.Chests[i].posX, y : map.Chests[i].posY};
+		// 		break;
+		// 	}
+		// }
+		// if(chestPosition){
+		// 	this.chests.push({
+		// 		objectID : chestData.objectID,
+		// 		grade : chestData.grade,
+		// 		position : chestPosition,
+		// 		size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
+		// 	});
+		// }
 	},
 	setUser : function(userData){
 		if(!(userData.objectID in this.users)){
@@ -243,7 +275,7 @@ CManager.prototype = {
 				this.users[userID].changeState(gameConfig.OBJECT_STATE_ATTACK);
 			}else if(skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
 				skillInstance.onFire = function(syncFireTime){
-					var projectile = mainUser.makeProjectile(skillData.projectileID, skillInstance);
+					var projectile = mainUser.makeProjectile(skillData.projectileIDs[0], skillInstance, skillData.direction);
 					if(thisUser === mainUser){
 						thisOnProjectileSkillFire([projectile], syncFireTime);
 					}
@@ -282,7 +314,7 @@ CManager.prototype = {
 								// thisProjectiles.push(projectile);
 								projectiles.push(projectile);
 								if(thisUser === mainUser && projectiles.length === skillData.projectileCount){
-									thisOnProjectileSkillFire(projectiles);
+									thisOnProjectileSkillFire(projectiles, syncFireTime);
 								}
 								mainUser.skillCastEffectPlay = false;
 							}
@@ -299,13 +331,18 @@ CManager.prototype = {
 			position : skillData.targetPosition,
 			radius : skillData.explosionRadius,
 			startTime : Date.now(),
-			lifeTime  : skillData.effectLastTime
+			lifeTime  : skillData.effectLastTime,
+
+			isCheckCollision : false
 		});
 	},
 	applyProjectile : function(skillData){
 		this.projectiles.push({
 			userID : skillData.userID,
 			objectID : skillData.objectID,
+
+			type : skillData.type,
+
 			position : skillData.position,
 			speed : skillData.speed,
 			startTime : skillData.startTime,
@@ -469,21 +506,61 @@ CManager.prototype = {
 };
 
 function staticIntervalHandler(){
+	var i=checkCollisionEles.length;
+	while(i--){
+		var collisionObjs = util.checkCircleCollision(staticTree, checkCollisionEles[i].position.x, checkCollisionEles[i].position.y, checkCollisionEles[i].radius, gameConfig.PREFIX_SKILL);
+		if(collisionObjs.length){
+			for(var j=0; j<collisionObjs.length; j++){
+				var tempCollider = collisionObjs[j];
+				if(!tempCollider.isCollide){
+					tempCollider.isCollide = true;
+					setTimeout(function(){
+						tempCollider.isCollide = false;
+					}, gameConfig.SKiLL_HIT_EFFECT_TIME);
+				}
+			}
+		}
+		checkCollisionEles.splice(i, 1);
+	}
+
+
 	//user elements update for collision check
 	for(var index in this.users){
 		this.users[index].setEntityEle();
 	}
-
 	var i = this.projectiles.length;
   while(i--){
     if(this.projectiles[i].isExpired()){
       this.projectiles.splice(i, 1);
     }else{
       this.projectiles[i].move();
-    }
+
+			if(this.projectiles[i].type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE || this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE ||
+				 this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_TICK || this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
+					 //check collision with obstacles
+					 var collisionObjs = util.checkCircleCollision(staticTree, this.projectiles[i].position.x, this.projectiles[i].position.y, this.projectiles[i].radius, gameConfig.PREFIX_SKILL_PROJECTILE);
+					 if(collisionObjs.length){
+						 for(var j=0; j<collisionObjs.length; j++){
+							 var tempCollider = collisionObjs[j];
+							 if(!tempCollider.isCollide){
+								 tempCollider.isCollide = true;
+								 setTimeout(function(){
+									 tempCollider.isCollide = false;
+								 }, gameConfig.SKiLL_HIT_EFFECT_TIME);
+							 }
+						 }
+					 }
+				 }
+		}
   }
 	var i=this.effects.length;
 	while(i--){
+		if(!this.effects[i].isCheckCollision){
+			if(Date.now() - this.effects[i].startTime > this.effects[i].lifeTime/2){
+				checkCollisionEles.push(this.effects[i]);
+				this.effects[i].isCheckCollision = true;
+			}
+		}
 		if(this.effects[i].startTime + this.effects[i].lifeTime < Date.now()){
 			this.effects.splice(i, 1);
 		}
@@ -498,8 +575,8 @@ var onMoveCalcCompelPos = function(user){
 };
 module.exports = CManager;
 
-},{"../public/gameConfig.json":8,"../public/map.json":9,"../public/quadtree.min.js":10,"../public/resources.json":11,"../public/util.js":12,"./CObstacle.js":2,"./CUser.js":5}],2:[function(require,module,exports){
-function CObstacle(posX, posY, sizeW, sizeH, id, src){
+},{"../public/csvjson.js":6,"../public/data.json":7,"../public/gameConfig.json":8,"../public/quadtree.min.js":9,"../public/resources.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CUser.js":5}],2:[function(require,module,exports){
+function CObstacle(posX, posY, radius, id, src){
   this.objectID = id;
   this.src = src;
   this.position = {
@@ -509,23 +586,26 @@ function CObstacle(posX, posY, sizeW, sizeH, id, src){
   // this.localPosition = {
   //   x : posX, y : posY
   // };
+
   this.size = {
-    width : sizeW, height : sizeH
+    width : radius * 2, height : radius * 2
   };
   this.center = {
     x : this.position.x + this.size.width/2,
     y : this.position.y + this.size.height/2
   }
 
-  this.setSize(sizeW, sizeH);
-  this.setPosition(posX, posY);
+  // this.setSize(radius * 2, radius * 2);
+  // this.setPosition(posX, posY);
 
   this.staticEle = {
     x : this.position.x,
     y : this.position.y,
     width : this.size.width,
     height : this.size.height,
-    id : this.objectID
+    id : this.objectID,
+
+    isCollide : false
   };
 };
 
@@ -545,7 +625,7 @@ CObstacle.prototype = {
     }
     this.center.x = this.position.x + this.size.width/2;
     this.center.y = this.position.y + this.size.height/2;
-  },
+  }
 };
 module.exports = CObstacle;
 
@@ -654,7 +734,7 @@ var ProjectileSkill = function(skillInstance, currentPosition, ID, direction){
 
 module.exports = CSkill;
 
-},{"../public/gameConfig.json":8,"../public/util.js":12}],4:[function(require,module,exports){
+},{"../public/gameConfig.json":8,"../public/util.js":11}],4:[function(require,module,exports){
 var util = require('../public/util.js');
 var gameConfig = require('../public/gameConfig.json');
 var skillTable, buffGroupTable;
@@ -856,7 +936,7 @@ UIManager.prototype = {
     }
     //cooldown start
     if(slotMask){
-      var skillData = util.findData(skillTable, 'index', skillIndex);
+      var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
       var cooldown = skillData.cooldown * (100 - cooldownReduceRate) / 100000;
       slotMask.style.animationDuration = (cooldown) + 's';
       slotMask.classList.add("cooldownMaskAni");
@@ -908,7 +988,7 @@ UIManager.prototype = {
     }
     gameSceneBuffsContainer.innerHtml = '';
     if(inherentPassiveSkillData){
-      var buffGroupData = util.findData(buffGroupTable, 'index', inherentPassiveSkillData.buffToSelf);
+      var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', inherentPassiveSkillData.buffToSelf));
       var div = document.createElement('div');
       div.setAttribute('buffGroupIndex', inherentPassiveSkillData.buffToSelf);
       var img = document.createElement('img');
@@ -920,7 +1000,7 @@ UIManager.prototype = {
     }
     if(passiveList){
       for(var i=0; i<passiveList.length; i++){
-        var passiveData = util.findData(buffGroupTable, 'index', passiveList[i]);
+        var passiveData = Object.assign({}, util.findData(buffGroupTable, 'index', passiveList[i]));
         var div = document.createElement('div');
         div.setAttribute('buffGroupIndex', passiveData.index);
         var img = document.createElement('img');
@@ -933,7 +1013,7 @@ UIManager.prototype = {
     }
     if(buffList){
       for(var i=0; i<buffList.length; i++){
-        var buffData = util.findData(buffGroupTable, 'index', buffList[i].index);
+        var buffData = Object.assign({}, util.findData(buffGroupTable, 'index', buffList[i].index));
         var div = document.createElement('div');
         div.setAttribute('buffGroupIndex', buffData.index);
         var img = document.createElement('img');
@@ -1001,7 +1081,7 @@ UIManager.prototype = {
       if(equipSkills[i] === beforeSkillIndex){
         var index = equipSkills.indexOf(beforeSkillIndex);
         equipSkills.splice(index, 1, afterSkillIndex);
-        var skillData = util.findData(skillTable, 'index', afterSkillIndex);
+        var skillData = Object.assign({}, util.findData(skillTable, 'index', afterSkillIndex));
         equipSkillDatas.splice(index, 1, skillData);
         break;
       }
@@ -1018,7 +1098,7 @@ UIManager.prototype = {
   },
   updateSkillImageAndIndex : function(beforeSkillIndex, afterSkillIndex){
     var divs = document.querySelectorAll('[skillIndex="' + beforeSkillIndex + '"]');
-    var afterData = util.findData(skillTable, 'index', afterSkillIndex);
+    var afterData = Object.assign({}, util.findData(skillTable, 'index', afterSkillIndex));
     for(var i=0; i<divs.length; i++){
       divs[i].setAttribute('skillIndex', afterSkillIndex);
       divs[i].getElementsByTagName('img')[0].src = afterData.skillIcon;
@@ -1100,7 +1180,7 @@ UIManager.prototype = {
         }
       }
       if(!isEquipSkill){
-        var skillData = util.findData(skillTable, 'index', possessSkills[i]);
+        var skillData = Object.assign({}, util.findData(skillTable, 'index', possessSkills[i]));
         var skillDiv = document.createElement('div');
         var skillImg = document.createElement('img');
 
@@ -1124,7 +1204,7 @@ UIManager.prototype = {
     }
     sellectedSkillIndex = skillIndex;
 
-    var skillData = util.findData(skillTable, 'index', skillIndex);
+    var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
     var skillImg = document.createElement('img');
     var skillDesc = document.createElement('p');
 
@@ -1189,7 +1269,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           }
           popUpSkillContainer.removeChild(sellectedDiv);
           if(skillIndex){
-            var beforeSkillData = util.findData(skillTable, 'index', skillIndex);
+            var beforeSkillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
             var skillDiv = document.createElement('div');
             var skillImg = document.createElement('img');
             skillDiv.setAttribute('skillIndex', skillIndex);
@@ -1213,7 +1293,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           equipSkillDatas.splice(sellectEquipIndex, 1);
 
           equipSkills.splice(sellectEquipIndex, 0, sellectedSkillIndex);
-          var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+          var skillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
           equipSkillDatas.splice(sellectEquipIndex, 0, skillData);
 
           var skillImg = document.createElement('img');
@@ -1234,7 +1314,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           }
           popUpSkillContainer.removeChild(sellectDiv);
           if(sellectedSkillIndex){
-            var beforeSkillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+            var beforeSkillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
             var skillDiv = document.createElement('div');
             var skillImg = document.createElement('img');
 
@@ -1258,7 +1338,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           equipSkillDatas.splice(sellectedEquipIndex, 1);
 
           equipSkills.splice(sellectedEquipIndex, 0, skillIndex);
-          var skillData = util.findData(skillTable, 'index', skillIndex);
+          var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
           equipSkillDatas.splice(sellectedEquipIndex, 0, skillData);
 
           var skillImg = document.createElement('img');
@@ -1271,25 +1351,24 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
       if(skillData && beforeSkillData){
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE && beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
           console.log(beforeSkillData.index + ' : ' + skillData.index);
-          var beforeBuffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
-          var afterBuffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          var beforeBuffIndex = Object.assign({}, util.findData(skillTable, 'index', beforeSkillData.index)).buffToSelf;
+          var afterBuffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           this.onExchangePassive(beforeBuffIndex, afterBuffIndex);
         }else if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          var buffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           this.onEquipPassive(buffIndex);
         }else if(beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          buffIndex = Object.assign({}, util.findData(skillTable, 'index', beforeSkillData.index)).buffToSelf;
           this.onUnequipPassive(buffIndex);
         }
       }else if(skillData){
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
-          console.log(buffIndex);
+          buffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           this.onEquipPassive(buffIndex);
         }
       }else if(beforeSkillData){
         if(beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          buffIndex = util.findData(skillTable, 'index', beforeSkillData.index).buffToSelf;
+          buffIndex = Object.assign({}, util.findData(skillTable, 'index', beforeSkillData.index)).buffToSelf;
           this.onUnequipPassive(buffIndex);
         }
       }
@@ -1304,7 +1383,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
     }else if(skillIndex === sellectedSkillIndex){
       //if click same icon
       if(sellectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP && sellectEquipIndex !== -1){
-        var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+        var skillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
         var skillDiv = document.createElement('div');
         var skillImg = document.createElement('img');
 
@@ -1331,7 +1410,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
         equipSkillDatas.splice(sellectedEquipIndex, 0, undefined);
 
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
-          var buffIndex = util.findData(skillTable, 'index', skillData.index).buffToSelf;
+          var buffIndex = Object.assign({}, util.findData(skillTable, 'index', skillData.index)).buffToSelf;
           console.log(buffIndex);
           this.onUnequipPassive(buffIndex);
         }
@@ -1368,7 +1447,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
     popUpSkillUpgradeBtn.removeChild(popUpSkillUpgradeBtn.firstChild);
   }
   if(sellectedSkillIndex){
-    var skillData = util.findData(skillTable, 'index', sellectedSkillIndex);
+    var skillData = Object.assign({}, util.findData(skillTable, 'index', sellectedSkillIndex));
     var skillImg = document.createElement('img');
     var skillDesc = document.createElement('p');
 
@@ -1485,7 +1564,7 @@ function bottomTooltipOnHandler(type){
       break;
     case gameConfig.BUFF_ICON_INDEX:
       var buffGroupIndex = parseInt(this.getAttribute('buffGroupIndex'));
-      var buffGroupData = util.findData(buffGroupTable, 'index', buffGroupIndex);
+      var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
       tooltipDiv.innerHTML = buffGroupData.name;
       break;
     default:
@@ -1501,7 +1580,7 @@ function bottomTooltipOffHandler(){
 };
 module.exports = UIManager;
 
-},{"../public/gameConfig.json":8,"../public/util.js":12}],5:[function(require,module,exports){
+},{"../public/gameConfig.json":8,"../public/util.js":11}],5:[function(require,module,exports){
 var util = require('../public/util.js');
 var Skill = require('./CSkill.js');
 var resources = require('../public/resources.json');
@@ -1687,7 +1766,7 @@ function onCastSkillHandler(skillInstance){
 };
 module.exports = User;
 
-},{"../public/gameConfig.json":8,"../public/resources.json":11,"../public/util.js":12,"./CSkill.js":3}],6:[function(require,module,exports){
+},{"../public/gameConfig.json":8,"../public/resources.json":10,"../public/util.js":11,"./CSkill.js":3}],6:[function(require,module,exports){
 
 module.exports = {
     toObject        : toObject,
@@ -2138,18 +2217,22 @@ function _csvToArray(text, delimit, quote) {
 },{}],7:[function(require,module,exports){
 module.exports={
   "userStatData" : "index,level,needExp,type,power,magic,speed\n1,1,100,1,30,15,18\n2,2,150,1,32,16,19\n3,3,250,1,34,17,21\n4,4,400,1,36,18,22\n5,5,600,1,38,19,24\n6,6,850,1,40,20,25\n7,7,1150,1,42,21,27\n8,8,1500,1,44,22,28\n9,9,1900,1,46,23,30\n10,10,2350,1,48,24,31\n11,11,2850,1,50,25,33\n12,12,3400,1,52,26,34\n13,13,4000,1,54,27,36\n14,14,4650,1,56,28,37\n15,15,5350,1,58,29,39\n16,16,6100,1,60,30,40\n17,17,6900,1,62,31,42\n18,18,7750,1,64,32,43\n19,19,8650,1,66,33,45\n20,20,-1,1,68,34,46\n101,1,100,2,15,30,18\n102,2,150,2,16,32,19\n103,3,250,2,17,34,21\n104,4,400,2,18,36,22\n105,5,600,2,19,38,24\n106,6,850,2,20,40,25\n107,7,1150,2,21,42,27\n108,8,1500,2,22,44,28\n109,9,1900,2,23,46,30\n110,10,2350,2,24,48,31\n111,11,2850,2,25,50,33\n112,12,3400,2,26,52,34\n113,13,4000,2,27,54,36\n114,14,4650,2,28,56,37\n115,15,5350,2,29,58,39\n116,16,6100,2,30,60,40\n117,17,6900,2,31,62,42\n118,18,7750,2,32,64,43\n119,19,8650,2,33,66,45\n120,20,-1,2,34,68,46\n201,1,100,3,18,18,18\n202,2,150,3,19,19,19\n203,3,250,3,21,21,21\n204,4,400,3,22,22,22\n205,5,600,3,24,24,24\n206,6,850,3,25,25,25\n207,7,1150,3,27,27,27\n208,8,1500,3,28,28,28\n209,9,1900,3,30,30,30\n210,10,2350,3,31,31,31\n211,11,2850,3,33,33,33\n212,12,3400,3,34,34,34\n213,13,4000,3,36,36,36\n214,14,4650,3,37,37,37\n215,15,5350,3,39,39,39\n216,16,6100,3,40,40,40\n217,17,6900,3,42,42,42\n218,18,7750,3,43,43,43\n219,19,8650,3,45,45,45\n220,20,-1,3,46,46,46\n",
-  "skillData" : "index,name,level,type,property,groupIndex,nextSkillIndex,totalTime,fireTime,cooldown,range,explosionRadius,explosionDamageRate,consumeMP,fireDamage,frostDamage,arcaneDamage,doDamageToMP,damageToMPRate,doDamageToSelf,damageToSelfRate,healHP,healHPRate,healMP,healMPRate,repeatLifeTime,repeatTime,buffToSelf,buffToTarget,projectileCount,radius,maxSpeed,lifeTime,tickTime,clientName,effectLastTime,skillIcon\n11,FireStrike1,1,1,1,10,12,1000,600,100,100,50,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,,1,0,0,0,0,0,Fire_Strike1,150,../images/tempSkill1.png\n12,FireStrike2,2,1,1,10,13,1000,600,100,100,50,0,0,110,0,0,0,0,0,0,0,0,0,0,0,0,,2,0,0,0,0,0,Fire_Strike2,150,../images/tempSkill1.png\n13,FireStrike3,3,1,1,10,14,1000,600,100,100,50,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,,3,0,0,0,0,0,Fire_Strike3,150,../images/tempSkill1.png\n14,FireStrike4,4,1,1,10,15,1000,600,100,100,50,0,0,130,0,0,0,0,0,0,0,0,0,0,0,0,,4,0,0,0,0,0,Fire_Strike4,150,../images/tempSkill1.png\n15,FireStrike5,5,1,1,10,-1,1000,600,100,100,50,0,0,140,0,0,0,0,0,0,0,0,0,0,0,0,,5,0,0,0,0,0,Fire_Strike5,150,../images/tempSkill1.png\n21,FireBall1,1,4,1,20,22,2000,1600,5000,0,100,0,100,100,0,0,0,0,0,0,0,0,0,0,0,0,,1,1,50,400,3000,0,Fire_Ball1,150,../images/tempSkill2.png\n22,FireBall2,2,4,1,20,23,2000,1600,5000,0,105,0,105,110,0,0,0,0,0,0,0,0,0,0,0,0,,2,1,52,400,3000,0,Fire_Ball2,150,../images/tempSkill2.png\n23,FireBall3,3,4,1,20,24,2000,1600,5000,0,110,0,110,120,0,0,0,0,0,0,0,0,0,0,0,0,,3,1,54,400,3000,0,Fire_Ball3,150,../images/tempSkill2.png\n24,FireBall4,4,4,1,20,25,2000,1600,5000,0,115,0,115,130,0,0,0,0,0,0,0,0,0,0,0,0,,4,1,56,400,3000,0,Fire_Ball4,150,../images/tempSkill2.png\n25,FireBall5,5,4,1,20,-1,2000,1600,5000,0,120,0,120,140,0,0,0,0,0,0,0,0,0,0,0,0,,5,1,58,400,3000,0,Fire_Ball5,150,../images/tempSkill2.png\n31,Explosion1,1,7,1,30,32,2000,1600,5000,0,115,0,115,130,0,0,0,0,0,0,0,0,0,0,0,0,,1,0,0,0,0,0,Explosion1,150,../images/tempSkill3.png\n32,Explosion2,2,7,1,30,33,2000,1600,5000,0,120,0,120,135,0,0,0,0,0,0,0,0,0,0,0,0,,2,0,0,0,0,0,Explosion2,150,../images/tempSkill3.png\n33,Explosion3,3,7,1,30,34,2000,1600,5000,0,125,0,125,140,0,0,0,0,0,0,0,0,0,0,0,0,,3,0,0,0,0,0,Explosion3,150,../images/tempSkill3.png\n34,Explosion4,4,7,1,30,35,2000,1600,5000,0,130,0,130,145,0,0,0,0,0,0,0,0,0,0,0,0,,4,0,0,0,0,0,Explosion4,150,../images/tempSkill3.png\n35,Explosion5,5,7,1,30,-1,2000,1600,5000,0,135,0,135,150,0,0,0,0,0,0,0,0,0,0,0,0,,5,0,0,0,0,0,Explosion5,150,../images/tempSkill3.png\n41,RollingFire1,1,5,1,40,42,2000,1600,5000,0,0,0,100,10,0,0,0,0,0,0,0,0,0,0,0,0,,1,1,100,400,3000,500,Rolling_Fire1,0,../images/tempSkill4.png\n42,RollingFire1,2,5,1,40,43,2000,1600,5000,0,0,0,105,11,0,0,0,0,0,0,0,0,0,0,0,0,,2,1,100,400,3000,500,Rolling_Fire2,0,../images/tempSkill4.png\n43,RollingFire1,3,5,1,40,44,2000,1600,5000,0,0,0,110,12,0,0,0,0,0,0,0,0,0,0,0,0,,3,1,100,400,3000,500,Rolling_Fire3,0,../images/tempSkill4.png\n44,RollingFire1,4,5,1,40,45,2000,1600,5000,0,0,0,115,13,0,0,0,0,0,0,0,0,0,0,0,0,,4,1,100,400,3000,500,Rolling_Fire4,0,../images/tempSkill4.png\n45,RollingFire1,5,5,1,40,-1,1000,600,5000,0,0,0,120,14,0,0,0,0,0,0,0,0,0,0,0,0,,5,1,100,400,3000,500,Rolling_Fire5,0,../images/tempSkill4.png\n51,FireShield1,1,8,1,50,52,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,,0,0,0,0,0,Fire_Shield1,0,../images/tempSkill5.png\n52,FireShield2,2,8,1,50,53,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,,0,0,0,0,0,Fire_Shield2,0,../images/tempSkill5.png\n53,FireShield3,3,8,1,50,54,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,,0,0,0,0,0,Fire_Shield3,0,../images/tempSkill5.png\n54,FireShield4,4,8,1,50,55,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,,0,0,0,0,0,Fire_Shield4,0,../images/tempSkill5.png\n55,FireShield5,5,8,1,50,-1,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,,0,0,0,0,0,Fire_Shield5,0,../images/tempSkill5.png\n61,Incinerate1,1,8,1,60,62,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,,0,0,0,0,0,Incinerate1,0,../images/tempSkill6.png\n62,Incinerate2,2,8,1,60,63,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,12,,0,0,0,0,0,Incinerate2,0,../images/tempSkill6.png\n63,Incinerate3,3,8,1,60,64,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,,0,0,0,0,0,Incinerate3,0,../images/tempSkill6.png\n64,Incinerate4,4,8,1,60,65,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,,0,0,0,0,0,Incinerate4,0,../images/tempSkill6.png\n65,Incinerate5,5,8,1,60,-1,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,,0,0,0,0,0,Incinerate5,0,../images/tempSkill6.png\n71,InnerFire1,1,12,1,70,72,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,,0,0,0,0,0,Inner_Fire1,0,../images/tempSkill7.png\n72,InnerFire2,2,12,1,70,73,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,,0,0,0,0,0,Inner_Fire2,0,../images/tempSkill7.png\n73,InnerFire3,3,12,1,70,74,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,18,,0,0,0,0,0,Inner_Fire3,0,../images/tempSkill7.png\n74,InnerFire4,4,12,1,70,75,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,19,,0,0,0,0,0,Inner_Fire4,0,../images/tempSkill7.png\n75,InnerFire5,5,12,1,70,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,,0,0,0,0,0,Inner_Fire5,0,../images/tempSkill7.png\n81,BurningSoul1,1,12,1,80,82,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,21,,0,0,0,0,0,Burning_Soul1,0,../images/tempSkill8.png\n82,BurningSoul2,2,12,1,80,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,22,,0,0,0,0,0,Burning_Soul,0,../images/tempSkill8.png\n83,BurningSoul3,3,12,1,80,84,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,,0,0,0,0,0,Burning_Soul3,0,../images/tempSkill8.png\n84,BurningSoul4,4,12,1,80,85,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24,,0,0,0,0,0,Burning_Soul4,0,../images/tempSkill8.png\n85,BurningSoul5,5,12,1,80,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,25,,0,0,0,0,0,Burning_Soul5,0,../images/tempSkill8.png\n1001,FrostStrike1,1,1,2,1000,1002,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Strike1,150,../images/tempSkill9.png\n1002,FrostStrike2,2,1,2,1000,1003,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,27,0,0,0,0,0,Frost_Strike2,150,../images/tempSkill9.png\n1003,FrostStrike3,3,1,2,1000,1004,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,28,0,0,0,0,0,Frost_Strike3,150,../images/tempSkill9.png\n1004,FrostStrike4,4,1,2,1000,1005,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,29,0,0,0,0,0,Frost_Strike4,150,../images/tempSkill9.png\n1005,FrostStrike5,5,1,2,1000,-1,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,30,0,0,0,0,0,Frost_Strike5,150,../images/tempSkill9.png\n1011,IceSpear1,1,3,2,1010,1012,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear1,150,../images/tempSkill10.png\n1012,IceSpear2,2,3,2,1010,1013,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear2,150,../images/tempSkill10.png\n1013,IceSpear3,3,3,2,1010,1014,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear3,150,../images/tempSkill10.png\n1014,IceSpear4,4,3,2,1010,1015,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear4,150,../images/tempSkill10.png\n1015,IceSpear5,5,3,2,1010,-1,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear5,150,../images/tempSkill10.png\n1021,FrostNova1,1,9,2,1020,1022,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova1,150,../images/tempSkill11.png\n1022,FrostNova2,2,9,2,1020,1023,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova2,150,../images/tempSkill11.png\n1023,FrostNova3,3,9,2,1020,1024,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova3,150,../images/tempSkill11.png\n1024,FrostNova4,4,9,2,1020,1025,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova4,150,../images/tempSkill11.png\n1025,FrostNova5,5,9,2,1020,-1,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova5,150,../images/tempSkill11.png\n1031,FrozenOrb1,1,6,2,1030,1032,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb1,150,../images/tempSkill12.png\n1032,FrozenOrb2,2,6,2,1030,1033,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb2,150,../images/tempSkill12.png\n1033,FrozenOrb3,3,6,2,1030,1034,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb3,150,../images/tempSkill12.png\n1034,FrozenOrb4,4,6,2,1030,1035,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb4,150,../images/tempSkill12.png\n1035,FrozenOrb5,5,6,2,1030,-1,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb5,150,../images/tempSkill12.png\n1041,IceShield1,1,8,2,1040,1042,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,31,,0,0,0,0,0,Ice_Shield1,150,../images/tempSkill1.png\n1042,IceShield2,2,8,2,1040,1043,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,32,,0,0,0,0,0,Ice_Shield2,150,../images/tempSkill1.png\n1043,IceShield3,3,8,2,1040,1044,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,33,,0,0,0,0,0,Ice_Shield3,150,../images/tempSkill1.png\n1044,IceShield4,4,8,2,1040,1045,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,34,,0,0,0,0,0,Ice_Shield4,150,../images/tempSkill1.png\n1045,IceShield5,5,8,2,1040,-1,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,35,,0,0,0,0,0,Ice_Shield5,150,../images/tempSkill1.png\n1051,IceBlock1,1,8,2,1050,1052,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,36,,0,0,0,0,0,Ice_Block1,150,../images/tempSkill2.png\n1052,IceBlock2,2,8,2,1050,1053,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,37,,0,0,0,0,0,Ice_Block2,150,../images/tempSkill2.png\n1053,IceBlock3,3,8,2,1050,1054,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,38,,0,0,0,0,0,Ice_Block3,150,../images/tempSkill2.png\n1054,IceBlock4,4,8,2,1050,1055,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,39,,0,0,0,0,0,Ice_Block4,150,../images/tempSkill2.png\n1055,IceBlock5,5,8,2,1050,-1,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,40,,0,0,0,0,0,Ice_Block5,150,../images/tempSkill2.png\n1061,FrozenSoul1,1,12,2,1060,1062,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,41,,0,0,0,0,0,Frozen_Soul1,0,../images/tempSkill3.png\n1062,FrozenSoul2,2,12,2,1060,1063,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,,0,0,0,0,0,Frozen_Soul2,0,../images/tempSkill3.png\n1063,FrozenSoul3,3,12,2,1060,1064,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43,,0,0,0,0,0,Frozen_Soul3,0,../images/tempSkill3.png\n1064,FrozenSoul4,4,12,2,1060,1065,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44,,0,0,0,0,0,Frozen_Soul4,0,../images/tempSkill3.png\n1065,FrozenSoul5,5,12,2,1060,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,,0,0,0,0,0,Frozen_Soul5,0,../images/tempSkill3.png\n1071,FrostArmor1,1,12,2,1070,1072,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,46,,0,0,0,0,0,Frost_Armor1,0,../images/tempSkill4.png\n1072,FrostArmor2,2,12,2,1070,1073,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,47,,0,0,0,0,0,Frost_Armor2,0,../images/tempSkill4.png\n1073,FrostArmor3,3,12,2,1070,1074,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,48,,0,0,0,0,0,Frost_Armor3,0,../images/tempSkill4.png\n1074,FrostArmor4,4,12,2,1070,1075,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,49,,0,0,0,0,0,Frost_Armor4,0,../images/tempSkill4.png\n1075,FrostArmor5,5,12,2,1070,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,50,,0,0,0,0,0,Frost_Armor5,0,../images/tempSkill4.png\n2001,ArcaneBolt1,1,2,3,2000,2002,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt1,150,../images/tempSkill1.png\n2002,ArcaneBolt2,2,2,3,2000,2003,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt2,150,../images/tempSkill1.png\n2003,ArcaneBolt3,3,2,3,2000,2004,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt3,150,../images/tempSkill1.png\n2004,ArcaneBolt4,4,2,3,2000,2005,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt4,150,../images/tempSkill1.png\n2005,ArcaneBolt5,5,2,3,2000,-1,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt5,150,../images/tempSkill1.png\n2011,ArcaneMissiles1,1,3,3,2010,2012,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles1,150,../images/tempSkill2.png\n2012,ArcaneMissiles2,2,3,3,2010,2013,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles2,150,../images/tempSkill2.png\n2013,ArcaneMissiles3,3,3,3,2010,2014,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles3,150,../images/tempSkill2.png\n2014,ArcaneMissiles4,4,3,3,2010,2015,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles4,150,../images/tempSkill2.png\n2015,ArcaneMissiles5,5,3,3,2010,-1,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles5,150,../images/tempSkill2.png\n2021,ArcaneBomb1,1,4,3,2020,2022,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb1,150,../images/tempSkill3.png\n2022,ArcaneBomb2,2,4,3,2020,2023,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb2,150,../images/tempSkill3.png\n2023,ArcaneBomb3,3,4,3,2020,2024,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb3,150,../images/tempSkill3.png\n2024,ArcaneBomb4,4,4,3,2020,2025,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb4,150,../images/tempSkill3.png\n2025,ArcaneBomb5,5,4,3,2020,-1,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb5,150,../images/tempSkill3.png\n2031,ArcaneBlast1,1,7,3,2030,2032,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast1,150,../images/tempSkill4.png\n2032,ArcaneBlast2,2,7,3,2030,2033,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast2,150,../images/tempSkill4.png\n2033,ArcaneBlast3,3,7,3,2030,2034,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast3,150,../images/tempSkill4.png\n2034,ArcaneBlast4,4,7,3,2030,2035,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast4,150,../images/tempSkill4.png\n2035,ArcaneBlast5,5,7,3,2030,-1,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast5,150,../images/tempSkill4.png\n2041,Blink1,1,11,3,2040,2042,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink1,150,../images/tempSkill5.png\n2042,Blink2,2,11,3,2040,2043,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink2,150,../images/tempSkill5.png\n2043,Blink3,3,11,3,2040,2044,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink3,150,../images/tempSkill5.png\n2044,Blink4,4,11,3,2040,2045,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink4,150,../images/tempSkill5.png\n2045,Blink5,5,11,3,2040,-1,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink5,150,../images/tempSkill5.png\n2051,Silence1,1,7,3,2050,2052,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,51,0,0,0,0,0,Silence1,150,../images/tempSkill6.png\n2052,Silence2,2,7,3,2050,2053,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,52,0,0,0,0,0,Silence2,150,../images/tempSkill6.png\n2053,Silence3,3,7,3,2050,2054,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,53,0,0,0,0,0,Silence3,150,../images/tempSkill6.png\n2054,Silence4,4,7,3,2050,2055,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,54,0,0,0,0,0,Silence4,150,../images/tempSkill6.png\n2055,Silence5,5,7,3,2050,-1,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,55,0,0,0,0,0,Silence5,150,../images/tempSkill6.png\n2061,Blur1,1,8,3,2060,2062,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,56,,0,0,0,0,0,Blur1,150,../images/tempSkill7.png\n2062,Blur2,2,8,3,2060,2063,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,57,,0,0,0,0,0,Blur2,150,../images/tempSkill7.png\n2063,Blur3,3,8,3,2060,2064,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,58,,0,0,0,0,0,Blur3,150,../images/tempSkill7.png\n2064,Blur4,4,8,3,2060,2065,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,59,,0,0,0,0,0,Blur4,150,../images/tempSkill7.png\n2065,Blur5,5,8,3,2060,-1,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,60,,0,0,0,0,0,Blur5,150,../images/tempSkill7.png\n2071,Dispel1,1,7,3,2070,2072,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,61,0,0,0,0,0,Dispel1,150,../images/tempSkill8.png\n2072,Dispel2,2,7,3,2070,2073,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,62,0,0,0,0,0,Dispel2,150,../images/tempSkill8.png\n2073,Dispel3,3,7,3,2070,2074,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,63,0,0,0,0,0,Dispel3,150,../images/tempSkill8.png\n2074,Dispel4,4,7,3,2070,2075,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,64,0,0,0,0,0,Dispel4,150,../images/tempSkill8.png\n2075,Dispel5,5,7,3,2070,-1,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,65,0,0,0,0,0,Dispel5,150,../images/tempSkill8.png\n2081,ArcaneShield1,1,8,3,2080,2082,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,66,,0,0,0,0,0,Arcane_Shield1,150,../images/tempSkill9.png\n2082,ArcaneShield2,2,8,3,2080,2083,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,67,,0,0,0,0,0,Arcane_Shield2,150,../images/tempSkill9.png\n2083,ArcaneShield3,3,8,3,2080,2084,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,68,,0,0,0,0,0,Arcane_Shield3,150,../images/tempSkill9.png\n2084,ArcaneShield4,4,8,3,2080,2085,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,69,,0,0,0,0,0,Arcane_Shield4,150,../images/tempSkill9.png\n2085,ArcaneShield5,5,8,3,2080,-1,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,70,,0,0,0,0,0,Arcane_Shield5,150,../images/tempSkill9.png\n2091,ArcaneIntellect1,1,12,3,2090,2092,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,71,,0,0,0,0,0,Arcane_Intellect1,0,../images/tempSkill10.png\n2092,ArcaneIntellect2,2,12,3,2090,2093,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,72,,0,0,0,0,0,Arcane_Intellect2,0,../images/tempSkill10.png\n2093,ArcaneIntellect3,3,12,3,2090,2094,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,73,,0,0,0,0,0,Arcane_Intellect3,0,../images/tempSkill10.png\n2094,ArcaneIntellect4,4,12,3,2090,2095,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,74,,0,0,0,0,0,Arcane_Intellect4,0,../images/tempSkill10.png\n2095,ArcaneIntellect5,5,12,3,2090,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,75,,0,0,0,0,0,Arcane_Intellect5,0,../images/tempSkill10.png\n2101,ArcaneCloak1,1,12,3,2100,2102,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,76,,0,0,0,0,0,Arcane_Cloak1,0,../images/tempSkill11.png\n2102,ArcaneCloak2,2,12,3,2100,2103,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,77,,0,0,0,0,0,Arcane_Cloak2,0,../images/tempSkill11.png\n2103,ArcaneCloak3,3,12,3,2100,2104,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,78,,0,0,0,0,0,Arcane_Cloak3,0,../images/tempSkill11.png\n2104,ArcaneCloak4,4,12,3,2100,2105,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,79,,0,0,0,0,0,Arcane_Cloak4,0,../images/tempSkill11.png\n2105,ArcaneCloak5,5,12,3,2100,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,80,,0,0,0,0,0,Arcane_Cloak5,0,../images/tempSkill11.png\n5001,FiroPassive1,1,12,1,5000,5002,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,,0,0,0,0,0,FiroPassive1,0,../images/tempSkill1.png\n5002,FiroPassive2,2,12,1,5000,5003,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,82,,0,0,0,0,0,FiroPassive2,0,../images/tempSkill1.png\n5003,FiroPassive3,3,12,1,5000,5004,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,83,,0,0,0,0,0,FiroPassive3,0,../images/tempSkill1.png\n5004,FiroPassive4,4,12,1,5000,5005,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,,0,0,0,0,0,FiroPassive4,0,../images/tempSkill1.png\n5005,FiroPassive5,5,12,1,5000,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,85,,0,0,0,0,0,FiroPassive5,0,../images/tempSkill1.png\n5101,FreezePassive1,1,12,2,5100,5102,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,86,,0,0,0,0,0,FreezePassive1,0,../images/tempSkill2.png\n5102,FreezePassive2,2,12,2,5100,5103,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,87,,0,0,0,0,0,FreezePassive2,0,../images/tempSkill2.png\n5103,FreezePassive3,3,12,2,5100,5104,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,88,,0,0,0,0,0,FreezePassive3,0,../images/tempSkill2.png\n5104,FreezePassive4,4,12,2,5100,5105,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,89,,0,0,0,0,0,FreezePassive4,0,../images/tempSkill2.png\n5105,FreezePassive5,5,12,2,5100,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,90,,0,0,0,0,0,FreezePassive5,0,../images/tempSkill2.png\n5201,MysterPassive1,1,12,3,5200,5202,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,91,,0,0,0,0,0,MysterPassive1,0,../images/tempSkill3.png\n5202,MysterPassive2,2,12,3,5200,5203,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,92,,0,0,0,0,0,MysterPassive2,0,../images/tempSkill3.png\n5203,MysterPassive3,3,12,3,5200,5204,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,93,,0,0,0,0,0,MysterPassive3,0,../images/tempSkill3.png\n5204,MysterPassive4,4,12,3,5200,5205,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,94,,0,0,0,0,0,MysterPassive4,0,../images/tempSkill3.png\n5205,MysterPassive5,5,12,3,5200,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,95,,0,0,0,0,0,MysterPassive5,0,../images/tempSkill3.png\n",
+  "skillData" : "index,name,level,type,property,groupIndex,nextSkillIndex,totalTime,fireTime,cooldown,range,explosionRadius,explosionDamageRate,consumeMP,fireDamage,frostDamage,arcaneDamage,doDamageToMP,damageToMPRate,doDamageToSelf,damageToSelfRate,healHP,healHPRate,healMP,healMPRate,repeatLifeTime,repeatTime,buffToSelf,buffToTarget,projectileCount,radius,maxSpeed,lifeTime,tickTime,clientName,effectLastTime,skillIcon\n11,FireStrike1,1,1,1,10,12,1000,600,100,100,50,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,,1,0,0,0,0,0,Fire_Strike1,150,../images/tempSkill1.png\n12,FireStrike2,2,1,1,10,13,1000,600,100,100,50,0,0,110,0,0,0,0,0,0,0,0,0,0,0,0,,2,0,0,0,0,0,Fire_Strike2,150,../images/tempSkill1.png\n13,FireStrike3,3,1,1,10,14,1000,600,100,100,50,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,,3,0,0,0,0,0,Fire_Strike3,150,../images/tempSkill1.png\n14,FireStrike4,4,1,1,10,15,1000,600,100,100,50,0,0,130,0,0,0,0,0,0,0,0,0,0,0,0,,4,0,0,0,0,0,Fire_Strike4,150,../images/tempSkill1.png\n15,FireStrike5,5,1,1,10,-1,1000,600,100,100,50,0,0,140,0,0,0,0,0,0,0,0,0,0,0,0,,5,0,0,0,0,0,Fire_Strike5,150,../images/tempSkill1.png\n21,FireBall1,1,4,1,20,22,2000,1600,5000,0,100,0,100,100,0,0,0,0,0,0,0,0,0,0,0,0,,1,1,50,400,3000,0,Fire_Ball1,150,../images/tempSkill2.png\n22,FireBall2,2,4,1,20,23,2000,1600,5000,0,105,0,105,110,0,0,0,0,0,0,0,0,0,0,0,0,,2,1,52,400,3000,0,Fire_Ball2,150,../images/tempSkill2.png\n23,FireBall3,3,4,1,20,24,2000,1600,5000,0,110,0,110,120,0,0,0,0,0,0,0,0,0,0,0,0,,3,1,54,400,3000,0,Fire_Ball3,150,../images/tempSkill2.png\n24,FireBall4,4,4,1,20,25,2000,1600,5000,0,115,0,115,130,0,0,0,0,0,0,0,0,0,0,0,0,,4,1,56,400,3000,0,Fire_Ball4,150,../images/tempSkill2.png\n25,FireBall5,5,4,1,20,-1,2000,1600,5000,0,120,0,120,140,0,0,0,0,0,0,0,0,0,0,0,0,,5,1,58,400,3000,0,Fire_Ball5,150,../images/tempSkill2.png\n31,Explosion1,1,7,1,30,32,2000,1600,5000,0,115,0,115,130,0,0,0,0,0,0,0,0,0,0,0,0,,1,0,0,0,0,0,Explosion1,150,../images/tempSkill3.png\n32,Explosion2,2,7,1,30,33,2000,1600,5000,0,120,0,120,135,0,0,0,0,0,0,0,0,0,0,0,0,,2,0,0,0,0,0,Explosion2,150,../images/tempSkill3.png\n33,Explosion3,3,7,1,30,34,2000,1600,5000,0,125,0,125,140,0,0,0,0,0,0,0,0,0,0,0,0,,3,0,0,0,0,0,Explosion3,150,../images/tempSkill3.png\n34,Explosion4,4,7,1,30,35,2000,1600,5000,0,130,0,130,145,0,0,0,0,0,0,0,0,0,0,0,0,,4,0,0,0,0,0,Explosion4,150,../images/tempSkill3.png\n35,Explosion5,5,7,1,30,-1,2000,1600,5000,0,135,0,135,150,0,0,0,0,0,0,0,0,0,0,0,0,,5,0,0,0,0,0,Explosion5,150,../images/tempSkill3.png\n41,RollingFire1,1,5,1,40,42,2000,1600,5000,0,0,0,100,10,0,0,0,0,0,0,0,0,0,0,0,0,,1,1,100,400,3000,150,Rolling_Fire1,0,../images/tempSkill4.png\n42,RollingFire1,2,5,1,40,43,2000,1600,5000,0,0,0,105,11,0,0,0,0,0,0,0,0,0,0,0,0,,2,1,100,400,3000,150,Rolling_Fire2,0,../images/tempSkill4.png\n43,RollingFire1,3,5,1,40,44,2000,1600,5000,0,0,0,110,12,0,0,0,0,0,0,0,0,0,0,0,0,,3,1,100,400,3000,150,Rolling_Fire3,0,../images/tempSkill4.png\n44,RollingFire1,4,5,1,40,45,2000,1600,5000,0,0,0,115,13,0,0,0,0,0,0,0,0,0,0,0,0,,4,1,100,400,3000,150,Rolling_Fire4,0,../images/tempSkill4.png\n45,RollingFire1,5,5,1,40,-1,1000,600,5000,0,0,0,120,14,0,0,0,0,0,0,0,0,0,0,0,0,,5,1,100,400,3000,150,Rolling_Fire5,0,../images/tempSkill4.png\n51,FireShield1,1,8,1,50,52,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,,0,0,0,0,0,Fire_Shield1,0,../images/tempSkill5.png\n52,FireShield2,2,8,1,50,53,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,,0,0,0,0,0,Fire_Shield2,0,../images/tempSkill5.png\n53,FireShield3,3,8,1,50,54,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,,0,0,0,0,0,Fire_Shield3,0,../images/tempSkill5.png\n54,FireShield4,4,8,1,50,55,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,,0,0,0,0,0,Fire_Shield4,0,../images/tempSkill5.png\n55,FireShield5,5,8,1,50,-1,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,,0,0,0,0,0,Fire_Shield5,0,../images/tempSkill5.png\n61,Incinerate1,1,8,1,60,62,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,,0,0,0,0,0,Incinerate1,0,../images/tempSkill6.png\n62,Incinerate2,2,8,1,60,63,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,12,,0,0,0,0,0,Incinerate2,0,../images/tempSkill6.png\n63,Incinerate3,3,8,1,60,64,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,,0,0,0,0,0,Incinerate3,0,../images/tempSkill6.png\n64,Incinerate4,4,8,1,60,65,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,,0,0,0,0,0,Incinerate4,0,../images/tempSkill6.png\n65,Incinerate5,5,8,1,60,-1,1000,600,5000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,,0,0,0,0,0,Incinerate5,0,../images/tempSkill6.png\n71,InnerFire1,1,12,1,70,72,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,,0,0,0,0,0,Inner_Fire1,0,../images/tempSkill7.png\n72,InnerFire2,2,12,1,70,73,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,,0,0,0,0,0,Inner_Fire2,0,../images/tempSkill7.png\n73,InnerFire3,3,12,1,70,74,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,18,,0,0,0,0,0,Inner_Fire3,0,../images/tempSkill7.png\n74,InnerFire4,4,12,1,70,75,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,19,,0,0,0,0,0,Inner_Fire4,0,../images/tempSkill7.png\n75,InnerFire5,5,12,1,70,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,,0,0,0,0,0,Inner_Fire5,0,../images/tempSkill7.png\n81,BurningSoul1,1,12,1,80,82,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,21,,0,0,0,0,0,Burning_Soul1,0,../images/tempSkill8.png\n82,BurningSoul2,2,12,1,80,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,22,,0,0,0,0,0,Burning_Soul,0,../images/tempSkill8.png\n83,BurningSoul3,3,12,1,80,84,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,,0,0,0,0,0,Burning_Soul3,0,../images/tempSkill8.png\n84,BurningSoul4,4,12,1,80,85,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24,,0,0,0,0,0,Burning_Soul4,0,../images/tempSkill8.png\n85,BurningSoul5,5,12,1,80,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,25,,0,0,0,0,0,Burning_Soul5,0,../images/tempSkill8.png\n1001,FrostStrike1,1,1,2,1000,1002,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Strike1,150,../images/tempSkill9.png\n1002,FrostStrike2,2,1,2,1000,1003,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,27,0,0,0,0,0,Frost_Strike2,150,../images/tempSkill9.png\n1003,FrostStrike3,3,1,2,1000,1004,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,28,0,0,0,0,0,Frost_Strike3,150,../images/tempSkill9.png\n1004,FrostStrike4,4,1,2,1000,1005,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,29,0,0,0,0,0,Frost_Strike4,150,../images/tempSkill9.png\n1005,FrostStrike5,5,1,2,1000,-1,1000,600,1000,100,50,0,100,0,50,0,0,0,0,0,0,0,0,0,0,0,,30,0,0,0,0,0,Frost_Strike5,150,../images/tempSkill9.png\n1011,IceSpear1,1,3,2,1010,1012,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear1,150,../images/tempSkill10.png\n1012,IceSpear2,2,3,2,1010,1013,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear2,150,../images/tempSkill10.png\n1013,IceSpear3,3,3,2,1010,1014,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear3,150,../images/tempSkill10.png\n1014,IceSpear4,4,3,2,1010,1015,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear4,150,../images/tempSkill10.png\n1015,IceSpear5,5,3,2,1010,-1,1200,800,1200,0,0,0,100,0,100,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,0,Ice_Spear5,150,../images/tempSkill10.png\n1021,FrostNova1,1,9,2,1020,1022,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova1,150,../images/tempSkill11.png\n1022,FrostNova2,2,9,2,1020,1023,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova2,150,../images/tempSkill11.png\n1023,FrostNova3,3,9,2,1020,1024,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova3,150,../images/tempSkill11.png\n1024,FrostNova4,4,9,2,1020,1025,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova4,150,../images/tempSkill11.png\n1025,FrostNova5,5,9,2,1020,-1,2000,1600,5000,0,300,0,100,0,70,0,0,0,0,0,0,0,0,0,0,0,,26,0,0,0,0,0,Frost_Nova5,150,../images/tempSkill11.png\n1031,FrozenOrb1,1,6,2,1030,1032,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb1,150,../images/tempSkill12.png\n1032,FrozenOrb2,2,6,2,1030,1033,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb2,150,../images/tempSkill12.png\n1033,FrozenOrb3,3,6,2,1030,1034,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb3,150,../images/tempSkill12.png\n1034,FrozenOrb4,4,6,2,1030,1035,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb4,150,../images/tempSkill12.png\n1035,FrozenOrb5,5,6,2,1030,-1,2000,1600,5000,0,100,0,100,0,30,0,0,0,0,0,0,0,0,0,0,0,,26,1,50,400,3000,500,Frozen_Orb5,150,../images/tempSkill12.png\n1041,IceShield1,1,8,2,1040,1042,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,31,,0,0,0,0,0,Ice_Shield1,150,../images/tempSkill1.png\n1042,IceShield2,2,8,2,1040,1043,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,32,,0,0,0,0,0,Ice_Shield2,150,../images/tempSkill1.png\n1043,IceShield3,3,8,2,1040,1044,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,33,,0,0,0,0,0,Ice_Shield3,150,../images/tempSkill1.png\n1044,IceShield4,4,8,2,1040,1045,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,34,,0,0,0,0,0,Ice_Shield4,150,../images/tempSkill1.png\n1045,IceShield5,5,8,2,1040,-1,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,35,,0,0,0,0,0,Ice_Shield5,150,../images/tempSkill1.png\n1051,IceBlock1,1,8,2,1050,1052,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,36,,0,0,0,0,0,Ice_Block1,150,../images/tempSkill2.png\n1052,IceBlock2,2,8,2,1050,1053,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,37,,0,0,0,0,0,Ice_Block2,150,../images/tempSkill2.png\n1053,IceBlock3,3,8,2,1050,1054,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,38,,0,0,0,0,0,Ice_Block3,150,../images/tempSkill2.png\n1054,IceBlock4,4,8,2,1050,1055,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,39,,0,0,0,0,0,Ice_Block4,150,../images/tempSkill2.png\n1055,IceBlock5,5,8,2,1050,-1,1000,600,2000,0,0,0,100,0,0,0,0,0,0,0,100,0,100,0,0,0,40,,0,0,0,0,0,Ice_Block5,150,../images/tempSkill2.png\n1061,FrozenSoul1,1,12,2,1060,1062,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,41,,0,0,0,0,0,Frozen_Soul1,0,../images/tempSkill3.png\n1062,FrozenSoul2,2,12,2,1060,1063,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,,0,0,0,0,0,Frozen_Soul2,0,../images/tempSkill3.png\n1063,FrozenSoul3,3,12,2,1060,1064,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43,,0,0,0,0,0,Frozen_Soul3,0,../images/tempSkill3.png\n1064,FrozenSoul4,4,12,2,1060,1065,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44,,0,0,0,0,0,Frozen_Soul4,0,../images/tempSkill3.png\n1065,FrozenSoul5,5,12,2,1060,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,,0,0,0,0,0,Frozen_Soul5,0,../images/tempSkill3.png\n1071,FrostArmor1,1,12,2,1070,1072,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,46,,0,0,0,0,0,Frost_Armor1,0,../images/tempSkill4.png\n1072,FrostArmor2,2,12,2,1070,1073,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,47,,0,0,0,0,0,Frost_Armor2,0,../images/tempSkill4.png\n1073,FrostArmor3,3,12,2,1070,1074,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,48,,0,0,0,0,0,Frost_Armor3,0,../images/tempSkill4.png\n1074,FrostArmor4,4,12,2,1070,1075,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,49,,0,0,0,0,0,Frost_Armor4,0,../images/tempSkill4.png\n1075,FrostArmor5,5,12,2,1070,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,50,,0,0,0,0,0,Frost_Armor5,0,../images/tempSkill4.png\n2001,ArcaneBolt1,1,2,3,2000,2002,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt1,150,../images/tempSkill1.png\n2002,ArcaneBolt2,2,2,3,2000,2003,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt2,150,../images/tempSkill1.png\n2003,ArcaneBolt3,3,2,3,2000,2004,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt3,150,../images/tempSkill1.png\n2004,ArcaneBolt4,4,2,3,2000,2005,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt4,150,../images/tempSkill1.png\n2005,ArcaneBolt5,5,2,3,2000,-1,1000,600,1000,0,0,0,0,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bolt5,150,../images/tempSkill1.png\n2011,ArcaneMissiles1,1,3,3,2010,2012,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles1,150,../images/tempSkill2.png\n2012,ArcaneMissiles2,2,3,3,2010,2013,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles2,150,../images/tempSkill2.png\n2013,ArcaneMissiles3,3,3,3,2010,2014,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles3,150,../images/tempSkill2.png\n2014,ArcaneMissiles4,4,3,3,2010,2015,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles4,150,../images/tempSkill2.png\n2015,ArcaneMissiles5,5,3,3,2010,-1,1200,800,1200,0,0,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,3,50,400,3000,0,Arcane_Missiles5,150,../images/tempSkill2.png\n2021,ArcaneBomb1,1,4,3,2020,2022,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb1,150,../images/tempSkill3.png\n2022,ArcaneBomb2,2,4,3,2020,2023,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb2,150,../images/tempSkill3.png\n2023,ArcaneBomb3,3,4,3,2020,2024,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb3,150,../images/tempSkill3.png\n2024,ArcaneBomb4,4,4,3,2020,2025,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb4,150,../images/tempSkill3.png\n2025,ArcaneBomb5,5,4,3,2020,-1,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,1,50,400,3000,0,Arcane_Bomb5,150,../images/tempSkill3.png\n2031,ArcaneBlast1,1,7,3,2030,2032,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast1,150,../images/tempSkill4.png\n2032,ArcaneBlast2,2,7,3,2030,2033,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast2,150,../images/tempSkill4.png\n2033,ArcaneBlast3,3,7,3,2030,2034,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast3,150,../images/tempSkill4.png\n2034,ArcaneBlast4,4,7,3,2030,2035,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast4,150,../images/tempSkill4.png\n2035,ArcaneBlast5,5,7,3,2030,-1,2000,1600,5000,0,300,0,100,0,0,100,1,50,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Arcane_Blast5,150,../images/tempSkill4.png\n2041,Blink1,1,11,3,2040,2042,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink1,150,../images/tempSkill5.png\n2042,Blink2,2,11,3,2040,2043,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink2,150,../images/tempSkill5.png\n2043,Blink3,3,11,3,2040,2044,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink3,150,../images/tempSkill5.png\n2044,Blink4,4,11,3,2040,2045,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink4,150,../images/tempSkill5.png\n2045,Blink5,5,11,3,2040,-1,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,,0,0,0,0,0,Blink5,150,../images/tempSkill5.png\n2051,Silence1,1,7,3,2050,2052,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,51,0,0,0,0,0,Silence1,150,../images/tempSkill6.png\n2052,Silence2,2,7,3,2050,2053,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,52,0,0,0,0,0,Silence2,150,../images/tempSkill6.png\n2053,Silence3,3,7,3,2050,2054,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,53,0,0,0,0,0,Silence3,150,../images/tempSkill6.png\n2054,Silence4,4,7,3,2050,2055,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,54,0,0,0,0,0,Silence4,150,../images/tempSkill6.png\n2055,Silence5,5,7,3,2050,-1,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,55,0,0,0,0,0,Silence5,150,../images/tempSkill6.png\n2061,Blur1,1,8,3,2060,2062,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,56,,0,0,0,0,0,Blur1,150,../images/tempSkill7.png\n2062,Blur2,2,8,3,2060,2063,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,57,,0,0,0,0,0,Blur2,150,../images/tempSkill7.png\n2063,Blur3,3,8,3,2060,2064,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,58,,0,0,0,0,0,Blur3,150,../images/tempSkill7.png\n2064,Blur4,4,8,3,2060,2065,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,59,,0,0,0,0,0,Blur4,150,../images/tempSkill7.png\n2065,Blur5,5,8,3,2060,-1,1000,600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,60,,0,0,0,0,0,Blur5,150,../images/tempSkill7.png\n2071,Dispel1,1,7,3,2070,2072,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,61,0,0,0,0,0,Dispel1,150,../images/tempSkill8.png\n2072,Dispel2,2,7,3,2070,2073,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,62,0,0,0,0,0,Dispel2,150,../images/tempSkill8.png\n2073,Dispel3,3,7,3,2070,2074,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,63,0,0,0,0,0,Dispel3,150,../images/tempSkill8.png\n2074,Dispel4,4,7,3,2070,2075,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,64,0,0,0,0,0,Dispel4,150,../images/tempSkill8.png\n2075,Dispel5,5,7,3,2070,-1,2000,1600,5000,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,,65,0,0,0,0,0,Dispel5,150,../images/tempSkill8.png\n2081,ArcaneShield1,1,8,3,2080,2082,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,66,,0,0,0,0,0,Arcane_Shield1,150,../images/tempSkill9.png\n2082,ArcaneShield2,2,8,3,2080,2083,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,67,,0,0,0,0,0,Arcane_Shield2,150,../images/tempSkill9.png\n2083,ArcaneShield3,3,8,3,2080,2084,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,68,,0,0,0,0,0,Arcane_Shield3,150,../images/tempSkill9.png\n2084,ArcaneShield4,4,8,3,2080,2085,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,69,,0,0,0,0,0,Arcane_Shield4,150,../images/tempSkill9.png\n2085,ArcaneShield5,5,8,3,2080,-1,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,70,,0,0,0,0,0,Arcane_Shield5,150,../images/tempSkill9.png\n2091,ArcaneIntellect1,1,12,3,2090,2092,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,71,,0,0,0,0,0,Arcane_Intellect1,0,../images/tempSkill10.png\n2092,ArcaneIntellect2,2,12,3,2090,2093,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,72,,0,0,0,0,0,Arcane_Intellect2,0,../images/tempSkill10.png\n2093,ArcaneIntellect3,3,12,3,2090,2094,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,73,,0,0,0,0,0,Arcane_Intellect3,0,../images/tempSkill10.png\n2094,ArcaneIntellect4,4,12,3,2090,2095,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,74,,0,0,0,0,0,Arcane_Intellect4,0,../images/tempSkill10.png\n2095,ArcaneIntellect5,5,12,3,2090,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,75,,0,0,0,0,0,Arcane_Intellect5,0,../images/tempSkill10.png\n2101,ArcaneCloak1,1,12,3,2100,2102,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,76,,0,0,0,0,0,Arcane_Cloak1,0,../images/tempSkill11.png\n2102,ArcaneCloak2,2,12,3,2100,2103,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,77,,0,0,0,0,0,Arcane_Cloak2,0,../images/tempSkill11.png\n2103,ArcaneCloak3,3,12,3,2100,2104,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,78,,0,0,0,0,0,Arcane_Cloak3,0,../images/tempSkill11.png\n2104,ArcaneCloak4,4,12,3,2100,2105,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,79,,0,0,0,0,0,Arcane_Cloak4,0,../images/tempSkill11.png\n2105,ArcaneCloak5,5,12,3,2100,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,80,,0,0,0,0,0,Arcane_Cloak5,0,../images/tempSkill11.png\n5001,FiroPassive1,1,12,1,5000,5002,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,,0,0,0,0,0,FiroPassive1,0,../images/tempSkill1.png\n5002,FiroPassive2,2,12,1,5000,5003,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,82,,0,0,0,0,0,FiroPassive2,0,../images/tempSkill1.png\n5003,FiroPassive3,3,12,1,5000,5004,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,83,,0,0,0,0,0,FiroPassive3,0,../images/tempSkill1.png\n5004,FiroPassive4,4,12,1,5000,5005,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,,0,0,0,0,0,FiroPassive4,0,../images/tempSkill1.png\n5005,FiroPassive5,5,12,1,5000,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,85,,0,0,0,0,0,FiroPassive5,0,../images/tempSkill1.png\n5101,FreezePassive1,1,12,2,5100,5102,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,86,,0,0,0,0,0,FreezePassive1,0,../images/tempSkill2.png\n5102,FreezePassive2,2,12,2,5100,5103,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,87,,0,0,0,0,0,FreezePassive2,0,../images/tempSkill2.png\n5103,FreezePassive3,3,12,2,5100,5104,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,88,,0,0,0,0,0,FreezePassive3,0,../images/tempSkill2.png\n5104,FreezePassive4,4,12,2,5100,5105,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,89,,0,0,0,0,0,FreezePassive4,0,../images/tempSkill2.png\n5105,FreezePassive5,5,12,2,5100,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,90,,0,0,0,0,0,FreezePassive5,0,../images/tempSkill2.png\n5201,MysterPassive1,1,12,3,5200,5202,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,91,,0,0,0,0,0,MysterPassive1,0,../images/tempSkill3.png\n5202,MysterPassive2,2,12,3,5200,5203,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,92,,0,0,0,0,0,MysterPassive2,0,../images/tempSkill3.png\n5203,MysterPassive3,3,12,3,5200,5204,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,93,,0,0,0,0,0,MysterPassive3,0,../images/tempSkill3.png\n5204,MysterPassive4,4,12,3,5200,5205,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,94,,0,0,0,0,0,MysterPassive4,0,../images/tempSkill3.png\n5205,MysterPassive5,5,12,3,5200,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,95,,0,0,0,0,0,MysterPassive5,0,../images/tempSkill3.png\n",
   "buffGroupData" : "index,name,desc,isBuff,buff1,buff2,buff3,buff4,buff5,buffLifeTime,buffApplyRate,buffIcon\n1,ignite1,,0,1,,,,,10000,20,../images/tempSkill1.png\n2,ignite2,,0,2,,,,,10000,25,../images/tempSkill1.png\n3,ignite3,,0,3,,,,,10000,30,../images/tempSkill1.png\n4,ignite4,,0,4,,,,,10000,35,../images/tempSkill1.png\n5,ignite5,,0,5,,,,,10000,40,../images/tempSkill1.png\n6,FireShield1,,1,21,16,11,,,30000,100,../images/tempSkill5.png\n7,FireShield2,,1,22,17,12,,,30000,100,../images/tempSkill5.png\n8,FireShield3,,1,23,18,13,,,30000,100,../images/tempSkill5.png\n9,FireShield4,,1,24,19,14,,,30000,100,../images/tempSkill5.png\n10,FireShield5,,1,25,20,15,,,30000,100,../images/tempSkill5.png\n11,Incinerate1,,1,1,11,,,,30000,100,../images/tempSkill6.png\n12,Incinerate2,,1,2,12,,,,30000,100,../images/tempSkill6.png\n13,Incinerate3,,1,3,13,,,,30000,100,../images/tempSkill6.png\n14,Incinerate4,,1,4,14,,,,30000,100,../images/tempSkill6.png\n15,Incinerate5,,1,5,15,,,,30000,100,../images/tempSkill6.png\n16,InnerFire1,,1,26,31,,,,30000,100,../images/tempSkill7.png\n17,InnerFire2,,1,27,32,,,,30000,100,../images/tempSkill7.png\n18,InnerFire3,,1,28,33,,,,30000,100,../images/tempSkill7.png\n19,InnerFire4,,1,29,34,,,,30000,100,../images/tempSkill7.png\n20,InnerFire5,,1,30,35,,,,30000,100,../images/tempSkill7.png\n21,BurningSoul1,,1,6,11,,,,30000,100,../images/tempSkill8.png\n22,BurningSoul2,,1,7,12,,,,30000,100,../images/tempSkill8.png\n23,BurningSoul3,,1,8,13,,,,30000,100,../images/tempSkill8.png\n24,BurningSoul4,,1,9,14,,,,30000,100,../images/tempSkill8.png\n25,BurningSoul5,,1,10,15,,,,30000,100,../images/tempSkill8.png\n26,chill1,,0,36,,,,,10000,20,../images/tempSkill1.png\n27,chill2,,0,37,,,,,10000,25,../images/tempSkill1.png\n28,chill3,,0,38,,,,,10000,30,../images/tempSkill1.png\n29,chill4,,0,39,,,,,10000,35,../images/tempSkill1.png\n30,chill5,,0,40,,,,,10000,40,../images/tempSkill1.png\n31,IceShield1,,1,41,16,61,,,30000,100,../images/tempSkill2.png\n32,IceShield2,,1,42,17,62,,,30000,100,../images/tempSkill2.png\n33,IceShield3,,1,43,18,63,,,30000,100,../images/tempSkill2.png\n34,IceShield4,,1,44,19,64,,,30000,100,../images/tempSkill2.png\n35,IceShield5,,1,45,20,65,,,30000,100,../images/tempSkill2.png\n36,IceBlock1,,0,46,51,,,,30000,100,../images/tempSkill3.png\n37,IceBlock2,,0,47,52,,,,30000,100,../images/tempSkill3.png\n38,IceBlock3,,0,48,53,,,,30000,100,../images/tempSkill3.png\n39,IceBlock4,,0,49,54,,,,30000,100,../images/tempSkill3.png\n40,IceBlock5,,0,50,55,,,,30000,100,../images/tempSkill3.png\n41,FrozenSoul1,,1,56,61,,,,30000,100,../images/tempSkill4.png\n42,FrozenSoul2,,1,57,62,,,,30000,100,../images/tempSkill4.png\n43,FrozenSoul3,,1,58,63,,,,30000,100,../images/tempSkill4.png\n44,FrozenSoul4,,1,59,64,,,,30000,100,../images/tempSkill4.png\n45,FrozenSoul5,,1,60,65,,,,30000,100,../images/tempSkill4.png\n46,FrostArmor1,,1,41,66,71,,,30000,100,../images/tempSkill5.png\n47,FrostArmor2,,1,41,67,72,,,30000,100,../images/tempSkill5.png\n48,FrostArmor3,,1,41,68,73,,,30000,100,../images/tempSkill5.png\n49,FrostArmor4,,1,41,69,74,,,30000,100,../images/tempSkill5.png\n50,FrostArmor5,,1,41,70,75,,,30000,100,../images/tempSkill5.png\n51,Silence1,,0,76,,,,,10000,100,../images/tempSkill1.png\n52,Silence2,,0,76,,,,,10000,100,../images/tempSkill1.png\n53,Silence3,,0,76,,,,,10000,100,../images/tempSkill1.png\n54,Silence4,,0,76,,,,,10000,100,../images/tempSkill1.png\n55,Silence5,,0,76,,,,,10000,100,../images/tempSkill1.png\n56,Blur1,,1,81,,,,,30000,100,../images/tempSkill2.png\n57,Blur2,,1,81,,,,,30000,100,../images/tempSkill2.png\n58,Blur3,,1,81,,,,,30000,100,../images/tempSkill2.png\n59,Blur4,,1,81,,,,,30000,100,../images/tempSkill2.png\n60,Blur5,,1,81,,,,,30000,100,../images/tempSkill2.png\n61,Dispel1,,0,86,,,,,100,100,../images/tempSkill3.png\n62,Dispel2,,0,87,,,,,100,100,../images/tempSkill3.png\n63,Dispel3,,0,88,,,,,100,100,../images/tempSkill3.png\n64,Dispel4,,0,89,,,,,100,100,../images/tempSkill3.png\n65,Dispel5,,0,90,,,,,100,100,../images/tempSkill3.png\n66,ArcaneShield1,,1,41,61,,,,30000,100,../images/tempSkill4.png\n67,ArcaneShield2,,1,42,62,,,,30000,100,../images/tempSkill4.png\n68,ArcaneShield3,,1,43,63,,,,30000,100,../images/tempSkill4.png\n69,ArcaneShield4,,1,44,64,,,,30000,100,../images/tempSkill4.png\n70,ArcaneShield5,,1,45,65,,,,30000,100,../images/tempSkill4.png\n71,ArcaneIntellect1,,1,91,56,61,,,0,100,../images/tempSkill5.png\n72,ArcaneIntellect2,,1,92,57,62,,,0,100,../images/tempSkill5.png\n73,ArcaneIntellect3,,1,93,58,63,,,0,100,../images/tempSkill5.png\n74,ArcaneIntellect4,,1,94,59,64,,,0,100,../images/tempSkill5.png\n75,ArcaneIntellect5,,1,95,60,65,,,0,100,../images/tempSkill5.png\n76,ArcaneCloak1,,1,91,96,,,,0,100,../images/tempSkill6.png\n77,ArcaneCloak2,,1,92,97,,,,0,100,../images/tempSkill6.png\n78,ArcaneCloak3,,1,93,98,,,,0,100,../images/tempSkill6.png\n79,ArcaneCloak4,,1,94,99,,,,0,100,../images/tempSkill6.png\n80,ArcaneCloak5,,1,95,100,,,,0,100,../images/tempSkill6.png\n81,firoPassive1,,1,101,,,,,0,100,../images/tempSkill1.png\n82,firoPassive2,,1,101,103,105,,,0,100,../images/tempSkill1.png\n83,firoPassive3,,1,102,103,105,,,0,100,../images/tempSkill1.png\n84,firoPassive4,,1,102,103,105,107,,0,100,../images/tempSkill1.png\n85,firoPassive5,,1,102,104,106,107,,0,100,../images/tempSkill1.png\n86,freezePassive1,,1,108,116,,,,0,100,../images/tempSkill2.png\n87,freezePassive2,,1,108,110,112,116,,0,100,../images/tempSkill2.png\n88,freezePassive3,,1,109,110,112,117,,0,100,../images/tempSkill2.png\n89,freezePassive4,,1,109,110,112,117,114,0,100,../images/tempSkill2.png\n90,freezePassive5,,1,109,111,113,117,115,0,100,../images/tempSkill2.png\n91,mysterPassive1,,1,0,,,,,0,100,../images/tempSkill3.png\n92,mysterPassive2,,1,0,0,,,,0,100,../images/tempSkill3.png\n93,mysterPassive3,,1,0,0,0,,,0,100,../images/tempSkill3.png\n94,mysterPassive4,,1,0,0,0,0,,0,100,../images/tempSkill3.png\n95,mysterPassive5,,1,0,0,0,0,,0,100,../images/tempSkill3.png\n96,mysterBuff1-1,,1,58,63,,,,10000,100,../images/tempSkill1.png\n97,mysterBuff1-2,,1,92,97,,,,10000,100,../images/tempSkill2.png\n98,mysterBuff1-3,,1,41,68,,,,10000,100,../images/tempSkill3.png\n99,mysterBuff1-4,,0,87,,,,,10000,30,../images/tempSkill4.png\n100,mysterBuff1-5,,0,76,,,,,10000,30,../images/tempSkill5.png\n101,mysterBuff2-1,,1,60,65,,,,10000,100,../images/tempSkill1.png\n102,mysterBuff2-2,,1,94,99,,,,10000,100,../images/tempSkill2.png\n103,mysterBuff2-3,,1,41,70,,,,10000,100,../images/tempSkill3.png\n104,mysterBuff2-4,,0,88,,,,,10000,30,../images/tempSkill4.png\n105,mysterBuff2-5,,0,76,,,,,10000,30,../images/tempSkill5.png\n106,freeze1,,0,126,,,,,3000,30,../images/tempSkill1.png\n107,freeze2,,0,127,,,,,3000,30,../images/tempSkill2.png\n",
   "buffData" : "index,name,buffTickTime,buffType,buffEffectType,buffAmount,buffApplyHPTickPercent\n1,ignite1,0,5,5,,0\n2,ignite2,0,5,5,,0\n3,ignite3,0,5,5,,0\n4,ignite4,0,5,5,,0\n5,ignite5,0,5,5,,0\n6,maxHP1,0,2,1,100,0\n7,maxHP2,0,2,1,110,0\n8,maxHP3,0,2,1,120,0\n9,maxHP4,0,2,1,130,0\n10,maxHP5,0,2,1,140,0\n11,HPRegen1,0,2,5,10,0\n12,HPRegen2,0,2,5,11,0\n13,HPRegen3,0,2,5,12,0\n14,HPRegen4,0,2,5,13,0\n15,HPRegen5,0,2,5,14,0\n16,reductionFire1,0,2,23,5,0\n17,reductionFire2,0,2,23,6,0\n18,reductionFire3,0,2,23,7,0\n19,reductionFire4,0,2,23,8,0\n20,reductionFire5,0,2,23,9,0\n21,reductionFrost1,0,2,24,5,0\n22,reductionFrost2,0,2,24,6,0\n23,reductionFrost3,0,2,24,7,0\n24,reductionFrost4,0,2,24,8,0\n25,reductionFrost5,0,2,24,9,0\n26,damageByLife1,0,2,27,10,10\n27,damageByLife2,0,2,27,11,10\n28,damageByLife3,0,2,27,12,10\n29,damageByLife4,0,2,27,13,10\n30,damageByLife5,0,2,27,14,10\n31,moveSpeedByLife1,0,2,28,10,10\n32,moveSpeedByLife2,0,2,28,11,10\n33,moveSpeedByLife3,0,2,28,12,10\n34,moveSpeedByLife4,0,2,28,13,10\n35,moveSpeedByLife5,0,2,28,14,10\n36,chill1,0,5,2,0,0\n37,chill2,0,5,2,0,0\n38,chill3,0,5,2,0,0\n39,chill4,0,5,2,0,0\n40,chill5,0,5,2,0,0\n41,reductionAll1,0,2,26,10,0\n42,reductionAll2,0,2,26,10,0\n43,reductionAll3,0,2,26,10,0\n44,reductionAll4,0,2,26,10,0\n45,reductionAll5,0,2,26,10,0\n46,setImmortal1,0,5,1,0,0\n47,setImmortal2,0,5,1,0,0\n48,setImmortal3,0,5,1,0,0\n49,setImmortal4,0,5,1,0,0\n50,setImmortal5,0,5,1,0,0\n51,setFreeze1,0,5,3,0,0\n52,setFreeze2,0,5,3,0,0\n53,setFreeze3,0,5,3,0,0\n54,setFreeze4,0,5,3,0,0\n55,setFreeze5,0,5,3,0,0\n56,MaxMP1,0,2,2,100,0\n57,MaxMP2,0,2,2,100,0\n58,MaxMP3,0,2,2,100,0\n59,MaxMP4,0,2,2,100,0\n60,MaxMP5,0,2,2,100,0\n61,MPRegen1,0,2,7,10,0\n62,MPRegen2,0,2,7,10,0\n63,MPRegen3,0,2,7,10,0\n64,MPRegen4,0,2,7,10,0\n65,MPRegen5,0,2,7,10,0\n66,ResistAll1,0,2,22,10,0\n67,ResistAll2,0,2,22,10,0\n68,ResistAll3,0,2,22,10,0\n69,ResistAll4,0,2,22,10,0\n70,ResistAll5,0,2,22,10,0\n71,ResistFire1,0,2,19,10,0\n72,ResistFire2,0,2,19,10,0\n73,ResistFire3,0,2,19,10,0\n74,ResistFire4,0,2,19,10,0\n75,ResistFire5,0,2,19,10,0\n76,Silence,0,5,4,0,0\n81,Blur,0,5,6,0,0\n86,DispelBuff1,0,4,1,1,0\n87,DispelBuff2,1,4,1,2,0\n88,DispelBuff3,2,4,1,3,0\n89,DispelBuff4,3,4,1,4,0\n90,DispelBuff5,4,4,1,5,0\n91,damageRate1,0,2,18,10,0\n92,damageRate2,1,2,18,11,0\n93,damageRate3,2,2,18,12,0\n94,damageRate4,3,2,18,13,0\n95,damageRate5,4,2,18,14,0\n96,castSpeed1,0,2,10,10,0\n97,castSpeed2,1,2,10,11,0\n98,castSpeed3,2,2,10,12,0\n99,castSpeed4,3,2,10,13,0\n100,castSpeed5,4,2,10,14,0\n",
-  "chestData" : "index,grade,HP,minGoldCount,maxGoldCount,minGoldAmount,maxGoldAmount,minJewelCount,maxJewelCount,minJewelAmount,maxJewelAmount,minSkillCount,maxSkillCount,SkillIndex1,SkillDropRate1,SkillIndex2,SkillDropRate2,SkillIndex3,SkillDropRate3,SkillIndex4,SkillDropRate4,SkillIndex5,SkillDropRate5,SkillIndex6,SkillDropRate6,SkillIndex7,SkillDropRate7,SkillIndex7,SkillDropRate7,SkillIndex8,SkillDropRate8,SkillIndex9,SkillDropRate9,SkillIndex10,SkillDropRate10,SkillIndex11,SkillDropRate11,SkillIndex12,SkillDropRate12,SkillIndex13,SkillDropRate13,SkillIndex14,SkillDropRate14,SkillIndex15,SkillDropRate15,SkillIndex16,SkillDropRate16,SkillIndex17,SkillDropRate17,SkillIndex18,SkillDropRate18,SkillIndex19,SkillDropRate19,SkillIndex20,SkillDropRate20\n1,1,100,3,5,30,50,0,0,0,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n2,2,200,4,6,50,75,0,1,1,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n3,3,300,5,7,75,100,1,2,1,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n"
+  "chestData" : "index,grade,HP,minGoldCount,maxGoldCount,minGoldAmount,maxGoldAmount,minJewelCount,maxJewelCount,minJewelAmount,maxJewelAmount,minSkillCount,maxSkillCount,SkillIndex1,SkillDropRate1,SkillIndex2,SkillDropRate2,SkillIndex3,SkillDropRate3,SkillIndex4,SkillDropRate4,SkillIndex5,SkillDropRate5,SkillIndex6,SkillDropRate6,SkillIndex7,SkillDropRate7,SkillIndex7,SkillDropRate7,SkillIndex8,SkillDropRate8,SkillIndex9,SkillDropRate9,SkillIndex10,SkillDropRate10,SkillIndex11,SkillDropRate11,SkillIndex12,SkillDropRate12,SkillIndex13,SkillDropRate13,SkillIndex14,SkillDropRate14,SkillIndex15,SkillDropRate15,SkillIndex16,SkillDropRate16,SkillIndex17,SkillDropRate17,SkillIndex18,SkillDropRate18,SkillIndex19,SkillDropRate19,SkillIndex20,SkillDropRate20\n1,1,100,3,5,30,50,0,0,0,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n2,2,200,4,6,50,75,0,1,1,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n3,3,300,5,7,75,100,1,2,1,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n",
+  "obstacleData" :
+  "index,type,id,posX,posY,radius,chestGradeMin,chestGradeMax\n1,1,OTT1,200,200,100,,\n2,1,OTT2,500,500,100,,\n3,3,OCG1,350,50,50,2,3\n4,3,OCG2,50,350,50,1,2\n"
 }
 
 },{}],8:[function(require,module,exports){
 module.exports={
   "MAX_SERVER_RESPONSE_TIME" : 5000,
   "INTERVAL" : 60,
+  "FPS" : 60,
 
   "SKILL_INFORM_TIME" : 150,
+  "SKiLL_HIT_EFFECT_TIME" : 100,
   "USER_ANI_TIME" : 100,
 
   "CANVAS_MAX_SIZE" : {"width" : 3200 , "height" : 3200},
@@ -2165,8 +2248,6 @@ module.exports={
   "OBJECT_STATE_MOVE" : 2,
   "OBJECT_STATE_ATTACK" : 3,
   "OBJECT_STATE_CAST" : 4,
-
-  "FPS" : 60,
 
   "GAME_STATE_LOAD" : 1,
   "GAME_STATE_START_SCENE" : 2,
@@ -2184,6 +2265,7 @@ module.exports={
   "PREFIX_CHEST" : "CHT",
   "PREFIX_OBSTACLE_TREE" : "OTT",
   "PREFIX_OBSTACLE_ROCK" : "OTR",
+  "PREFIX_OBSTACLE_CHEST_GROUND" : "OCG",
   "PREFIX_OBJECT_EXP" : "OXP",
   "PREFIX_OBJECT_SKILL" : "OSK",
   "PREFIX_OBJECT_GOLD" : "OGD",
@@ -2228,26 +2310,18 @@ module.exports={
   "MULTI_PROJECTILE_DEGREE" : 20,
 
   "OBJ_SKILL_RADIUS" : 30,
-  "OBJ_JEWEL_RADIUS" : 20
+  "OBJ_JEWEL_RADIUS" : 20,
+
+  "OBJ_TYPE_TREE" : 1,
+  "OBJ_TYPE_ROCK" : 2,
+  "OBJ_TYPE_CHEST_GROUND" : 3
 }
 
 },{}],9:[function(require,module,exports){
-module.exports={
-  "Trees" : [
-    {"id" : "OT1", "posX" : 200, "posY" : 200},
-    {"id" : "OT2", "posX" : 500, "posY" : 500}
-  ],
-  "Chests" : [
-    {"id" : "CH1", "gradeMin" : 2, "gradeMax" : 3, "posX" : 350, "posY" : 50},
-    {"id" : "CH2", "gradeMin" : 1, "gradeMax" : 2, "posX" : 50, "posY" : 350}
-  ]
-}
-
-},{}],10:[function(require,module,exports){
 !function(e,t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&module.exports?module.exports=t():e.Quadtree=t()}(this,function(){return function(){function e(t){var n,i;if(this.x=t.x,this.y=t.y,this.width=t.width,this.height=t.height,this.maxElements=t.maxElements,null==this.width||null==this.height)throw new Error("Missing quadtree dimensions.");if(null==this.x&&(this.x=0),null==this.y&&(this.y=0),null==this.maxElements&&(this.maxElements=1),this.contents=[],this.oversized=[],this.size=0,this.width<1||this.height<1)throw new Error("Dimensions must be positive integers.");if(!Number.isInteger(this.x)||!Number.isInteger(this.y))throw new Error("Coordinates must be integers");if(this.maxElements<1)throw new Error("The maximum number of elements before a split must be a positive integer.");i=this,this.children={NW:{create:function(){return new e({x:i.x,y:i.y,width:Math.max(Math.floor(i.width/2),1),height:Math.max(Math.floor(i.height/2),1),maxElements:i.maxElements})},tree:null},NE:{create:function(){return new e({x:i.x+Math.max(Math.floor(i.width/2),1),y:i.y,width:Math.ceil(i.width/2),height:Math.max(Math.floor(i.height/2),1),maxElements:i.maxElements})},tree:null},SW:{create:function(){return new e({x:i.x,y:i.y+Math.max(Math.floor(i.height/2),1),width:Math.max(Math.floor(i.width/2),1),height:Math.ceil(i.height/2),maxElements:i.maxElements})},tree:null},SE:{create:function(){return new e({x:i.x+Math.max(Math.floor(i.width/2),1),y:i.y+Math.max(Math.floor(i.height/2),1),width:Math.ceil(i.width/2),height:Math.ceil(i.height/2),maxElements:i.maxElements})},tree:null}};for(n in this.children)this.children[n].get=function(){return null!=this.tree?this.tree:(this.tree=this.create(),this.tree)}}var t,n,i,r,h,l,o,s;return r=function(e){var t,n;return{x:Math.floor((null!=(t=e.width)?t:1)/2)+e.x,y:Math.floor((null!=(n=e.height)?n:1)/2)+e.y}},t=function(e,t){var n,i,r,h;return!(e.x>=t.x+(null!=(n=t.width)?n:1)||e.x+(null!=(i=e.width)?i:1)<=t.x||e.y>=t.y+(null!=(r=t.height)?r:1)||e.y+(null!=(h=e.height)?h:1)<=t.y)},n=function(e,t){var n;return n=r(t),e.x<n.x?e.y<n.y?"NW":"SW":e.y<n.y?"NE":"SE"},s=function(e){if("object"!=typeof e)throw new Error("Element must be an Object.");if(null==e.x||null==e.y)throw new Error("Coordinates properties are missing.");if((null!=e?e.width:void 0)<0||(null!=e?e.height:void 0)<0)throw new Error("Width and height must be positive integers.")},l=function(e){var t,n,i,r;return n=Math.max(Math.floor(e.width/2),1),i=Math.ceil(e.width/2),r=Math.max(Math.floor(e.height/2),1),t=Math.ceil(e.height/2),{NW:{x:e.x,y:e.y,width:n,height:r},NE:{x:e.x+n,y:e.y,width:i,height:r},SW:{x:e.x,y:e.y+r,width:n,height:t},SE:{x:e.x+n,y:e.y+r,width:i,height:t}}},i=function(e,n){var i,r,h,o;o=[],h=l(n);for(r in h)i=h[r],t(e,i)&&o.push(r);return o},h=function(e,t){var n;return n=function(n){return e["_"+n]=e[n],Object.defineProperty(e,n,{set:function(e){return t.remove(this,!0),this["_"+n]=e,t.push(this)},get:function(){return this["_"+n]},configurable:!0})},n("x"),n("y"),n("width"),n("height")},o=function(e){var t;return t=function(t){if(null!=e["_"+t])return delete e[t],e[t]=e["_"+t],delete e["_"+t]},t("x"),t("y"),t("width"),t("height")},e.prototype.push=function(e,t){return this.pushAll([e],t)},e.prototype.pushAll=function(e,t){var n,r,l,o,u,f,c,d,a,g,p,m,x,y,v,w,E,M,z,b;for(p=0,y=e.length;p<y;p++)g=e[p],s(g),t&&h(g,this);for(c=[{tree:this,elements:e}];c.length>0;){for(E=c.shift(),b=E.tree,f=E.elements,d={NW:null,NE:null,SW:null,SE:null},m=0,v=f.length;m<v;m++)if(u=f[m],b.size++,a=i(u,b),1!==a.length||1===b.width||1===b.height)b.oversized.push(u);else if(b.size-b.oversized.length<=b.maxElements)b.contents.push(u);else{for(o=a[0],z=b.children[o],null==d[o]&&(d[o]={tree:z.get(),elements:[]}),d[o].elements.push(u),M=b.contents,x=0,w=M.length;x<w;x++)r=M[x],l=i(r,b)[0],null==d[l]&&(d[l]={tree:b.children[l].get(),elements:[]}),d[l].elements.push(r);b.contents=[]}for(o in d)null!=(n=d[o])&&c.push(n)}return this},e.prototype.remove=function(e,t){var i,r;return s(e),(i=this.oversized.indexOf(e))>-1?(this.oversized.splice(i,1),this.size--,t||o(e),!0):(i=this.contents.indexOf(e))>-1?(this.contents.splice(i,1),this.size--,t||o(e),!0):(r=this.children[n(e,this)],!(null==r.tree||!r.tree.remove(e,t))&&(this.size--,0===r.tree.size&&(r.tree=null),!0))},e.prototype.colliding=function(e,n){var r,h,l,o,u,f,c,d,a,g,p,m,x,y;for(null==n&&(n=t),s(e),u=[],l=[this];l.length>0;){for(y=l.shift(),m=y.oversized,f=0,a=m.length;f<a;f++)(h=m[f])!==e&&n(e,h)&&u.push(h);for(x=y.contents,c=0,g=x.length;c<g;c++)(h=x[c])!==e&&n(e,h)&&u.push(h);for(o=i(e,y),0===o.length&&(o=[],e.x>=y.x+y.width&&o.push("NE"),e.y>=y.y+y.height&&o.push("SW"),o.length>0&&(1===o.length?o.push("SE"):o=["SE"])),d=0,p=o.length;d<p;d++)r=o[d],null!=y.children[r].tree&&l.push(y.children[r].tree)}return u},e.prototype.onCollision=function(e,n,r){var h,l,o,u,f,c,d,a,g,p,m,x,y;for(null==r&&(r=t),s(e),o=[this];o.length>0;){for(y=o.shift(),m=y.oversized,f=0,a=m.length;f<a;f++)(l=m[f])!==e&&r(e,l)&&n(l);for(x=y.contents,c=0,g=x.length;c<g;c++)(l=x[c])!==e&&r(e,l)&&n(l);for(u=i(e,y),0===u.length&&(u=[],e.x>=y.x+y.width&&u.push("NE"),e.y>=y.y+y.height&&u.push("SW"),u.length>0&&(1===u.length?u.push("SE"):u=["SE"])),d=0,p=u.length;d<p;d++)h=u[d],null!=y.children[h].tree&&o.push(y.children[h].tree)}return null},e.prototype.get=function(e){return this.where(e)},e.prototype.where=function(e){var t,i,r,h,l,o,u,f,c,d,a,g,p;if("object"==typeof e&&(null==e.x||null==e.y))return this.find(function(t){var n,i;n=!0;for(i in e)e[i]!==t[i]&&(n=!1);return n});for(s(e),h=[],r=[this];r.length>0;){for(p=r.shift(),d=p.oversized,l=0,f=d.length;l<f;l++){i=d[l],t=!0;for(u in e)e[u]!==i[u]&&(t=!1);t&&h.push(i)}for(a=p.contents,o=0,c=a.length;o<c;o++){i=a[o],t=!0;for(u in e)e[u]!==i[u]&&(t=!1);t&&h.push(i)}g=p.children[n(e,p)],null!=g.tree&&r.push(g.tree)}return h},e.prototype.each=function(e){var t,n,i,r,h,l,o,s,u,f;for(n=[this];n.length>0;){for(f=n.shift(),s=f.oversized,r=0,l=s.length;r<l;r++)i=s[r],"function"==typeof e&&e(i);for(u=f.contents,h=0,o=u.length;h<o;h++)i=u[h],"function"==typeof e&&e(i);for(t in f.children)null!=f.children[t].tree&&n.push(f.children[t].tree)}return this},e.prototype.find=function(e){var t,n,i,r,h,l,o,s,u,f,c;for(n=[this],r=[];n.length>0;){for(c=n.shift(),u=c.oversized,h=0,o=u.length;h<o;h++)i=u[h],("function"==typeof e?e(i):void 0)&&r.push(i);for(f=c.contents,l=0,s=f.length;l<s;l++)i=f[l],("function"==typeof e?e(i):void 0)&&r.push(i);for(t in c.children)null!=c.children[t].tree&&n.push(c.children[t].tree)}return r},e.prototype.filter=function(t){var n;return(n=function(i){var r,h,l,o,s,u,f,c,d,a,g;h=new e({x:i.x,y:i.y,width:i.width,height:i.height,maxElements:i.maxElements}),h.size=0;for(r in i.children)null!=i.children[r].tree&&(h.children[r].tree=n(i.children[r].tree),h.size+=null!=(c=null!=(d=h.children[r].tree)?d.size:void 0)?c:0);for(a=i.oversized,o=0,u=a.length;o<u;o++)l=a[o],(null==t||("function"==typeof t?t(l):void 0))&&h.oversized.push(l);for(g=i.contents,s=0,f=g.length;s<f;s++)l=g[s],(null==t||("function"==typeof t?t(l):void 0))&&h.contents.push(l);return h.size+=h.oversized.length+h.contents.length,0===h.size?null:h})(this)},e.prototype.reject=function(e){return this.filter(function(t){return!("function"==typeof e?e(t):void 0)})},e.prototype.visit=function(e){var t,n,i;for(n=[this];n.length>0;){i=n.shift(),e.bind(i)();for(t in i.children)null!=i.children[t].tree&&n.push(i.children[t].tree)}return this},e.prototype.pretty=function(){var e,t,n,i,r,h,l;for(h="",n=function(e){var t,n,i;for(i="",t=n=e;n<=0?t<0:t>0;n<=0?++t:--t)i+="   ";return i},t=[{label:"ROOT",tree:this,level:0}];t.length>0;){l=t.shift(),i=n(l.level),h+=i+"| "+l.label+"\n"+i+"| ------------\n",l.tree.oversized.length>0&&(h+=i+"| * Oversized elements *\n"+i+"|   "+l.tree.oversized+"\n"),l.tree.contents.length>0&&(h+=i+"| * Leaf content *\n"+i+"|   "+l.tree.contents+"\n"),r=!1;for(e in l.tree.children)null!=l.tree.children[e].tree&&(r=!0,t.unshift({label:e,tree:l.tree.children[e].tree,level:l.level+1}));r&&(h+=i+"└──┐\n")}return h},e}()});
 
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports={
   "USER_BODY_SRC" : "../images/CharBase.svg",
   "USER_BODY_SIZE" : 64,
@@ -2263,10 +2337,13 @@ module.exports={
   "OBJ_TREE_SIZE" : 100,
 
   "OBJ_CHEST_SRC" : "",
-  "OBJ_CHEST_SIZE" : 50
+  "OBJ_CHEST_SIZE" : 50,
+
+  "OBJ_CHEST_GROUND_SRC" : "",
+  "OBJ_CHEST_GROUND_SIZE" : 50
 }
 
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var gameConfig = require('./gameConfig.json');
 var radianFactor = Math.PI/180;
 
@@ -2709,32 +2786,68 @@ exports.calcTargetPosition = function(centerPosition, direction, range){
 //find last coincident data
 exports.findData = function(table, columnName, value){
   var data = undefined;
-  for(var index in table){
-    //use ==, because value can be integer
-    if(table[index][columnName] == value){
-      data = table[index];
+  for(var i=0; i<table.length; i++){
+    if(table[i][columnName] == value){
+      data = table[i];
+      break;
     }
   }
+  // for(var index in table){
+  //   //use ==, because value can be integer
+  //   if(table[index][columnName] == value){
+  //     data = table[index];
+  //     break;
+  //   }
+  // }
   return data;
 };
+exports.findAllDatas = function(table, columnName, value){
+  var datas = [];
+  for(var i=0; i<table.length; i++){
+    if(table[i][columnName] == value){
+      datas.push(table[i]);
+    }
+  }
+  // for(var index in table){
+  //   if(table[index][columnName] == value){
+  //     datas.push(table[index]);
+  //   }
+  // }
+  return datas;
+}
 exports.findDataWithTwoColumns = function(table, columnName1, value1, columnName2, value2){
   var datas = [];
   var data = null;
-  for(var index in table){
-    if(table[index][columnName1] == value1){
-      datas.push(table[index]);
+  for(var i=0; i<table.length; i++){
+    if(table[i][columnName1] == value1){
+      datas.push(table[i]);
     }
   }
   if(datas.length > 0){
-    for(var index in datas){
-      if(datas[index][columnName2] == value2){
-        data = datas[index];
+    for(var i=0; i<datas.length; i++){
+      if(datas[i][columnName2] == value2){
+        data = datas[i];
+        break;
       }
     }
-  }else{
-    return null;
   }
   return data;
+  // for(var index in table){
+  //   if(table[index][columnName1] == value1){
+  //     datas.push(table[index]);
+  //   }
+  // }
+  // if(datas.length > 0){
+  //   for(var index in datas){
+  //     if(datas[index][columnName2] == value2){
+  //       data = datas[index];
+  //       break;
+  //     }
+  //   }
+  // }else{
+  //   return null;
+  // }
+  // return data;
 }
 exports.findAndSetBuffs = function(buffGroupData, buffTable, actorID){
   var returnVal = [];
@@ -2808,7 +2921,7 @@ function generateRandomID(prefix){
   return output;
 };
 
-},{"./gameConfig.json":8}],13:[function(require,module,exports){
+},{"./gameConfig.json":8}],12:[function(require,module,exports){
 // inner Modules
 var util = require('../../modules/public/util.js');
 var User = require('../../modules/client/CUser.js');
@@ -2862,6 +2975,10 @@ var mousePoint = {x : 0, y : 0};
 var currentSkillData = null;
 
 var characterType = 1;
+
+var firoBaseSkill = 0, firoInherentPassiveSkill = 0, firoEquipSkills = new Array(4),
+    freezerBaseSkill = 0, freezerInherentPassiveSkill = 0, freezerEquipSkills = new Array(4),
+    mysterBaseSkill = 0, mysterInherentPassiveSkill = 0, mysterEquipSkills = new Array(4);
 
 var baseSkill = 0;
 var baseSkillData = null;
@@ -3004,6 +3121,7 @@ function onSkillFireHandler(rawSkillData, syncFireTime){
 };
 function onProjectileSkillFireHandler(rawProjectileDatas, syncFireTime){
   var projectileDatas = Manager.processProjectileData(rawProjectileDatas);
+  console.log(rawProjectileDatas);
   socket.emit('projectilesFired', projectileDatas, syncFireTime);
 };
 function onCancelCastingHandler(){
@@ -3095,9 +3213,9 @@ function setupSocket(){
   });
 
   //change state game on
-  socket.on('resStartGame', function(userDatas, skillDatas, projectileDatas, objDatas, chestDatas){
-    Manager.setUsers(userDatas, skillDatas);
-    Manager.setUsersSkills(skillDatas);
+  socket.on('resStartGame', function(userDatas, objDatas, chestDatas){
+    Manager.setUsers(userDatas);
+    // Manager.setUsersSkills(skillDatas);
     // Manager.setProjectiles(projectileDatas);
     Manager.setObjs(objDatas);
     Manager.setChests(chestDatas);
@@ -3122,8 +3240,10 @@ function setupSocket(){
     Manager.updateUserData(userData);
   });
   socket.on('userDataUpdateAndUseSkill', function(userData){
+    console.log(Manager.users[gameConfig.userID].conditions);
     Manager.updateUserData(userData);
-    var skillData = Object.assign({}, util.findData(skillTable, 'index', usrData.skillIndex));
+    console.log(Manager.users[gameConfig.userID].conditions);
+    var skillData = Object.assign({}, util.findData(skillTable, 'index', userData.skillIndex));
 
     Manager.applyCastSpeed(userData.objectID, skillData);
     skillData.targetPosition = userData.skillTargetPosition;
@@ -3189,6 +3309,7 @@ function setupSocket(){
         }
       }
     }
+    updateCharTypeSkill();
   });
   socket.on('updateUserPrivateStat', function(statData){
     UIManager.setHUDStats(statData.statPower, statData.statMagic, statData.statSpeed);
@@ -3219,7 +3340,7 @@ function setupSocket(){
       UIManager.updateHP(userData);
       UIManager.updateMP(userData);
 
-      var needExp = util.findDataWithTwoColumns(userStatTable, 'type', characterType, 'level', userData.level).needExp;
+      var needExp = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', characterType, 'level', userData.level)).needExp;
       UIManager.updateExp(userData, needExp);
     }
   });
@@ -3250,10 +3371,14 @@ function drawScreen(){
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
 function drawObstacles(){
-  ctx.fillStyle ="#000000";
 
   for(var i=0; i<Manager.obstacles.length; i++){
     ctx.beginPath();
+    if(Manager.obstacles[i].staticEle.isCollide){
+      ctx.fillStyle ="#ff0000";
+    }else{
+      ctx.fillStyle ="#000000";
+    }
     var center = util.worldToLocalPosition(Manager.obstacles[i].center, gameConfig.userOffset);
     ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
             resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
@@ -3322,6 +3447,15 @@ function drawObjs(){
 };
 function drawUsers(){
   for(var index in Manager.users){
+    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_BLUR]){
+      if(index === gameConfig.userID){
+        ctx.globalAlpha = 0.6;
+      }else{
+        ctx.globalAlpha = 0.3;
+      }
+    }else{
+      ctx.globalAlpha = 1;
+    }
     var radian = Manager.users[index].direction * radianFactor;
 
     var centerX = util.worldXCoordToLocalX(Manager.users[index].position.x + Manager.users[index].size.width/2, gameConfig.userOffset.x);
@@ -3331,7 +3465,6 @@ function drawUsers(){
 
     ctx.beginPath();
     ctx.fillStyle = "#ffff00";
-    ctx.globalAlpha = 0.5;
     ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, 32 * gameConfig.scaleFactor, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
@@ -3363,6 +3496,7 @@ function drawEffect(){
   for(var i=0; i<Manager.effects.length; i++){
     ctx.beginPath();
     ctx.fillStyle ="#ff0000";
+
     var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x + Manager.effects[i].radius, gameConfig.userOffset.x);
     var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y + Manager.effects[i].radius, gameConfig.userOffset.y);
     ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
@@ -3392,7 +3526,7 @@ function drawSkillRange(){
   //draw explosionRadius
   ctx.beginPath();
   ctx.globalAlpha = 0.9;
-  ctx.arc(mousePoint.x, mousePoint.y, currentSkillData.explosionRadius * gameConfig.scaleFactor, 0, Math.PI * 2);
+  ctx.arc(mousePoint.x * gameConfig.scaleFactor, mousePoint.y * gameConfig.scaleFactor, currentSkillData.explosionRadius * gameConfig.scaleFactor, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1
 };
@@ -3440,7 +3574,7 @@ function drawGrid(){
 };
 function updateUserDataHandler(){
   var userData = Manager.processUserData();
-  userData.latency = latency;
+  // userData.latency = latency;
   socket.emit('userDataUpdate', userData);
 };
 function canvasAddEvent(){
@@ -3553,7 +3687,36 @@ function useSkill(skillData, clickPosition, user){
   if(skillData.projectileIDs){
     userData.projectileIDs = skillData.projectileIDs;
   }
+  if(user.conditions[gameConfig.USER_CONDITION_BLUR]){
+    userData.cancelBlur = true;
+  }
+  console.log(userData);
   socket.emit('userUseSkill', userData);
+}
+function updateCharTypeSkill(){
+  switch (characterType) {
+    case gameConfig.CHAR_TYPE_FIRE:
+      firoBaseSkill = baseSkill;
+      firoInherentPassiveSkill = inherentPassiveSkill;
+      for(var i=0; i<equipSkills.length; i++){
+        firoEquipSkills[i] = equipSkills[i];
+      }
+      break;
+    case gameConfig.CHAR_TYPE_FROST:
+      freezerBaseSkill = baseSkill;
+      freezerInherentPassiveSkill = inherentPassiveSkill;
+      for(var i=0; i<equipSkills.length; i++){
+        freezerEquipSkills[i] = equipSkills[i];
+      }
+      break;
+    case gameConfig.CHAR_TYPE_ARCANE:
+      mysterBaseSkill = baseSkill;
+      mysterInherentPassiveSkill = inherentPassiveSkill;
+      for(var i=0; i<equipSkills.length; i++){
+        mysterEquipSkills[i] = equipSkills[i];
+      }
+      break;
+  }
 }
 function canvasDisableEvent(){
   canvas.removeEventListener('click', canvasEventHandler);
@@ -3583,4 +3746,4 @@ function calcOffset(){
   };
 };
 
-},{"../../modules/client/CManager.js":1,"../../modules/client/CUIManager.js":4,"../../modules/client/CUser.js":5,"../../modules/public/csvjson.js":6,"../../modules/public/data.json":7,"../../modules/public/gameConfig.json":8,"../../modules/public/resources.json":11,"../../modules/public/util.js":12}]},{},[13]);
+},{"../../modules/client/CManager.js":1,"../../modules/client/CUIManager.js":4,"../../modules/client/CUser.js":5,"../../modules/public/csvjson.js":6,"../../modules/public/data.json":7,"../../modules/public/gameConfig.json":8,"../../modules/public/resources.json":10,"../../modules/public/util.js":11}]},{},[12]);
