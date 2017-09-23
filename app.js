@@ -113,7 +113,7 @@ io.on('connection', function(socket){
     var userBase = Object.assign({}, util.findData(userBaseTable, 'type', userType));
     user = new User(socket.id, userStat, userBase, 0);
     console.log(user.type);
-    var baseSkill = userBase.baseSkillGroupIndex + 1;
+    var baseSkill = userBase.baseSkill;
     var equipSkills = [];
     for(var i=0; i<3; i++){
       if(userBase['baseEquipSkill' + (i + 1)]){
@@ -126,7 +126,7 @@ io.on('connection', function(socket){
         possessSkills.push(userBase['basePossessionSkill' + (i + 1)]);
       }
     }
-    var inherentPassiveSkill = userBase.basePassiveSkillGroupIndex + 1;
+    var inherentPassiveSkill = userBase.basePassiveSkill;
 
     possessSkills.push(31);
     possessSkills.push(41);
@@ -156,6 +156,22 @@ io.on('connection', function(socket){
 
     socket.emit('syncAndSetSkills', userData);
     socket.emit('resStartGame', userDatas, objDatas, chestDatas);
+  });
+  socket.on('reqRestartGame', function(charType){
+    var level = GM.getLevel(user.objectID, charType);
+
+    var userStat = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', charType, 'level', level));
+    var userBase = Object.assign({}, util.findData(userBaseTable, 'type', charType));
+    GM.setUserStat(user.objectID, userStat, userBase);
+    GM.setUserSkill(user.objectID, charType, userBase.baseSkill, userBase.basePassiveSkill);
+    var baseSkill = GM.getBaseSkill(user.objectID, charType);
+    var inherentPassiveSkill = GM.getInherentPassiveSkill(user.objectID, charType);
+
+    var userData = GM.processUserDataSetting(user);
+    socket.broadcast.emit('userJoined', userData);
+    GM.addSkillData(userData);
+    GM.addPrivateData(userData);
+    socket.emit('resRestartGame', userData);
   });
   // var timeDelay = Date.now();
   socket.on('userDataUpdate', function(userData){

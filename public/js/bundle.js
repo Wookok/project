@@ -436,8 +436,18 @@ CManager.prototype = {
 
 			//apply maxSpeed
 			this.users[userData.objectID].setSpeed();
-			if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
-
+			if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST &&
+				 this.users[userData.objectID].currentSkill){
+				var consumeMP = this.users[userData.objectID].currentSkill.consumeMP;
+				if(this.users[userData.objectID].conditions[gameConfig.USER_CONDITION_FREEZE] ||
+					 this.users[userData.objectID].conditions[gameConfig.USER_CONDITION_SILENCE] ||
+					 this.users[userData.objectID].MP < consumeMP){
+						 this.users[userData.objectID].changeState(gameConfig.OBJECT_STATE_IDLE);
+					 }
+			}else if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_ATTACK){
+				if(this.users[userData.objectID].conditions[gameConfig.USER_CONDITION_FREEZE]){
+					this.users[userData.objectID].changeState(gameConfig.OBJECT_STATE_IDLE);
+				}
 			}
 		}
 	},
@@ -450,6 +460,7 @@ CManager.prototype = {
 			this.users[userData.objectID].targetPosition = userData.targetPosition;
 
 			this.users[userData.objectID].direction = userData.direction;
+			this.users[userData.objectID].maxSpeed = userData.maxSpeed;
 			this.users[userData.objectID].rotateSpeed = userData.rotateSpeed;
 
 			this.users[userData.objectID].setCenter();
@@ -638,6 +649,8 @@ function CSkill(skillData, userAniStartTime){
 
   this.index = skillData.index;
   this.type = skillData.type;
+
+  this.consumeMP = skillData.consumeMP;
   this.totalTime = skillData.totalTime;
   this.fireTime = skillData.fireTime;
   this.range = skillData.range;
@@ -797,7 +810,8 @@ UIManager.prototype = {
     gameScene = document.getElementById('gameScene');
     standingScene = document.getElementById('standingScene');
     startButton = document.getElementById('startButton');
-    startButton.onclick = startBtnClickHandler.bind(this);
+    startButton.addEventListener('click', startBtnClickHandler.bind(this), false);
+    // startButton.onclick = startBtnClickHandler.bind(this);
 
     var children = document.getElementById('startSceneHudCenterCenterCharSelect').children;
     for(var i=0; i<children.length; i++){
@@ -810,6 +824,11 @@ UIManager.prototype = {
         this.classList.add('select');
       };
     }
+  },
+  disableStartScene : function(){
+    startScene.classList.add('disable');
+    startScene.classList.remove('enable');
+    startButton.removeEventListener('click', startBtnClickHandler);
   },
   initHUD : function(){
     hudBaseSkillImg = document.getElementById('hudBaseSkillImg');
@@ -873,12 +892,18 @@ UIManager.prototype = {
     standingScene.classList.remove('enable');
   },
   drawGameScene : function(){
-    startScene.classList.add('disable');
-    startScene.classList.remove('enable');
     gameScene.classList.add('enable');
     gameScene.classList.remove('disable');
     standingScene.classList.add('disable');
     standingScene.classList.remove('enable');
+  },
+  drawRestartScene : function(){
+    // startScene.classList.add('disable');
+    // startScene.classList.remove('enable');
+    gameScene.classList.add('disable');
+    gameScene.classList.remove('enable');
+    standingScene.classList.add('enable');
+    standingScene.classList.remove('disable');
   },
   syncSkills : function(bSkill, bSkillData, eSkills, eSkillDatas, pSkills, iSkill, iSkillData){
     baseSkill = bSkill;
@@ -2254,6 +2279,7 @@ module.exports={
   "GAME_STATE_GAME_START" : 3,
   "GAME_STATE_GAME_ON" : 4,
   "GAME_STATE_GAME_END" : 5,
+  "GAME_STATE_RESTART_SCENE" : 6,
 
   "CHAR_TYPE_FIRE" : 1,
   "CHAR_TYPE_FROST" : 2,
@@ -3017,9 +3043,14 @@ function changeState(newState){
       gameUpdateFunc = stateFuncGame;
       break;
     case gameConfig.GAME_STATE_END:
-      gameSate = newState;
+      gameState = newState;
+      gameSetupFunc = stateFuncEnd;
+      gameUpdateFunc = null;
+      break;
+    case gameConfig.GAME_STATE_RESTART_SCENE:
+      gameState = newState;
       gameSetupFunc = null;
-      gameUpdateFunc = stateFuncEnd;
+      gameUpdateFunc = stateFuncRestart;
       break;
   }
   update();
@@ -3050,6 +3081,7 @@ function stateFuncStandby(){
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
 function stateFuncStart(){
+  UIManager.disableStartScene();
   setupSocket();
   socket.emit('reqStartGame', characterType);
 };
@@ -3062,9 +3094,11 @@ function stateFuncEnd(){
   //should init variables
   canvasDisableEvent();
   documentDisableEvent();
-  changeState(gameConfig.GAME_STATE_START_SCENE);
+  changeState(gameConfig.GAME_STATE_RESTART_SCENE);
 };
-
+function stateFuncRestart(){
+  drawRestartScene();
+};
 //functions
 function setBaseSetting(){
   canvas = document.getElementById('canvas');
@@ -3162,6 +3196,10 @@ function drawGame(){
   // console.log(Date.now() - startTime);
 };
 
+function drawRestartScene(){
+  UIManager.drawRestartScene();
+};
+
 // socket connect and server response configs
 function setupSocket(){
   socket = io();
@@ -3171,7 +3209,7 @@ function setupSocket(){
   });
   socket.on('disconnect', function(){
     console.log('disconnected');
-    changeState(gameConfig.GAME_STATE_END);
+    changeState(gameConfig.GAME_STATE_RESTART_SCENE);
   });
   socket.on('pong', function(lat){
     latency = lat;
@@ -3240,9 +3278,7 @@ function setupSocket(){
     Manager.updateUserData(userData);
   });
   socket.on('userDataUpdateAndUseSkill', function(userData){
-    console.log(Manager.users[gameConfig.userID].conditions);
     Manager.updateUserData(userData);
-    console.log(Manager.users[gameConfig.userID].conditions);
     var skillData = Object.assign({}, util.findData(skillTable, 'index', userData.skillIndex));
 
     Manager.applyCastSpeed(userData.objectID, skillData);
@@ -3653,8 +3689,6 @@ var documentEventHandler = function(e){
   }else if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
     changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
   }
-  //check conditions
-
 };
 function changeDrawMode(mode){
   if(mode === gameConfig.DRAW_MODE_NORMAL){
@@ -3671,28 +3705,30 @@ function mouseMoveHandler(e){
   mousePoint.y = e.clientY/gameConfig.scaleFactor;
 };
 function useSkill(skillData, clickPosition, user){
-  skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
-  skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
-  if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
-    skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
-    || skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
-      skillData.projectileIDs = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE, skillData.projectileCount);
-    }
-  Manager.useSkill(gameConfig.userID, skillData);
+  if(!user.conditions[gameConfig.USER_CONDITION_FREEZE] && !user.conditions[gameConfig.USER_CONDITION_SILENCE]){
+    skillData.targetPosition = util.calcSkillTargetPosition(skillData, clickPosition, user);
+    skillData.direction = util.calcSkillTargetDirection(skillData.type, skillData.targetPosition, user);
+    if(skillData.type === gameConfig.SKILL_TYPE_PROJECTILE || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK ||
+      skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION || skillData.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION
+      || skillData.type === gameConfig.SKILL_TYPE_INSTANT_PROJECTILE){
+        skillData.projectileIDs = util.generateRandomUniqueID(Manager.projectiles, gameConfig.PREFIX_SKILL_PROJECTILE, skillData.projectileCount);
+      }
+      Manager.useSkill(gameConfig.userID, skillData);
 
-  var userData = Manager.processUserData();
-  userData.skillIndex = skillData.index;
-  userData.skillDirection = skillData.direction;
-  userData.skillTargetPosition = skillData.targetPosition;
-  if(skillData.projectileIDs){
-    userData.projectileIDs = skillData.projectileIDs;
+      var userData = Manager.processUserData();
+      userData.skillIndex = skillData.index;
+      userData.skillDirection = skillData.direction;
+      userData.skillTargetPosition = skillData.targetPosition;
+      if(skillData.projectileIDs){
+        userData.projectileIDs = skillData.projectileIDs;
+      }
+      if(user.conditions[gameConfig.USER_CONDITION_BLUR]){
+        userData.cancelBlur = true;
+      }
+      console.log(userData);
+      socket.emit('userUseSkill', userData);
   }
-  if(user.conditions[gameConfig.USER_CONDITION_BLUR]){
-    userData.cancelBlur = true;
-  }
-  console.log(userData);
-  socket.emit('userUseSkill', userData);
-}
+};
 function updateCharTypeSkill(){
   switch (characterType) {
     case gameConfig.CHAR_TYPE_FIRE:
@@ -3717,7 +3753,7 @@ function updateCharTypeSkill(){
       }
       break;
   }
-}
+};
 function canvasDisableEvent(){
   canvas.removeEventListener('click', canvasEventHandler);
 };

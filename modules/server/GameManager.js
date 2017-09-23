@@ -667,6 +667,31 @@ GameManager.prototype.updateUserData = function(userData){
     console.log('cant find user data');
   }
 };
+GameManager.prototype.getLevel = function(userID, charType){
+  if(userID in this.users){
+    return this.users[userID].getLevel(charType);
+  }
+};
+GameManager.prototype.setUserStat = function(userID, userStat, userBase){
+  if(userID in this.users){
+    this.users[userID].setStat(userStat, userBase);
+  }
+};
+GameManager.prototype.setUserSkill = function(userID, charType, baseSkill, passiveSkill){
+  if(userID in this.users){
+    this.users[userID].setSkill(charType, baseSkill, passiveSkill);
+  }
+};
+GameManager.prototype.getBaseSkill = function(userID, charType){
+  if(userID in this.users){
+    return this.users[userID].getBaseSkill(charType);
+  }
+};
+GameManager.prototype.getInherentPassiveSkill = function(userID, charType){
+  if(userID in this.users){
+    return this.users[userID].getInherentPassiveSkill(charType);
+  }
+};
 GameManager.prototype.processUserDataSetting = function(user){
   return {
     objectID : user.objectID,

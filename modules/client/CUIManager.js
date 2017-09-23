@@ -3,7 +3,7 @@ var gameConfig = require('../public/gameConfig.json');
 var skillTable, buffGroupTable;
 
 var startScene, gameScene, standingScene;
-var startButton;
+var startButton, restartButton;
 
 // var startSceneHudCenterCenterChar1, startSceneHudCenterCenterChar2, startSceneHudCenterCenterChar3;
 var characterType = 1;
@@ -60,9 +60,31 @@ UIManager.prototype = {
     gameScene = document.getElementById('gameScene');
     standingScene = document.getElementById('standingScene');
     startButton = document.getElementById('startButton');
-    startButton.onclick = startBtnClickHandler.bind(this);
+    restartButton = document.getElementById('restartButton');
+    startButton.addEventListener('click', startBtnClickHandler.bind(startButton), false);
+    // startButton.onclick = startBtnClickHandler.bind(this);
 
     var children = document.getElementById('startSceneHudCenterCenterCharSelect').children;
+    for(var i=0; i<children.length; i++){
+      children[i].onclick = function(){
+        var type = parseInt(this.getAttribute('type'));
+        characterType = type;
+        for(var j=0; j<children.length; j++){
+          children[j].classList.remove('select');
+        }
+        this.classList.add('select');
+      };
+    }
+  },
+  disableStartScene : function(){
+    startScene.classList.add('disable');
+    startScene.classList.remove('enable');
+    startButton.removeEventListener('click', startBtnClickHandler);
+  },
+  initStandingScene : function(){
+    restartButton.addEventListener('click', startBtnClickHandler.bind(restartButton), false);
+
+    var children = document.getElementById('standingSceneHudCenterCenterCharSelect').children;
     for(var i=0; i<children.length; i++){
       children[i].onclick = function(){
         var type = parseInt(this.getAttribute('type'));
@@ -136,12 +158,18 @@ UIManager.prototype = {
     standingScene.classList.remove('enable');
   },
   drawGameScene : function(){
-    startScene.classList.add('disable');
-    startScene.classList.remove('enable');
     gameScene.classList.add('enable');
     gameScene.classList.remove('disable');
     standingScene.classList.add('disable');
     standingScene.classList.remove('enable');
+  },
+  drawRestartScene : function(){
+    // startScene.classList.add('disable');
+    // startScene.classList.remove('enable');
+    gameScene.classList.add('disable');
+    gameScene.classList.remove('enable');
+    standingScene.classList.add('enable');
+    standingScene.classList.remove('disable');
   },
   syncSkills : function(bSkill, bSkillData, eSkills, eSkillDatas, pSkills, iSkill, iSkillData){
     baseSkill = bSkill;
@@ -739,7 +767,12 @@ function skillUpgradeBtnHandler(){
   }
 };
 function startBtnClickHandler(){
-  this.onStartBtnClick(characterType);
+  if(this === startButton){
+    var clickButton = gameConfig.START_BUTTON;
+  }else if(this === restartButton){
+    clickButton = gameConfig.RESTART_BUTTON;
+  }
+  this.onStartBtnClick(characterType, clickButton);
 };
 function cooldownListener(slot, e){
   this.classList.remove("cooldownMaskAni");

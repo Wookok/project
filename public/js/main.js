@@ -93,9 +93,19 @@ function changeState(newState){
       gameUpdateFunc = stateFuncGame;
       break;
     case gameConfig.GAME_STATE_END:
-      gameSate = newState;
+      gameState = newState;
+      gameSetupFunc = stateFuncEnd;
+      gameUpdateFunc = null;
+      break;
+    case gameConfig.GAME_STATE_RESTART_SCENE:
+      gameState = newState;
       gameSetupFunc = null;
-      gameUpdateFunc = stateFuncEnd;
+      gameUpdateFunc = stateFuncStandbyRestart;
+      break;
+    case gameConfig.GAME_STATE_RESTART:
+      gameState = newState;
+      gameSetupFunc = stateFuncRestart;
+      gameUpdateFunc = null;
       break;
   }
   update();
@@ -126,6 +136,7 @@ function stateFuncStandby(){
 //if start button clicked, setting game before start game
 //setup socket here!!! now changestates in socket response functions
 function stateFuncStart(){
+  UIManager.disableStartScene();
   setupSocket();
   socket.emit('reqStartGame', characterType);
 };
@@ -138,18 +149,28 @@ function stateFuncEnd(){
   //should init variables
   canvasDisableEvent();
   documentDisableEvent();
-  changeState(gameConfig.GAME_STATE_START_SCENE);
+  UIManager.initStandingScene();
+  changeState(gameConfig.GAME_STATE_RESTART_SCENE);
 };
-
+function stateFuncStandbyRestart(){
+  drawRestartScene();
+}
+function stateFuncRestart(){
+  socket.emit('reqRestartGame', characterType);
+};
 //functions
 function setBaseSetting(){
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
 
   UIManager = new CUIManager(skillTable, buffGroupTable);
-  UIManager.onStartBtnClick = function(charType){
+  UIManager.onStartBtnClick = function(charType, clickButton){
     characterType = charType;
-    changeState(gameConfig.GAME_STATE_GAME_START);
+    if(clickButton === gameConfig.START_BUTTON){
+      changeState(gameConfig.GAME_STATE_GAME_START);
+    }else if(clickButton === gameConfig.RESTART_BUTTON){
+      changeState(gameConfig.GAME_STATE_RESTART);
+    }
   };
   UIManager.onSkillUpgrade = function(skillIndex){
     socket.emit('upgradeSkill', skillIndex);
@@ -238,6 +259,10 @@ function drawGame(){
   // console.log(Date.now() - startTime);
 };
 
+function drawRestartScene(){
+  UIManager.drawRestartScene();
+};
+
 // socket connect and server response configs
 function setupSocket(){
   socket = io();
@@ -247,7 +272,7 @@ function setupSocket(){
   });
   socket.on('disconnect', function(){
     console.log('disconnected');
-    changeState(gameConfig.GAME_STATE_END);
+    changeState(gameConfig.GAME_STATE_RESTART_SCENE);
   });
   socket.on('pong', function(lat){
     latency = lat;
@@ -306,7 +331,9 @@ function setupSocket(){
     changeState(gameConfig.GAME_STATE_GAME_ON);
     userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
   });
-
+  socket.on('resRestartGame', function(userData){
+    //do here
+  });
   socket.on('userJoined', function(data){
     Manager.setUser(data);
     console.log('user joined ' + data.objectID);

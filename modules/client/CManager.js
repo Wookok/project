@@ -435,8 +435,18 @@ CManager.prototype = {
 
 			//apply maxSpeed
 			this.users[userData.objectID].setSpeed();
-			if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST){
-
+			if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_CAST &&
+				 this.users[userData.objectID].currentSkill){
+				var consumeMP = this.users[userData.objectID].currentSkill.consumeMP;
+				if(this.users[userData.objectID].conditions[gameConfig.USER_CONDITION_FREEZE] ||
+					 this.users[userData.objectID].conditions[gameConfig.USER_CONDITION_SILENCE] ||
+					 this.users[userData.objectID].MP < consumeMP){
+						 this.users[userData.objectID].changeState(gameConfig.OBJECT_STATE_IDLE);
+					 }
+			}else if(this.users[userData.objectID].currentState === gameConfig.OBJECT_STATE_ATTACK){
+				if(this.users[userData.objectID].conditions[gameConfig.USER_CONDITION_FREEZE]){
+					this.users[userData.objectID].changeState(gameConfig.OBJECT_STATE_IDLE);
+				}
 			}
 		}
 	},

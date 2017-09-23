@@ -23,6 +23,9 @@ function User(socketID, userStat, userBase, exp){
   this.gold = 0;
   this.jewel = 0;
 
+  this.firoLevel = 0;
+  this.freezerLevel = 0;
+  this.mysterLevel = 0;
   this.firoBaseSkill = 0;
   this.firoInherentPassiveSkill = 0;
   this.freezerBaseSkill = 0;
@@ -161,6 +164,19 @@ User.prototype.initStat = function(){
 
   this.setMaxSpeed(this.moveSpeed);
   this.setRotateSpeed(this.rotateSpeed);
+};
+User.prototype.updateCharTypeLevel = function(){
+  switch (this.type) {
+    case gameConfig.CHAR_TYPE_FIRE:
+      this.firoLevel = this.level;
+      break;
+    case gameConfig.CHAR_TYPE_FROST:
+      this.freezerLevel = this.level;
+      break;
+    case gameConfig.CHAR_TYPE_ARCANE:
+      this.mysterLevel = this.level;
+      break;
+  }
 };
 User.prototype.updateCharTypeSkill = function(){
   switch (this.type) {
@@ -909,13 +925,122 @@ User.prototype.levelUp = function(){
   this.updateUserBaseStat();
   this.restoreWhenLevelUp();
   // this.getExp(0);
+  this.updateCharTypeLevel();
   this.onLevelUP(this);
   this.onChangePrivateStat(this);
   if(userLevelData.needExp !== -1 && this.exp >= userLevelData.needExp){
     this.levelUp();
   }
 };
+User.prototype.setStat(levelData, baseData){
+  this.basePower = levelData.power;
+  this.baseMagic = levelData.magic;
+  this.baseSpeed = levelData.speed;
 
+  this.baseHP = baseData.baseHP;
+  this.baseMP = baseData.baseMP;
+  this.baseHPRegen = baseData.baseHPRegen;
+  this.baseHPRegenRate = baseData.baseHPRegenRate;
+  this.baseMPRegen = baseData.baseMPRegen;
+  this.baseMPRegenRate = baseData.baseMPRegenRate;
+  this.baseMoveSpeed = baseData.baseMoveSpeed;
+  this.baseRotateSpeed = baseData.baseRotateSpeed;
+  this.baseCastSpeed = baseData.baseCastSpeed;
+  this.baseDamage = baseData.baseDamage;
+  this.baseFireDamage = baseData.baseFireDamage;
+  this.baseFrostDamage = baseData.baseFrostDamage;
+  this.baseArcaneDamage = baseData.baseArcaneDamage;
+  this.baseDamageRate = baseData.baseDamageRate;
+  this.baseFireDamageRate = baseData.baseFireDamageRate;
+  this.baseFrostDamageRate = baseData.baseFrostDamageRate;
+  this.baseArcaneDamageRate = baseData.baseArcaneDamageRate;
+  this.baseResistAll = baseData.baseResistAll;
+  this.baseResistFire = baseData.baseResistFire;
+  this.baseResistFrost = baseData.baseResistFrost;
+  this.baseResistArcane = baseData.baseResistArcane;
+  this.baseReductionAll = baseData.baseReductionAll;
+  this.baseReductionFire = baseData.baseReductionFire;
+  this.baseReductionFrost = baseData.baseReductionFrost;
+  this.baseReductionArcane = baseData.baseReductionArcane;
+  this.baseCooldownReduceRate = baseData.baseCooldownReduceRate;
+};
+User.prototype.setSkill(charType, baseSkill, passiveSkill){
+  switch (charType) {
+    case gameConfig.CHAR_TYPE_FIRE:
+      if(this.firoBaseSkill && this.firoInherentPassiveSkill){
+        this.baseSkill = this.firoBaseSkill;
+        this.inherentPassiveSkill = this.firoInherentPassiveSkill;
+      }else{
+        this.baseSkill = baseSkill;
+        this.inherentPassiveSkill = passiveSkill;
+      }
+      break;
+    case gameConfig.CHAR_TYPE_FROST:
+      if(this.freezerBaseSkill && this.freezerInherentPassiveSkill){
+        this.baseSkill = this.freezerBaseSkill;
+        this.inherentPassiveSkill = this.freezerInherentPassiveSkill
+      }else{
+        this.baseSkill = baseSkill;
+        this.inherentPassiveSkill = passiveSkill;
+      }
+      break;
+    case gameConfig.CHAR_TYPE_ARCANE:
+      if(this.mysterBaseSkill && this.mysterInherentPassiveSkill){
+        this.baseSkill = this.mysterBaseSkill;
+        this.inherentPassiveSkill = this.mysterInherentPassiveSkill;
+      }else{
+        this.baseSkill = baseSkill;
+        this.inherentPassiveSkill = passiveSkill;
+      }
+      break;
+  }
+};
+User.prototype.getLevel = function(charType){
+  switch (charType) {
+    case gameConfig.CHAR_TYPE_FIRE:
+      if(this.firoLevel){
+        this.level = this.firoLevell
+      }else{
+        this.level = 1;
+      }
+      break;
+    case gameConfig.CHAR_TYPE_FROST:
+      if(this.freezerLevel){
+        this.level = this.freezerLevel;
+      }else{
+        this.level = 1;
+      }
+      break;
+    case gameConfig.CHAR_TYPE_ARCANE:
+      if(this.mysterLevel){
+        this.level = this.mysterLevel;
+      }else{
+        this.level = 1;
+      }
+      break;
+  }
+  return this.level;
+};
+User.prototype.getBaseSkill = function(charType){
+  switch (charType) {
+    case gameConfig.CHAR_TYPE_FIRE:
+      return this.firoBaseSkill;
+    case gameConfig.CHAR_TYPE_FROST:
+      return this.freezerBaseSkill;
+    case gameConfig.CHAR_TYPE_ARCANE:
+      return this.mysterBaseSkill;
+  }
+};
+User.prototype.getInherentPassiveSkill = function(charType){
+  switch (charType) {
+    case gameConfig.CHAR_TYPE_FIRE:
+      return this.firoInherentPassiveSkill;
+    case gameConfig.CHAR_TYPE_FROST:
+      return this.freezerInherentPassiveSkill;
+    case gameConfig.CHAR_TYPE_ARCANE:
+      return this.mysterInherentPassiveSkill;
+  }
+};
 //execute when level up or down
 User.prototype.updateUserBaseStat = function(){
   var userLevelData = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', this.type, 'level', this.level));

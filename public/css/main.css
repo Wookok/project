@@ -36,14 +36,14 @@ canvas {
   margin: 0;
   padding: 0;
 }
-.startSceneHud {
+.startSceneHud, .standingSceneHud{
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
 }
-.startSceneHudCenter {
+.startSceneHudCenter, .standingSceneHudCenter {
   position: absolute;
   top : 42%;
   left : 50%;
@@ -51,17 +51,17 @@ canvas {
   height: 700px;
   transform: translate(-50%, -50%);
 }
-.startSceneHud .startSceneHudTitle{
+.startSceneHudTitle, .standingSceneHudTitle{
   position : absolute;
   margin: 0 auto;
   width: 100%;
 }
-.startSceneHud .startSceneHudTitle h1 {
+.startSceneHudTitle h1, .standingSceneHudTitle h1{
   margin: 0;
   text-align: center;
   font-size: 90px;
 }
-.startSceneHud .startSceneHudCenterLeft{
+.startSceneHudCenterLeft, .standingSceneHudCenterLeft{
   position : absolute;
   top : 200px;
   left : 10px;
@@ -70,7 +70,7 @@ canvas {
 
   background: gray;
 }
-.startSceneHud .startSceneHudCenterCenter{
+.startSceneHudCenterCenter, .standingSceneHudCenterCenter{
   position : absolute;
   top : 200px;
   left : 50%;
@@ -82,7 +82,7 @@ canvas {
 
   background: gray;
 }
-.startSceneHudCenterCenter input[type="text"] {
+.startSceneHudCenterCenter input[type="text"], .standingSceneHudCenterCenter input[type="text"]{
   position : absolute;
   top : 35px;
   height: 60px;
@@ -91,31 +91,31 @@ canvas {
   transform: translateX(-50%);
   width: 300px;
 }
-.startSceneHudCenterCenterCharSelect {
+.startSceneHudCenterCenterCharSelect, .standingSceneHudCenterCenterCharSelect {
   position: absolute;
   top : 120px;
   width: 100%;
   height: 230px;
 }
-.startSceneHudCenterCenterCharSelect > .select img{
+.startSceneHudCenterCenterCharSelect > .select img, .standingSceneHudCenterCenterCharSelect > .select img {
   height: 110px;
   width: 110px;
 }
-.startSceneHudCenterCenterCharSelect > div {
+.startSceneHudCenterCenterCharSelect > div, .standingSceneHudCenterCenterCharSelect > div {
   cursor: pointer;
   width: 100px;
   display: inline-block;
   margin: 0px 20px;
 }
-.startSceneHudCenterCenterCharSelect > div img {
+.startSceneHudCenterCenterCharSelect > div img, .standingSceneHudCenterCenterCharSelect > div img {
   width: 100px;
   height: 100px;
 }
-.startSceneHudCenterCenterCharSelect > div > div {
+.startSceneHudCenterCenterCharSelect > div > div, .standingSceneHudCenterCenterCharSelect > div > div {
   width: 100px;
   height: 100px;
 }
-.startSceneHudCenterCenter button {
+.startSceneHudCenterCenter button, .standingSceneHudCenterCenter button {
   position : absolute;;
   bottom: 35px;
   height: 60px;
@@ -125,7 +125,7 @@ canvas {
   width: 300px;
   cursor: pointer;
 }
-.startSceneHudCenterRight{
+.startSceneHudCenterRight, .standingSceneHudCenterRight{
   position : absolute;
   top : 200px;
   right: 10px;
@@ -136,10 +136,10 @@ canvas {
   z-index: 10;
   background: gray;
 }
-.startSceneHudCenterRightServerSelect{
+.startSceneHudCenterRightServerSelect, .standingSceneHudCenterRightServerSelect{
   margin: 10px 20px;
 }
-.startSceneHudCenterRightServerSelect select{
+.startSceneHudCenterRightServerSelect select, .standingSceneHudCenterRightServerSelect select{
   position: absolute;;
   top: 60px;
   height: 60px;
@@ -149,7 +149,7 @@ canvas {
   width: 300px;
   font-size: 20px;
 }
-.startSceneHudCenterRightHowToPlay{
+.startSceneHudCenterRightHowToPlay, .standingSceneHudCenterRightHowToPlay{
   overflow-x: hidden;
   overflow-y: scroll;
   position: absolute;
@@ -158,16 +158,16 @@ canvas {
   width: 300px;
   margin: 20px;
 }
-.startSceneHudCenterRightHowToPlay p {
+.startSceneHudCenterRightHowToPlay p, .standingSceneHudCenterRightHowToPlay p {
   margin: 2px;
 }
-.startSceneHudBottom{
+.startSceneHudBottom, .standingSceneHudBottom{
   position: absolute;
   bottom: 20px;
   height: 100px;
   width: 100%;
 }
-.startSceneHud .startSceneHudBottomLeft{
+.startSceneHudBottomLeft, .standingSceneHudBottomLeft{
   position : absolute;
   left : 30px;
   width : 350px;
@@ -175,7 +175,7 @@ canvas {
 
   background: gray;
 }
-.startSceneHud .startSceneHudBottomRight{
+.startSceneHudBottomRight, .standingSceneHudBottomRight{
   position : absolute;
   right : 30px;
   width : 350px;
