@@ -271,13 +271,13 @@ exports.worldXCoordToLocalX = function(x, offsetX){
 exports.worldYCoordToLocalY = function(y, offsetY){
   return y - offsetY;
 };
-exports.calculateOffset = function(obj, canvasSize){
-  var newOffset = {
-    x : obj.position.x + obj.size.width/2 - canvasSize.width/2,
-    y : obj.position.y + obj.size.height/2 - canvasSize.height/2
-  };
-  return newOffset;
-};
+// exports.calculateOffset = function(obj, canvasSize){
+//   var newOffset = {
+//     x : obj.position.x + obj.size.width/2 - canvasSize.width/2,
+//     y : obj.position.y + obj.size.height/2 - canvasSize.height/2
+//   };
+//   return newOffset;
+// };
 exports.isXInCanvas = function(x, gameConfig){
   var scaledX = x * gameConfig.scaleFactor;
   if(scaledX>0 && scaledX<gameConfig.canvasSize.width){

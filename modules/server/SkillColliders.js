@@ -43,7 +43,7 @@ var ProjectileCollider = function(user, projectileData){
   this.frostDamage = 0;
   this.arcaneDamage = 0;
   this.damageToMP = 0;
-  setDamage(user, projectileData);
+  setDamage.call(this, user, projectileData);
 
   this.explosionDamageRate = projectileData.explosionDamageRate;
 

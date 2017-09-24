@@ -147,6 +147,7 @@ function stateFuncGame(){
 //show end message and restart button
 function stateFuncEnd(){
   //should init variables
+  console.log('end');
   canvasDisableEvent();
   documentDisableEvent();
   UIManager.initStandingScene();
@@ -156,7 +157,8 @@ function stateFuncStandbyRestart(){
   drawRestartScene();
 }
 function stateFuncRestart(){
-  socket.emit('reqRestartGame', characterType);
+  UIManager.disableStandingScene();
+  socket.emit('reqRestartGame', characterType, equipSkills);
 };
 //functions
 function setBaseSetting(){
@@ -174,6 +176,9 @@ function setBaseSetting(){
   };
   UIManager.onSkillUpgrade = function(skillIndex){
     socket.emit('upgradeSkill', skillIndex);
+  };
+  UIManager.onExchangeSkill = function(){
+    updateCharTypeSkill();
   };
   UIManager.onExchangePassive = function(beforeBuffGID, afterBuffGID){
     socket.emit('exchangePassive', beforeBuffGID, afterBuffGID);
@@ -282,7 +287,7 @@ function setupSocket(){
     //synchronize user
     var startTime = Date.now();
     gameConfig.userID = user.objectID;
-    gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
+    // gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
 
     baseSkill = user.baseSkill;
     baseSkillData = Object.assign({}, util.findData(skillTable, 'index', user.baseSkill));
@@ -332,7 +337,57 @@ function setupSocket(){
     userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
   });
   socket.on('resRestartGame', function(userData){
-    //do here
+    Manager.iamRestart(userData);
+    Manager.updateUserData(userData);
+    Manager.changeUserStat(userData);
+
+    canvasAddEvent();
+    documentAddEvent();
+
+    baseSkill = userData.baseSkill;
+    baseSkillData = Object.assign({}, util.findData(skillTable, 'index', userData.baseSkill));
+    inherentPassiveSkill = userData.inherentPassiveSkill;
+    inherentPassiveSkillData = Object.assign({}, util.findData(skillTable, 'index', userData.inherentPassiveSkill));
+
+    switch (characterType) {
+      case gameConfig.CHAR_TYPE_FIRE:
+        for(var i=0; i<4; i++){
+          equipSkills[i] = firoEquipSkills[i];
+        }
+        break;
+      case gameConfig.CHAR_TYPE_FROST:
+        for(var i=0; i<4; i++){
+          equipSkills[i] = freezerEquipSkills[i];
+        }
+        break;
+      case gameConfig.CHAR_TYPE_ARCANE:
+        for(var i=0; i<4; i++){
+          equipSkills[i] = mysterEquipSkills[i];
+        }
+        break;
+    }
+
+    for(var i=0; i<4; i++){
+      if(equipSkills[i]){
+        equipSkillDatas[i] = Object.assign({}, util.findData(skillTable, 'index', equipSkills[i]));
+      }else{
+        equipSkillDatas[i] = undefined;
+      }
+    };
+
+    possessSkills = userData.possessSkills;
+
+    UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills, inherentPassiveSkill, inherentPassiveSkillData);
+    UIManager.setHUDSkills();
+    // UIManager.updateBuffIcon();
+    UIManager.setHUDStats(userData.statPower, userData.statMagic, userData.statSpeed);
+    UIManager.setCooldownReduceRate(userData.cooldownReduceRate);
+    UIManager.setPopUpSkillChange();
+    UIManager.updateHP(userData);
+    UIManager.updateMP(userData);
+
+    changeState(gameConfig.GAME_STATE_GAME_ON);
+    userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
   });
   socket.on('userJoined', function(data){
     Manager.setUser(data);
@@ -459,6 +514,13 @@ function setupSocket(){
     possessSkills = possessSkillIndexes;
     UIManager.updatePossessionSkills(possessSkills);
     UIManager.setPopUpSkillChange();
+  });
+  socket.on('userDead', function(attackUserID, deadUserID){
+    if(deadUserID === gameConfig.userID){
+      Manager.iamDead();
+      changeState(gameConfig.GAME_STATE_END);
+    }
+    Manager.kickUser(deadUserID);
   });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);

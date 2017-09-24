@@ -49,6 +49,9 @@ GM.onNeedInformUserTakeDamage = function(user, dmg){
   userData.damagedAmount = dmg;
   io.sockets.emit('userDamaged', userData);
 };
+GM.onNeedInformUserDeath = function(attackUserID, deadUserID){
+  io.sockets.emit('userDead', attackUserID, deadUserID);
+}
 GM.onNeedInformUserReduceMP = function(user){
   var userData = GM.processChangedUserStat(user);
   io.sockets.emit('changeUserStat', userData);
@@ -63,6 +66,7 @@ GM.onNeedInformUserLevelUp = function(user){
 };
 GM.onNeedInformBuffUpdate = function(user){
   var buffData = GM.processBuffDataSetting(user);
+  console.log(buffData);
   io.to(user.socketID).emit('updateBuff', buffData);
 }
 GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
@@ -70,7 +74,6 @@ GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillInd
 };
 GM.onNeedInformUserChangePrivateStat = function(user){
   var statData = GM.processUserPrivateDataSetting(user);
-  console.log(statData);
   io.to(user.socketID).emit('updateUserPrivateStat', statData);
 };
 GM.onNeedInformUserChangeStat = function(user){
@@ -157,13 +160,16 @@ io.on('connection', function(socket){
     socket.emit('syncAndSetSkills', userData);
     socket.emit('resStartGame', userDatas, objDatas, chestDatas);
   });
-  socket.on('reqRestartGame', function(charType){
+  var count = 1;
+  socket.on('reqRestartGame', function(charType, equipSkills){
     var level = GM.getLevel(user.objectID, charType);
 
+    console.log(count++);
     var userStat = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', charType, 'level', level));
     var userBase = Object.assign({}, util.findData(userBaseTable, 'type', charType));
     GM.setUserStat(user.objectID, userStat, userBase);
     GM.setUserSkill(user.objectID, charType, userBase.baseSkill, userBase.basePassiveSkill);
+    GM.startUserUpdate(user.objectID);
     var baseSkill = GM.getBaseSkill(user.objectID, charType);
     var inherentPassiveSkill = GM.getInherentPassiveSkill(user.objectID, charType);
 
@@ -172,6 +178,15 @@ io.on('connection', function(socket){
     GM.addSkillData(userData);
     GM.addPrivateData(userData);
     socket.emit('resRestartGame', userData);
+
+    var passiveList = [];
+    for(var i=0; i<equipSkills.length; i++){
+      var skillData = Object.assign({}, util.findData(skillTable, 'index', equipSkills[i]));
+      if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE){
+        passiveList.push(skillData.buffToSelf);
+      }
+    }
+    GM.equipPassives(user.objectID, passiveList);
   });
   // var timeDelay = Date.now();
   socket.on('userDataUpdate', function(userData){
@@ -209,7 +224,6 @@ io.on('connection', function(socket){
   });
   socket.on('skillFired', function(data){
     var skillData = Object.assign({}, util.findData(skillTable, 'index', data.skillIndex));
-
     skillData.targetPosition = data.skillTargetPosition;
 
     // skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3, user.objectID);
@@ -255,11 +269,11 @@ io.on('connection', function(socket){
   socket.on('exchangePassive', function(beforeBuffGID, afterBuffGID){
     GM.exchangePassive(user, beforeBuffGID, afterBuffGID);
   });
-  socket.on('equipPassive', function(buffIndex){
-    GM.equipPassive(user, buffIndex);
+  socket.on('equipPassive', function(buffGroupIndex){
+    GM.equipPassive(user, buffGroupIndex);
   });
-  socket.on('unequipPassive', function(buffIndex){
-    GM.unequipPassive(user, buffIndex);
+  socket.on('unequipPassive', function(buffGroupIndex){
+    GM.unequipPassive(user, buffGroupIndex);
   });
   socket.on('disconnect', function(){
     if(user){

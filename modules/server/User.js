@@ -523,14 +523,14 @@ User.prototype.igniteHP = function(attackUserID){
   this.takeDamage(attackUserID, igniteDamage);
   // this.takeDamage(igniteDamage);
 };
-User.prototype.buffUpdate = function(){
-  if(!this.buffUpdateInterval){
-    this.buffUpdateInterval = setInterval(buffUpdateHandler.bind(this), INTERVAL_TIMER);
-  }
-  if(!this.regenInterval){
-    this.regenInterval = setInterval(regenIntervalHandler.bind(this), serverConfig.USER_REGEN_TIMER);
-  }
-};
+// User.prototype.buffUpdate = function(){
+//   if(!this.buffUpdateInterval){
+//     this.buffUpdateInterval = setInterval(buffUpdateHandler.bind(this), INTERVAL_TIMER);
+//   }
+//   if(!this.regenInterval){
+//     this.regenInterval = setInterval(regenIntervalHandler.bind(this), serverConfig.USER_REGEN_TIMER);
+//   }
+// };
 function buffUpdateHandler(){
   this.updateStatAndCondition();
 };
@@ -700,13 +700,26 @@ User.prototype.exchangePassive = function(beforeBuffGID, afterBuffGID){
   }
   this.onBuffExchange(this);
 }
-User.prototype.equipPassive = function(buffIndex){
-  var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffIndex));
+User.prototype.equipPassives = function(buffGroupIndexList){
+  for(var i=0; i<buffGroupIndexList.length; i++){
+    for(var j=0; j<this.passiveList.length; j++){
+      if(this.passiveList.index !== buffGroupIndexList[i]){
+        var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndexList[i]));
+        this.passiveList.push(buffGroupData);
+      }
+    }
+  }
+  if(this.passiveList.length){
+    this.onBuffExchange(this);
+  }
+};
+User.prototype.equipPassive = function(buffGroupIndex){
+  var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
   this.passiveList.push(buffGroupData);
   this.onBuffExchange(this);
 };
-User.prototype.unequipPassive = function(buffIndex){
-  var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffIndex));
+User.prototype.unequipPassive = function(buffGroupIndex){
+  var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
   for(var i=0; i<this.passiveList.length; i++){
     if(this.passiveList[i].index === buffGroupData.index){
       var index = i;
@@ -876,8 +889,16 @@ User.prototype.healMP = function(amount){
 User.prototype.death = function(attackUserID){
   //calculate exp to attacker
   console.log(this.objectID + ' is dead by ' + attackUserID);
+  this.buffList = [];
+  this.passiveList = [];
+  clearInterval(this.buffUpdateInterval);
+  clearInterval(this.regenInterval);
+
+  this.buffUpdateInterval = false;
+  this.regenInterval = false;
+
   var exp = this.level *  10000;
-  this.onDeath(attackUserID, exp, this);
+  this.onDeath(attackUserID, exp, this.objectID);
 };
 User.prototype.cancelBlur = function(){
   for(var i=this.buffList.length - 1; i>=0; i--){
@@ -923,16 +944,31 @@ User.prototype.levelUp = function(){
   //add levelBonus
   //additional level up check.
   this.updateUserBaseStat();
+  this.initStat();
   this.restoreWhenLevelUp();
   // this.getExp(0);
   this.updateCharTypeLevel();
-  this.onLevelUP(this);
-  this.onChangePrivateStat(this);
+  var additionalLevelUp = false;
   if(userLevelData.needExp !== -1 && this.exp >= userLevelData.needExp){
+    additionalLevelUp = true;
     this.levelUp();
   }
+  if(!additionalLevelUp){
+    this.onLevelUP(this);
+    this.onChangePrivateStat(this);
+  }
 };
-User.prototype.setStat(levelData, baseData){
+User.prototype.startUpdate = function(){
+  if(!this.buffUpdateInterval){
+    this.buffUpdateInterval = setInterval(buffUpdateHandler.bind(this), INTERVAL_TIMER);
+  }
+  if(!this.regenInterval){
+    this.regenInterval = setInterval(regenIntervalHandler.bind(this), serverConfig.USER_REGEN_TIMER);
+  }
+};
+User.prototype.setStat = function(levelData, baseData){
+  this.type = levelData.type;
+
   this.basePower = levelData.power;
   this.baseMagic = levelData.magic;
   this.baseSpeed = levelData.speed;
@@ -963,8 +999,10 @@ User.prototype.setStat(levelData, baseData){
   this.baseReductionFrost = baseData.baseReductionFrost;
   this.baseReductionArcane = baseData.baseReductionArcane;
   this.baseCooldownReduceRate = baseData.baseCooldownReduceRate;
+
+  this.initStat();
 };
-User.prototype.setSkill(charType, baseSkill, passiveSkill){
+User.prototype.setSkill = function(charType, baseSkill, passiveSkill){
   switch (charType) {
     case gameConfig.CHAR_TYPE_FIRE:
       if(this.firoBaseSkill && this.firoInherentPassiveSkill){

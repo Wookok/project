@@ -226,6 +226,14 @@ CManager.prototype = {
 			console.log('check object id : ' + objID);
 		}
 	},
+	iamRestart : function(userData){
+		this.users[this.user.objectID] = this.user;
+
+		this.user.changeState(gameConfig.OBJECT_STATE_IDLE);
+	},
+	iamDead : function(){
+		this.user.changeState(gameConfig.OBJECT_STATE_DEATH);
+	},
 	kickUser : function(objID){
 		if(!(objID in this.users)){
 			console.log("user already out");
@@ -753,7 +761,7 @@ var gameConfig = require('../public/gameConfig.json');
 var skillTable, buffGroupTable;
 
 var startScene, gameScene, standingScene;
-var startButton;
+var startButton, restartButton;
 
 // var startSceneHudCenterCenterChar1, startSceneHudCenterCenterChar2, startSceneHudCenterCenterChar3;
 var characterType = 1;
@@ -800,6 +808,7 @@ function UIManager(sTable, bTable){
   this.onStartBtnClick = new Function();
 
   this.onSkillUpgrade = new Function();
+  this.onExchangeSkill = new Function();
   this.onExchangePassive = new Function();
   this.onEquipPassive = new Function();
   this.onUnequipPassive = new Function();
@@ -810,7 +819,8 @@ UIManager.prototype = {
     gameScene = document.getElementById('gameScene');
     standingScene = document.getElementById('standingScene');
     startButton = document.getElementById('startButton');
-    startButton.addEventListener('click', startBtnClickHandler.bind(this), false);
+    restartButton = document.getElementById('restartButton');
+    startButton.addEventListener('click', startBtnClickHandler.bind(this, startButton), false);
     // startButton.onclick = startBtnClickHandler.bind(this);
 
     var children = document.getElementById('startSceneHudCenterCenterCharSelect').children;
@@ -828,7 +838,37 @@ UIManager.prototype = {
   disableStartScene : function(){
     startScene.classList.add('disable');
     startScene.classList.remove('enable');
+
+    gameScene.classList.add('enable');
+    gameScene.classList.remove('disable');
+
     startButton.removeEventListener('click', startBtnClickHandler);
+  },
+  initStandingScene : function(){
+    // restartButton.addEventListener('click', startBtnClickHandler.bind(this, restartButton), false);
+    restartButton.onclick = startBtnClickHandler.bind(this, restartButton);
+
+    var children = document.getElementById('standingSceneHudCenterCenterCharSelect').children;
+    for(var i=0; i<children.length; i++){
+      children[i].onclick = function(){
+        var type = parseInt(this.getAttribute('type'));
+        characterType = type;
+        for(var j=0; j<children.length; j++){
+          children[j].classList.remove('select');
+        }
+        this.classList.add('select');
+      };
+    }
+  },
+  disableStandingScene : function(){
+    standingScene.classList.add('disable');
+    standingScene.classList.remove('enable');
+
+    gameScene.classList.add('enable');
+    gameScene.classList.remove('disable');
+
+    restartButton.onclick = '';
+    // restartButton.removeEventListener('click', startBtnClickHandler);
   },
   initHUD : function(){
     hudBaseSkillImg = document.getElementById('hudBaseSkillImg');
@@ -884,18 +924,15 @@ UIManager.prototype = {
     userStatSpeedContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatSpeedContainer), false);
   },
   drawStartScene : function(){
-    startScene.classList.add('enable');
-    startScene.classList.remove('disable');
-    gameScene.classList.add('disable');
-    gameScene.classList.remove('enable');
-    standingScene.classList.add('disable');
-    standingScene.classList.remove('enable');
+    // startScene.classList.add('enable');
+    // startScene.classList.remove('disable');
+    // gameScene.classList.add('disable');
+    // gameScene.classList.remove('enable');
+    // standingScene.classList.add('disable');
+    // standingScene.classList.remove('enable');
   },
   drawGameScene : function(){
-    gameScene.classList.add('enable');
-    gameScene.classList.remove('disable');
-    standingScene.classList.add('disable');
-    standingScene.classList.remove('enable');
+
   },
   drawRestartScene : function(){
     // startScene.classList.add('disable');
@@ -1372,6 +1409,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           sellectedDiv.appendChild(skillImg);
         }
       }
+      this.onExchangeSkill();
       //set equipSkills
       if(skillData && beforeSkillData){
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE && beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
@@ -1441,7 +1479,6 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
         }
       }
 
-
       this.setHUDSkills();
 
       sellectedSkillIndex = null;
@@ -1500,8 +1537,13 @@ function skillUpgradeBtnHandler(){
     }, gameConfig.MAX_SERVER_RESPONSE_TIME);
   }
 };
-function startBtnClickHandler(){
-  this.onStartBtnClick(characterType);
+function startBtnClickHandler(button){
+  if(button === startButton){
+    var clickButton = gameConfig.START_BUTTON;
+  }else if(button === restartButton){
+    clickButton = gameConfig.RESTART_BUTTON;
+  }
+  this.onStartBtnClick(characterType, clickButton);
 };
 function cooldownListener(slot, e){
   this.classList.remove("cooldownMaskAni");
@@ -1679,14 +1721,17 @@ User.prototype = {
       case gameConfig.OBJECT_STATE_MOVE:
         this.updateFunction = this.rotate.bind(this);
         break;
-      case gameConfig.OBJECT_STATE_MOVE_OFFSET:
-        this.updateFunction = this.rotate.bind(this);
-        break;
+      // case gameConfig.OBJECT_STATE_MOVE_OFFSET:
+        // this.updateFunction = this.rotate.bind(this);
+        // break;
       case gameConfig.OBJECT_STATE_ATTACK:
         this.updateFunction = this.attack.bind(this);
         break;
       case gameConfig.OBJECT_STATE_CAST:
         this.updateFunction = this.rotate.bind(this);
+        break;
+      case gameConfig.OBJECT_STATE_DEATH:
+        this.updateFunction = this.idle.bind(this);
         break;
     }
     this.update();
@@ -2256,6 +2301,9 @@ module.exports={
   "INTERVAL" : 60,
   "FPS" : 60,
 
+  "START_BUTTON" : 1,
+  "RESTART_BUTTON" : 2,
+
   "SKILL_INFORM_TIME" : 150,
   "SKiLL_HIT_EFFECT_TIME" : 100,
   "USER_ANI_TIME" : 100,
@@ -2273,6 +2321,7 @@ module.exports={
   "OBJECT_STATE_MOVE" : 2,
   "OBJECT_STATE_ATTACK" : 3,
   "OBJECT_STATE_CAST" : 4,
+  "OBJECT_STATE_DEATH" : 5,
 
   "GAME_STATE_LOAD" : 1,
   "GAME_STATE_START_SCENE" : 2,
@@ -2280,6 +2329,7 @@ module.exports={
   "GAME_STATE_GAME_ON" : 4,
   "GAME_STATE_GAME_END" : 5,
   "GAME_STATE_RESTART_SCENE" : 6,
+  "GAME_STATE_RESTART" : 7,
 
   "CHAR_TYPE_FIRE" : 1,
   "CHAR_TYPE_FROST" : 2,
@@ -2643,13 +2693,13 @@ exports.worldXCoordToLocalX = function(x, offsetX){
 exports.worldYCoordToLocalY = function(y, offsetY){
   return y - offsetY;
 };
-exports.calculateOffset = function(obj, canvasSize){
-  var newOffset = {
-    x : obj.position.x + obj.size.width/2 - canvasSize.width/2,
-    y : obj.position.y + obj.size.height/2 - canvasSize.height/2
-  };
-  return newOffset;
-};
+// exports.calculateOffset = function(obj, canvasSize){
+//   var newOffset = {
+//     x : obj.position.x + obj.size.width/2 - canvasSize.width/2,
+//     y : obj.position.y + obj.size.height/2 - canvasSize.height/2
+//   };
+//   return newOffset;
+// };
 exports.isXInCanvas = function(x, gameConfig){
   var scaledX = x * gameConfig.scaleFactor;
   if(scaledX>0 && scaledX<gameConfig.canvasSize.width){
@@ -3050,7 +3100,12 @@ function changeState(newState){
     case gameConfig.GAME_STATE_RESTART_SCENE:
       gameState = newState;
       gameSetupFunc = null;
-      gameUpdateFunc = stateFuncRestart;
+      gameUpdateFunc = stateFuncStandbyRestart;
+      break;
+    case gameConfig.GAME_STATE_RESTART:
+      gameState = newState;
+      gameSetupFunc = stateFuncRestart;
+      gameUpdateFunc = null;
       break;
   }
   update();
@@ -3092,12 +3147,18 @@ function stateFuncGame(){
 //show end message and restart button
 function stateFuncEnd(){
   //should init variables
+  console.log('end');
   canvasDisableEvent();
   documentDisableEvent();
+  UIManager.initStandingScene();
   changeState(gameConfig.GAME_STATE_RESTART_SCENE);
 };
-function stateFuncRestart(){
+function stateFuncStandbyRestart(){
   drawRestartScene();
+}
+function stateFuncRestart(){
+  UIManager.disableStandingScene();
+  socket.emit('reqRestartGame', characterType, equipSkills);
 };
 //functions
 function setBaseSetting(){
@@ -3105,12 +3166,19 @@ function setBaseSetting(){
   ctx = canvas.getContext('2d');
 
   UIManager = new CUIManager(skillTable, buffGroupTable);
-  UIManager.onStartBtnClick = function(charType){
+  UIManager.onStartBtnClick = function(charType, clickButton){
     characterType = charType;
-    changeState(gameConfig.GAME_STATE_GAME_START);
+    if(clickButton === gameConfig.START_BUTTON){
+      changeState(gameConfig.GAME_STATE_GAME_START);
+    }else if(clickButton === gameConfig.RESTART_BUTTON){
+      changeState(gameConfig.GAME_STATE_RESTART);
+    }
   };
   UIManager.onSkillUpgrade = function(skillIndex){
     socket.emit('upgradeSkill', skillIndex);
+  };
+  UIManager.onExchangeSkill = function(){
+    updateCharTypeSkill();
   };
   UIManager.onExchangePassive = function(beforeBuffGID, afterBuffGID){
     socket.emit('exchangePassive', beforeBuffGID, afterBuffGID);
@@ -3219,7 +3287,7 @@ function setupSocket(){
     //synchronize user
     var startTime = Date.now();
     gameConfig.userID = user.objectID;
-    gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
+    // gameConfig.userOffset = util.calculateOffset(user, gameConfig.canvasSize);
 
     baseSkill = user.baseSkill;
     baseSkillData = Object.assign({}, util.findData(skillTable, 'index', user.baseSkill));
@@ -3268,7 +3336,59 @@ function setupSocket(){
     changeState(gameConfig.GAME_STATE_GAME_ON);
     userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
   });
+  socket.on('resRestartGame', function(userData){
+    Manager.iamRestart(userData);
+    Manager.updateUserData(userData);
+    Manager.changeUserStat(userData);
 
+    canvasAddEvent();
+    documentAddEvent();
+
+    baseSkill = userData.baseSkill;
+    baseSkillData = Object.assign({}, util.findData(skillTable, 'index', userData.baseSkill));
+    inherentPassiveSkill = userData.inherentPassiveSkill;
+    inherentPassiveSkillData = Object.assign({}, util.findData(skillTable, 'index', userData.inherentPassiveSkill));
+
+    switch (characterType) {
+      case gameConfig.CHAR_TYPE_FIRE:
+        for(var i=0; i<4; i++){
+          equipSkills[i] = firoEquipSkills[i];
+        }
+        break;
+      case gameConfig.CHAR_TYPE_FROST:
+        for(var i=0; i<4; i++){
+          equipSkills[i] = freezerEquipSkills[i];
+        }
+        break;
+      case gameConfig.CHAR_TYPE_ARCANE:
+        for(var i=0; i<4; i++){
+          equipSkills[i] = mysterEquipSkills[i];
+        }
+        break;
+    }
+
+    for(var i=0; i<4; i++){
+      if(equipSkills[i]){
+        equipSkillDatas[i] = Object.assign({}, util.findData(skillTable, 'index', equipSkills[i]));
+      }else{
+        equipSkillDatas[i] = undefined;
+      }
+    };
+
+    possessSkills = userData.possessSkills;
+
+    UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills, inherentPassiveSkill, inherentPassiveSkillData);
+    UIManager.setHUDSkills();
+    // UIManager.updateBuffIcon();
+    UIManager.setHUDStats(userData.statPower, userData.statMagic, userData.statSpeed);
+    UIManager.setCooldownReduceRate(userData.cooldownReduceRate);
+    UIManager.setPopUpSkillChange();
+    UIManager.updateHP(userData);
+    UIManager.updateMP(userData);
+
+    changeState(gameConfig.GAME_STATE_GAME_ON);
+    userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
+  });
   socket.on('userJoined', function(data){
     Manager.setUser(data);
     console.log('user joined ' + data.objectID);
@@ -3394,6 +3514,13 @@ function setupSocket(){
     possessSkills = possessSkillIndexes;
     UIManager.updatePossessionSkills(possessSkills);
     UIManager.setPopUpSkillChange();
+  });
+  socket.on('userDead', function(attackUserID, deadUserID){
+    if(deadUserID === gameConfig.userID){
+      Manager.iamDead();
+      changeState(gameConfig.GAME_STATE_END);
+    }
+    Manager.kickUser(deadUserID);
   });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);

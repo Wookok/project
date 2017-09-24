@@ -146,33 +146,33 @@ LivingEntity.prototype.initEntityEle = function(){
     height : this.size.height,
     id : this.objectID
   };
-  this.entityBefore150msTreeEle = {
-    x : -2000,
-    y : -2000,
-    width : this.size.width,
-    height : this.size.height,
-    id : this.objectID
-  };
-  this.entityBefore300msTreeEle = {
-    x : -2000,
-    y : -2000,
-    width : this.size.width,
-    height : this.size.height,
-    id : this.objectID
-  };
+  // this.entityBefore150msTreeEle = {
+  //   x : -2000,
+  //   y : -2000,
+  //   width : this.size.width,
+  //   height : this.size.height,
+  //   id : this.objectID
+  // };
+  // this.entityBefore300msTreeEle = {
+  //   x : -2000,
+  //   y : -2000,
+  //   width : this.size.width,
+  //   height : this.size.height,
+  //   id : this.objectID
+  // };
 }
 // initialize and update for entityTreeEle
 LivingEntity.prototype.setEntityEle = function(){
   this.entityTreeEle.x = this.position.x;
   this.entityTreeEle.y = this.position.y;
 };
-LivingEntity.prototype.setBefore150msEntitiyEle = function(){
-  this.entityBefore150msTreeEle.x = this.before150msPos.x;
-  this.entityBefore150msTreeEle.y = this.before150msPos.y;
-};
-LivingEntity.prototype.setBefore300msEntityEle = function(){
-  this.entityBefore300msTreeEle.x = this.before300msPos.x;
-  this.entityBefore300msTreeEle.y = this.before300msPos.y;
-};
+// LivingEntity.prototype.setBefore150msEntitiyEle = function(){
+//   this.entityBefore150msTreeEle.x = this.before150msPos.x;
+//   this.entityBefore150msTreeEle.y = this.before150msPos.y;
+// };
+// LivingEntity.prototype.setBefore300msEntityEle = function(){
+//   this.entityBefore300msTreeEle.x = this.before300msPos.x;
+//   this.entityBefore300msTreeEle.y = this.before300msPos.y;
+// };
 
 module.exports = LivingEntity;

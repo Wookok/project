@@ -89,6 +89,7 @@ function GameManager(){
   this.onNeedInformUserReduceMP = new Function();
   this.onNeedInformUserGetExp = new Function();
   this.onNeedInformUserLevelUp = new Function();
+  this.onNeedInformUserDeath = new Function();
 
   this.onNeedInformCreateObjs = new Function();
   this.onNeedInformDeleteObj = new Function();
@@ -368,7 +369,7 @@ GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
       }else{
         goldAmount = serverConfig.OBJ_GOLD_MIN_GOLD_AMOUNT;
       }
-      var raidus = SUtil.goldToRadius(goldAmount);
+      var radius = SUtil.goldToRadius(goldAmount);
       if(nearPosition){
         var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
       }else{
@@ -391,7 +392,7 @@ GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
       }else{
         jewelAmount = serverConfig.OBJ_JEWEL_MIN_JEWEL_AMOUNT;
       }
-      var raidus = gameConfig.OBJ_JEWEL_RADIUS;
+      var radius = gameConfig.OBJ_JEWEL_RADIUS;
       if(nearPosition){
         var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
       }else{
@@ -532,7 +533,7 @@ GameManager.prototype.initializeUser = function(user, baseSkill, possessSkills, 
   user.setSkills(baseSkill, possessSkills, inherentPassiveSkill);
 
   user.initEntityEle();
-  user.buffUpdate();
+  user.startUpdate();
 };
 GameManager.prototype.applySkill = function(userID, skillData){
   if(userID in this.users){
@@ -544,6 +545,7 @@ GameManager.prototype.applySkill = function(userID, skillData){
     if(skillData.additionalBuffToSelf){
       this.users[userID].addBuff(skillData.additionalBuffToSelf, userID);
     }
+
     //doDamageToSelf
     if(skillData.doDamageToSelf){
       var fireDamage = skillData.fireDamage * skillData.damageToSelfRate/100;
@@ -553,6 +555,7 @@ GameManager.prototype.applySkill = function(userID, skillData){
       this.users[userID].takeDamage(userID, fireDamage, frostDamage, arcaneDamage, damageToMP, skillData.hitBuffList);
       this.users[userID].addBuff(skillData.buffToTarget, userID);
     }
+
     //healHP, MP
     var healHPAmount = (!isNaN(skillData.healHP) ? skillData.healHP : 0) + this.users[userID].maxHP * (!isNaN(skillData.healHPRate) ? skillData.healHPRate : 0) / 100;
     var healMPAmount = (!isNaN(skillData.healMP) ? skillData.healMP : 0) + this.users[userID].maxMP * (!isNaN(skillData.healMPRate) ? skillData.healMPRate : 0) / 100;
@@ -682,6 +685,11 @@ GameManager.prototype.setUserSkill = function(userID, charType, baseSkill, passi
     this.users[userID].setSkill(charType, baseSkill, passiveSkill);
   }
 };
+GameManager.prototype.startUserUpdate = function(userID){
+  if(userID in this.users){
+    this.users[userID].startUpdate();
+  }
+}
 GameManager.prototype.getBaseSkill = function(userID, charType){
   if(userID in this.users){
     return this.users[userID].getBaseSkill(charType);
@@ -916,14 +924,19 @@ GameManager.prototype.exchangePassive = function(user, beforeBuffGID, afterBuffG
     user.exchangePassive(beforeBuffGID, afterBuffGID);
   }
 };
-GameManager.prototype.equipPassive = function(user, buffIndex){
-  if(user.objectID in this.users){
-    user.equipPassive(buffIndex);
+GameManager.prototype.equipPassives = function(userID, buffGroupIndexList){
+  if(userID in this.users){
+    this.users[userID].equipPassives(buffGroupIndexList);
   }
 };
-GameManager.prototype.unequipPassive = function(user, buffIndex){
+GameManager.prototype.equipPassive = function(user, buffGroupIndex){
   if(user.objectID in this.users){
-    user.unequipPassive(buffIndex);
+    user.equipPassive(buffGroupIndex);
+  }
+};
+GameManager.prototype.unequipPassive = function(user, buffGroupIndex){
+  if(user.objectID in this.users){
+    user.unequipPassive(buffGroupIndex);
   }
 };
 GameManager.prototype.cancelBlur = function(userID){
@@ -1110,6 +1123,7 @@ function updateIntervalHandler(){
   this.addedObjJewels = [];
 
   for(var i=0; i<addedObjEles.length; i++){
+    // console.log(addedObjEles);
     collectionEles.push(addedObjEles[i]);
   }
 

@@ -50,6 +50,7 @@ function UIManager(sTable, bTable){
   this.onStartBtnClick = new Function();
 
   this.onSkillUpgrade = new Function();
+  this.onExchangeSkill = new Function();
   this.onExchangePassive = new Function();
   this.onEquipPassive = new Function();
   this.onUnequipPassive = new Function();
@@ -61,8 +62,8 @@ UIManager.prototype = {
     standingScene = document.getElementById('standingScene');
     startButton = document.getElementById('startButton');
     restartButton = document.getElementById('restartButton');
-    startButton.addEventListener('click', startBtnClickHandler.bind(startButton), false);
-    // startButton.onclick = startBtnClickHandler.bind(this);
+    // startButton.addEventListener('click', startBtnClickHandler.bind(this, startButton), false);
+    startButton.onclick = startBtnClickHandler.bind(this, startButton);
 
     var children = document.getElementById('startSceneHudCenterCenterCharSelect').children;
     for(var i=0; i<children.length; i++){
@@ -79,10 +80,16 @@ UIManager.prototype = {
   disableStartScene : function(){
     startScene.classList.add('disable');
     startScene.classList.remove('enable');
-    startButton.removeEventListener('click', startBtnClickHandler);
+
+    gameScene.classList.add('enable');
+    gameScene.classList.remove('disable');
+
+    startButton.onclick = '';
+    // startButton.removeEventListener('click', startBtnClickHandler);
   },
   initStandingScene : function(){
-    restartButton.addEventListener('click', startBtnClickHandler.bind(restartButton), false);
+    // restartButton.addEventListener('click', startBtnClickHandler.bind(this, restartButton), false);
+    restartButton.onclick = startBtnClickHandler.bind(this, restartButton);
 
     var children = document.getElementById('standingSceneHudCenterCenterCharSelect').children;
     for(var i=0; i<children.length; i++){
@@ -95,6 +102,16 @@ UIManager.prototype = {
         this.classList.add('select');
       };
     }
+  },
+  disableStandingScene : function(){
+    standingScene.classList.add('disable');
+    standingScene.classList.remove('enable');
+
+    gameScene.classList.add('enable');
+    gameScene.classList.remove('disable');
+
+    restartButton.onclick = '';
+    // restartButton.removeEventListener('click', startBtnClickHandler);
   },
   initHUD : function(){
     hudBaseSkillImg = document.getElementById('hudBaseSkillImg');
@@ -150,18 +167,15 @@ UIManager.prototype = {
     userStatSpeedContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatSpeedContainer), false);
   },
   drawStartScene : function(){
-    startScene.classList.add('enable');
-    startScene.classList.remove('disable');
-    gameScene.classList.add('disable');
-    gameScene.classList.remove('enable');
-    standingScene.classList.add('disable');
-    standingScene.classList.remove('enable');
+    // startScene.classList.add('enable');
+    // startScene.classList.remove('disable');
+    // gameScene.classList.add('disable');
+    // gameScene.classList.remove('enable');
+    // standingScene.classList.add('disable');
+    // standingScene.classList.remove('enable');
   },
   drawGameScene : function(){
-    gameScene.classList.add('enable');
-    gameScene.classList.remove('disable');
-    standingScene.classList.add('disable');
-    standingScene.classList.remove('enable');
+
   },
   drawRestartScene : function(){
     // startScene.classList.add('disable');
@@ -638,6 +652,7 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
           sellectedDiv.appendChild(skillImg);
         }
       }
+      this.onExchangeSkill();
       //set equipSkills
       if(skillData && beforeSkillData){
         if(skillData.type === gameConfig.SKILL_TYPE_PASSIVE && beforeSkillData.type === gameConfig.SKILL_TYPE_PASSIVE){
@@ -707,7 +722,6 @@ function changeEquipSkillHandler(sellectDiv, sellectPanel){
         }
       }
 
-
       this.setHUDSkills();
 
       sellectedSkillIndex = null;
@@ -766,10 +780,10 @@ function skillUpgradeBtnHandler(){
     }, gameConfig.MAX_SERVER_RESPONSE_TIME);
   }
 };
-function startBtnClickHandler(){
-  if(this === startButton){
+function startBtnClickHandler(button){
+  if(button === startButton){
     var clickButton = gameConfig.START_BUTTON;
-  }else if(this === restartButton){
+  }else if(button === restartButton){
     clickButton = gameConfig.RESTART_BUTTON;
   }
   this.onStartBtnClick(characterType, clickButton);

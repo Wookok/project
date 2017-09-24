@@ -225,6 +225,14 @@ CManager.prototype = {
 			console.log('check object id : ' + objID);
 		}
 	},
+	iamRestart : function(userData){
+		this.users[this.user.objectID] = this.user;
+
+		this.user.changeState(gameConfig.OBJECT_STATE_IDLE);
+	},
+	iamDead : function(){
+		this.user.changeState(gameConfig.OBJECT_STATE_DEATH);
+	},
 	kickUser : function(objID){
 		if(!(objID in this.users)){
 			console.log("user already out");

@@ -74,7 +74,7 @@ OBJJewel.prototype.initOBJJewel = function(position, radius, jewelAmount){
   this.jewelAmount = jewelAmount;
 };
 OBJJewel.prototype.setCollectionEle = function(){
-  this.collectionEles = {
+  this.collectionEle = {
     id : this.objectID,
     x : this.position.x,
     y : this.position.y,

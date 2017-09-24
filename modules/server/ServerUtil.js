@@ -95,12 +95,13 @@ exports.onUserGetExp = function(user){
 exports.onUserLevelUP = function(user){
   this.onNeedInformUserLevelUp(user);
 };
-exports.onUserDeath = function(attackUserID, exp, deadUser){
+exports.onUserDeath = function(attackUserID, exp, deadUserID){
   if(attackUserID in this.users){
     this.users[attackUserID].getExp(exp);
   }else{
     console.log(attackUserID + ' is not exists');
   }
+  this.onNeedInformUserDeath(attackUserID, deadUserID);
 };
 exports.setAffectedEleColSkillWithEntity = function(skill, affectedID, collisionType){
   return {
@@ -142,7 +143,7 @@ exports.checkUserBuff = function(user, skillData){
   var fireBuffList = [];
   var hitBuffList = [];
   for(var i=0; i<user.passiveList.length; i++){
-    var buffs = util.findAndSetBuffs(user.passiveList[i], buffTable, user.objectID);
+    var buffs = Object.assign({}, util.findAndSetBuffs(user.passiveList[i], buffTable, user.objectID));
     for(var j=0; j<buffs.length; j++){
       if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_FIRE){
         if(buffs[j].skillProperty){
@@ -262,8 +263,8 @@ exports.checkUserBuff = function(user, skillData){
       }
     }
   }
-  skillData.fireDamage = (additionalDamage + additionalFireDamage) * additionalFireDamageRate/100 * additionalDamageRate/100;
-  skillData.frostDamage = (additionalDamage + additionalFrostDamage) * additionalFrostDamageRate/100 * additionalDamageRate/100;
-  skillData.arcaneDamage = (additionalDamage + additionalArcaneDamage) * additionalArcaneDamageRate/100 * additionalDamageRate/100;
+  skillData.fireDamage = skillData.fireDamage + (additionalDamage + additionalFireDamage) * additionalFireDamageRate/100 * additionalDamageRate/100;
+  skillData.frostDamage = skillData.frostDamage + (additionalDamage + additionalFrostDamage) * additionalFrostDamageRate/100 * additionalDamageRate/100;
+  skillData.arcaneDamage = skillData.arcaneDamage + (additionalDamage + additionalArcaneDamage) * additionalArcaneDamageRate/100 * additionalDamageRate/100;
   skillData.hitBuffList = hitBuffList;
 };

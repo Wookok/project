@@ -71,14 +71,17 @@ User.prototype = {
       case gameConfig.OBJECT_STATE_MOVE:
         this.updateFunction = this.rotate.bind(this);
         break;
-      case gameConfig.OBJECT_STATE_MOVE_OFFSET:
-        this.updateFunction = this.rotate.bind(this);
-        break;
+      // case gameConfig.OBJECT_STATE_MOVE_OFFSET:
+        // this.updateFunction = this.rotate.bind(this);
+        // break;
       case gameConfig.OBJECT_STATE_ATTACK:
         this.updateFunction = this.attack.bind(this);
         break;
       case gameConfig.OBJECT_STATE_CAST:
         this.updateFunction = this.rotate.bind(this);
+        break;
+      case gameConfig.OBJECT_STATE_DEATH:
+        this.updateFunction = this.idle.bind(this);
         break;
     }
     this.update();
