@@ -31,6 +31,8 @@ var Manager;
 
 // resource var
 var resources;
+var loadedResourcesCount = 0;
+var resourceObject, resourceCharacter, resourceUI;
 
 var userImage, userHand;
 var grid;
@@ -127,7 +129,7 @@ function stateFuncLoad(){
     setCanvasSize();
   };
   UIManager.setSkillChangeBtn();
-  changeState(gameConfig.GAME_STATE_START_SCENE);
+  loadResources();
 };
 //when all resource loaded. just draw start scene
 function stateFuncStandby(){
@@ -209,13 +211,27 @@ function setBaseSetting(){
   // resource 관련
   resources = require('../../modules/public/resources.json');
 
-  userImage = new Image();
-  userHand = new Image();
+  resourceObject = new Image()
+  resourceCharacter = new Image();
+  resourceUI = new Image();
+
   grid = new Image();
-  userImage.src = resources.USER_BODY_SRC;
-  userHand.src = resources.USER_HAND_SRC;
   grid.src = resources.GRID_SRC;
 };
+function loadResources(){
+  // resourceObject.src = gameConfig.RESOURCE_SRC_OBJECT;
+  // resourceObject.onload = loadResourceHandler;
+  // resourceCharacter.src = gameConfig.RESOURCE_SRC_CHARACTER;
+  // resourceCharacter.onload = loadResourceHandler;
+  // resourceUI.src = gameConfig.RESOURCE_SRC_UI;
+  // resourceUI.onload = loadResourceHandler;
+};
+function loadResourceHandler(){
+  loadedResourcesCount++;
+  if(loadedResourcesCount >= gameConfig.RESOURCES_COUNT){
+    changeState(gameConfig.GAME_STATE_START_SCENE);
+  }
+}
 function onSkillFireHandler(rawSkillData, syncFireTime){
   var skillData = Manager.processSkillData(rawSkillData);
   skillData.syncFireTime = syncFireTime;
