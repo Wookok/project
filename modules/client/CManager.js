@@ -5,10 +5,11 @@ var util = require('../public/util.js');
 var gameConfig = require('../public/gameConfig.json');
 var resources = require('../public/resources.json');
 // var map = require('../public/map.json');
-var csvJson = require('../public/csvjson.js');
-var dataJson = require('../public/data.json');
+// var csvJson = require('../public/csvjson.js');
+// var dataJson = require('../public/data.json');
 
-var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
+// var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
+var userStatTable, resourceTable, obstacleTable;
 
 var QuadTree = require('../public/quadtree.min.js');
 
@@ -45,7 +46,11 @@ var CManager = function(){
 };
 
 CManager.prototype = {
-	start : function(){
+	start : function(statTable, srcTable, ostTable){
+		userStatTable = statTable;
+		resourceTable = srcTable;
+		obstacleTable = ostTable;
+
 		staticTree = new QuadTree({
 		  width : gameConfig.CANVAS_MAX_SIZE.width,
 		  height : gameConfig.CANVAS_MAX_SIZE.height,
@@ -140,11 +145,16 @@ CManager.prototype = {
 	},
 	setUsers : function(userDatas){
 		for(var i=0; i<userDatas.length; i++){
+			userDatas[i].imgData = this.setImgData(userDatas[i], resourceTable, userStatTable);
 			var tempUser = new User(userDatas[i]);
 			this.users[userDatas[i].objectID] = tempUser;
 			this.users[userDatas[i].objectID].onMove = onMoveCalcCompelPos.bind(this);
 			this.users[userDatas[i].objectID].changeState(userDatas[i].currentState);
 		}
+	},
+	setImgData : function(userData){
+		var imgIndex = util.findDataWithTwoColumns(userStatTable, 'type', userData.type, 'level', userData.level).imgData;
+		return Object.assign({}, util.findData(resourceTable, 'index', imgIndex));
 	},
 	setUsersSkills : function(skillDatas){
 		for(var i=0; i<skillDatas.length; i++){
@@ -425,9 +435,12 @@ CManager.prototype = {
 			}
 		}
 	},
-	changeUserStat : function(userData){
+	changeUserStat : function(userData, isUpdateImage){
 		if(userData.objectID in this.users){
-			this.users[userData.objectID].level = userData.level;
+			if(userData.level !== this.users[userData.objectID].level || isUpdateImage){
+				this.users[userData.objectID].level = userData.level;
+				this.users[userData.objectID].imgData = this.setImgData(userData);
+			}
 			this.users[userData.objectID].exp = userData.exp;
 
 			this.users[userData.objectID].maxHP = userData.maxHP;

@@ -703,6 +703,8 @@ GameManager.prototype.getInherentPassiveSkill = function(userID, charType){
 GameManager.prototype.processUserDataSetting = function(user){
   return {
     objectID : user.objectID,
+    type : user.type,
+
     currentState : user.currentState,
     position : user.position,
     targetPosition : user.targetPosition,
@@ -730,6 +732,7 @@ GameManager.prototype.processUserDataSettings = function(){
   for(var index in this.users){
     userData.push({
       objectID : index,
+      type : this.users[index].type,
 
       currentState : this.users[index].currentState,
       position : this.users[index].position,
@@ -758,6 +761,7 @@ GameManager.prototype.processUserDataSettings = function(){
 GameManager.prototype.processChangedUserStat = function(user){
   return {
     objectID : user.objectID,
+    type : user.type,
     level : user.level,
     exp : user.exp,
     maxHP : user.maxHP,

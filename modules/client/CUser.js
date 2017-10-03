@@ -8,6 +8,9 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 var User = function(userData){
   this.objectID = userData.objectID;
 
+  this.type = userData.type
+  this.imgData = userData.imgData;
+
   this.level = userData.level;
   this.exp = userData.exp;
 

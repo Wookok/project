@@ -10,6 +10,8 @@ var dataJson = require('../../modules/public/data.json');
 var userStatTable = csvJson.toObject(dataJson.userStatData, {delimiter : ',', quote : '"'});
 var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
+var resourceTable = csvJson.toObject(dataJson.resourceData, {delimiter : ',', quote : '"'});
+var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
 var socket;
 
 // document elements
@@ -23,7 +25,7 @@ var canvas, ctx, scaleFactor;
 
 // const var
 var radianFactor = Math.PI/180;
-var fps = 1000/60;
+var fps = 1000/gameConfig.FPS;
 var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 // game var
@@ -221,8 +223,8 @@ function setBaseSetting(){
 function loadResources(){
   // resourceObject.src = gameConfig.RESOURCE_SRC_OBJECT;
   // resourceObject.onload = loadResourceHandler;
-  // resourceCharacter.src = gameConfig.RESOURCE_SRC_CHARACTER;
-  // resourceCharacter.onload = loadResourceHandler;
+  resourceCharacter.src = gameConfig.RESOURCE_SRC_CHARACTER;
+  resourceCharacter.onload = loadResourceHandler;
   // resourceUI.src = gameConfig.RESOURCE_SRC_UI;
   // resourceUI.onload = loadResourceHandler;
 };
@@ -231,7 +233,7 @@ function loadResourceHandler(){
   if(loadedResourcesCount >= gameConfig.RESOURCES_COUNT){
     changeState(gameConfig.GAME_STATE_START_SCENE);
   }
-}
+};
 function onSkillFireHandler(rawSkillData, syncFireTime){
   var skillData = Manager.processSkillData(rawSkillData);
   skillData.syncFireTime = syncFireTime;
@@ -266,7 +268,7 @@ function drawGame(){
   gameConfig.userOffset = calcOffset();
 
   drawScreen();
-  // drawBackground();
+  drawBackground();
   drawGrid();
   drawObstacles();
   drawChests();
@@ -336,6 +338,7 @@ function setupSocket(){
 
   //change state game on
   socket.on('resStartGame', function(userDatas, objDatas, chestDatas){
+    Manager.start(userStatTable, resourceTable, obstacleTable);
     Manager.setUsers(userDatas);
     // Manager.setUsersSkills(skillDatas);
     // Manager.setProjectiles(projectileDatas);
@@ -343,7 +346,6 @@ function setupSocket(){
     Manager.setChests(chestDatas);
 
     Manager.synchronizeUser(gameConfig.userID);
-    Manager.start();
     console.log(Manager.users);
 
     canvasAddEvent();
@@ -355,7 +357,7 @@ function setupSocket(){
   socket.on('resRestartGame', function(userData){
     Manager.iamRestart(userData);
     Manager.updateUserData(userData);
-    Manager.changeUserStat(userData);
+    Manager.changeUserStat(userData, true);
 
     canvasAddEvent();
     documentAddEvent();
@@ -406,6 +408,7 @@ function setupSocket(){
     userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
   });
   socket.on('userJoined', function(data){
+    data.imgData = Manager.setImgData(data);
     Manager.setUser(data);
     console.log('user joined ' + data.objectID);
   });
@@ -546,7 +549,7 @@ function setupSocket(){
 //draw
 function drawScreen(){
   //draw background
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "rgb(69, 46, 4)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
 function drawObstacles(){
@@ -636,29 +639,42 @@ function drawUsers(){
       ctx.globalAlpha = 1;
     }
     var radian = Manager.users[index].direction * radianFactor;
-
-    var centerX = util.worldXCoordToLocalX(Manager.users[index].position.x + Manager.users[index].size.width/2, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.users[index].position.y + Manager.users[index].size.height/2, gameConfig.userOffset.y);
-
-    var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
-
-    ctx.beginPath();
-    ctx.fillStyle = "#ffff00";
-    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, 32 * gameConfig.scaleFactor, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.closePath();
-    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor);
-
     ctx.beginPath();
     ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
+    // ctx.setTransform(1,0,0,1,0,0);
     var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
     ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
     ctx.rotate(radian);
-    ctx.fillStyle = 'yellow';
-    ctx.arc(0, 0, 64 * gameConfig.scaleFactor, 0, 2 * Math.PI);
-    ctx.fill();
+    // var posX = util.worldXCoordToLocalX(Manager.users[index].position.x, gameConfig.userOffset.x);
+    // var posY = util.worldYCoordToLocalY(Manager.users[index].position.y, gameConfig.userOffset.y);
+    ctx.drawImage(resourceCharacter, Manager.users[index].imgData.srcPosX, Manager.users[index].imgData.srcPosY, Manager.users[index].imgData.srcWidth, Manager.users[index].imgData.srcHeight,
+                  -Manager.users[index].imgData.width/2, -Manager.users[index].imgData.height/2, Manager.users[index].imgData.width, Manager.users[index].imgData.height);
+    //draw Hand
+    ctx.drawImage(resourceCharacter, 0, 210, 90, 70, -40, -30, 80, 60);
     ctx.closePath();
+
+    // var centerX = util.worldXCoordToLocalX(Manager.users[index].position.x + Manager.users[index].size.width/2, gameConfig.userOffset.x);
+    // var centerY = util.worldYCoordToLocalY(Manager.users[index].position.y + Manager.users[index].size.height/2, gameConfig.userOffset.y);
+    //
+    // var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+    //
+    // ctx.beginPath();
+    // ctx.fillStyle = "#ffff00";
+    // ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, 32 * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    // ctx.fill();
+    // ctx.closePath();
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor);
+
+    // ctx.beginPath();
+    // ctx.save();
+    // ctx.setTransform(1,0,0,1,0,0);
+    // var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+    // ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
+    // ctx.rotate(radian);
+    // ctx.fillStyle = 'yellow';
+    // ctx.arc(0, 0, 64 * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    // ctx.fill();
+    // ctx.closePath();
 
     //draw cast effect
     if(Manager.users[index].skillCastEffectPlay){
@@ -670,6 +686,7 @@ function drawUsers(){
     }
     ctx.restore();
   }
+  ctx.globalAlpha = 1;
 };
 function drawEffect(){
   for(var i=0; i<Manager.effects.length; i++){
@@ -709,47 +726,47 @@ function drawSkillRange(){
   ctx.fill();
   ctx.globalAlpha = 1
 };
-// function drawBackground(){
-//   // ctx.fillStyle = "#11ff11";
-//   // var posX = -gameConfig.userOffset.x * gameConfig.scaleFactor;
-//   // var posY = -gameConfig.userOffset.y * gameConfig.scaleFactor;
-//   // var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor;
-//   // var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor;
-//   // ctx.fillRect(posX, posY, sizeW, sizeH);
-// };
+function drawBackground(){
+  ctx.fillStyle = "rgb(105, 147, 50)";
+  var posX = -gameConfig.userOffset.x * gameConfig.scaleFactor;
+  var posY = -gameConfig.userOffset.y * gameConfig.scaleFactor;
+  var sizeW = gameConfig.CANVAS_MAX_SIZE.width * gameConfig.scaleFactor;
+  var sizeH = gameConfig.CANVAS_MAX_SIZE.height * gameConfig.scaleFactor;
+  ctx.fillRect(posX, posY, sizeW, sizeH);
+};
 function drawGrid(){
-  for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
-    var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
-    if(x * gameConfig.scaleFactor >= -resources.GRID_SIZE && x * gameConfig.scaleFactor <= gameConfig.canvasSize.width){
-      for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
-         var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
-         if(y * gameConfig.scaleFactor >= -resources.GRID_SIZE && y * gameConfig.scaleFactor <= gameConfig.canvasSize.height){
-           ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
-         }
-      }
+  // for(var i=0; i<gameConfig.CANVAS_MAX_SIZE.width; i += resources.GRID_SIZE){
+  //   var x = util.worldXCoordToLocalX(i, gameConfig.userOffset.x);
+  //   if(x * gameConfig.scaleFactor >= -resources.GRID_SIZE && x * gameConfig.scaleFactor <= gameConfig.canvasSize.width){
+  //     for(var j=0; j<gameConfig.CANVAS_MAX_SIZE.height; j += resources.GRID_SIZE){
+  //        var y = util.worldYCoordToLocalY(j, gameConfig.userOffset.y);
+  //        if(y * gameConfig.scaleFactor >= -resources.GRID_SIZE && y * gameConfig.scaleFactor <= gameConfig.canvasSize.height){
+  //          ctx.drawImage(grid, 0, 0, 48, 48, x * gameConfig.scaleFactor, y * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor, resources.GRID_IMG_SIZE * gameConfig.scaleFactor);
+  //        }
+  //     }
+  //   }
+  // }
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgb(103, 124, 81)';
+  // ctx.globalAlpha = 0.15;
+  ctx.beginPath();
+ // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
+ //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
+  for(var x = - gameConfig.userOffset.x - 800; x<gameConfig.canvasSize.width; x += gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
+    if(util.isXInCanvas(x, gameConfig)){
+      ctx.moveTo(x * gameConfig.scaleFactor, 0);
+      ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.canvasSize.height);
     }
-  }
- //  ctx.lineWidth = 1;
- //  ctx.strokeStyle = '#0000ff';
- //  ctx.globalAlpha = 0.15;
- //  ctx.beginPath();
- // // - (gameConfig.CANVAS_MAX_LOCAL_SIZE.width * gameConfig.scaleFactor)/2
- // //  - (gameConfig.CANVAS_MAX_LOCAL_SIZE.height * gameConfig.scaleFactor)/2
- //  for(var x = - gameConfig.userOffset.x; x<gameConfig.canvasSize.width; x += gameConfig.CANVAS_MAX_LOCAL_SIZE.width/32){
- //    if(util.isXInCanvas(x, gameConfig)){
- //      ctx.moveTo(x * gameConfig.scaleFactor, 0);
- //      ctx.lineTo(x * gameConfig.scaleFactor, gameConfig.canvasSize.height);
- //    }
- //  };
- //  for(var y = - gameConfig.userOffset.y; y<gameConfig.canvasSize.height; y += gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
- //    if(util.isYInCanvas(y, gameConfig)){
- //      ctx.moveTo(0, y * gameConfig.scaleFactor);
- //      ctx.lineTo(gameConfig.canvasSize.width, y * gameConfig.scaleFactor);
- //    }
- //  };
- //  ctx.stroke();
- //  ctx.globalAlpha = 1;
- //  ctx.closePath();
+  };
+  for(var y = - gameConfig.userOffset.y - 500; y<gameConfig.canvasSize.height; y += gameConfig.CANVAS_MAX_LOCAL_SIZE.height/20){
+    if(util.isYInCanvas(y, gameConfig)){
+      ctx.moveTo(0, y * gameConfig.scaleFactor);
+      ctx.lineTo(gameConfig.canvasSize.width, y * gameConfig.scaleFactor);
+    }
+  };
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.closePath();
 };
 function updateUserDataHandler(){
   var userData = Manager.processUserData();
