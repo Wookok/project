@@ -43,6 +43,10 @@ canvas {
   bottom: 0;
   right: 0;
 }
+.startSceneHud{
+  background-image: url('grid.png');
+  background-repeat: repeat;
+}
 .startSceneHudCenter, .standingSceneHudCenter {
   position: absolute;
   top : 42%;
@@ -68,7 +72,9 @@ canvas {
   width : 350px;
   height : 300px;
 
-  background: gray;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
+  pointer-events: none;
 }
 .startSceneHudCenterCenter, .standingSceneHudCenterCenter{
   position : absolute;
@@ -80,7 +86,8 @@ canvas {
   text-align: center;
   z-index: 11;
 
-  background: gray;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
 .startSceneHudCenterCenter input[type="text"], .standingSceneHudCenterCenter input[type="text"]{
   position : absolute;
@@ -134,7 +141,9 @@ canvas {
   overflow: scroll;
   overflow-x: hidden;
   z-index: 10;
-  background: gray;
+
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
 .startSceneHudCenterRightServerSelect, .standingSceneHudCenterRightServerSelect{
   margin: 10px 20px;
@@ -173,7 +182,9 @@ canvas {
   width : 350px;
   height : 100px;
 
-  background: gray;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
+  pointer-events: none;
 }
 .startSceneHudBottomRight, .standingSceneHudBottomRight{
   position : absolute;
@@ -181,7 +192,9 @@ canvas {
   width : 350px;
   height : 100px;
 
-  background: gray;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
+  pointer-events: none;
 }
 .gameSceneHudTopRight{
   position: absolute;
@@ -190,7 +203,10 @@ canvas {
   width: 300px;
   height: 350px;
   z-index: 10;
-  background: gray;
+
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
+  pointer-events: none;
 }
 .gameSceneHudBottomLeft{
   position: absolute;
@@ -199,7 +215,10 @@ canvas {
   width: 200px;
   height: 200px;
   z-index: 10;
-  background: gray;
+
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
+  pointer-events: none;
 }
 .gameSceneHudBottomLeftCenter{
   position: absolute;;
@@ -208,7 +227,10 @@ canvas {
   width: 50px;
   height: 80px;
   z-index: 10;
-  background: gray;
+
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
+  pointer-events: none;
 }
 .gameSceneHudBottomLeftCenter div{
   display: inline-block;
@@ -222,7 +244,8 @@ canvas {
   height: 160px;
   z-index: 10;
 
-  background : gray;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
 .gameSceneHPContainer{
   position: absolute;
@@ -367,19 +390,14 @@ canvas {
   position : absolute;;
   right: 20px;
   bottom: 20px;
-  width: 200px;
-  height: 300px;
-  background: gray;
-}
-.gameSceneHudBottomRight{
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
   width: 150px;
   height: 150px;
   z-index: 10;
-  background: gray;
+
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
+
 .gameSceneHudBottomRight .hudBtnSkillChange{
   position : absolute;
   right: 0px;
@@ -398,7 +416,8 @@ canvas {
   transform: translate(-50%, -50%);
   z-index: 20;
 
-  background: green;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
 .popUpSkillContainer {
   position: absolute;
@@ -408,7 +427,8 @@ canvas {
   height: 250px;
   overflow-y: scroll;
 
-  background: yellow;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
 .popUpSkillContainerItem {
   margin: 20px 25px;
@@ -426,7 +446,8 @@ canvas {
   left : 50px;
   bottom : 50px;
 
-  background: yellow;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
 .popUpEquipSkillContainer > div {
   float: left;
@@ -448,7 +469,8 @@ canvas {
   top : 320px;
   position: absolute;
 
-  background: yellow;
+  background: rgba(70, 50, 70, 0.4);
+  border-radius: 10px;
 }
 .popUpSkillInfo {
   width: 550px;

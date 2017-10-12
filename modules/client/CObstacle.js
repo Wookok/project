@@ -1,6 +1,8 @@
-function CObstacle(posX, posY, radius, id, src){
+function CObstacle(posX, posY, radius, id, resourceData){
   this.objectID = id;
-  this.src = src;
+
+  this.imgData = resourceData;
+
   this.position = {
     x : posX, y : posY
   };

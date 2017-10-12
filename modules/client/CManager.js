@@ -74,13 +74,22 @@ CManager.prototype = {
 	createObstacles : function(){
 		var trees = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_TREE));
 		for(var i=0; i<Object.keys(trees).length; i++){
-				var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius, trees[i].id, resources.OBJ_TREE_SRC);
-				this.obstacles.push(tempTree);
-				staticEles.push(tempTree.staticEle);
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', trees[i].imgData));
+			var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius, trees[i].id, resourceData);
+			this.obstacles.push(tempTree);
+			staticEles.push(tempTree.staticEle);
+		}
+		var rocks = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_ROCK));
+		for(var i=0; i<Object.keys(rocks).length; i++){
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', rocks[i].imgData));
+			var tempRock = new Obstacle(rocks[i].posX, rocks[i].posY, rocks[i].radius, rocks[i].id, resourceData);
+			this.obstacles.push(tempRock);
+			staticEles.push(tempRock.staticEle);
 		}
 		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
 		for(var i=0; i<Object.keys(chestGrounds).length; i++){
-			var tempChestGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius, chestGrounds[i].id, resources.OBJ_CHEST_GROUND_SRC);
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', chestGrounds[i].imgData));
+			var tempChestGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius, chestGrounds[i].id, resourceData);
 			this.obstacles.push(tempChestGround);
 			staticEles.push(tempChestGround.staticEle);
 		}
@@ -106,17 +115,40 @@ CManager.prototype = {
 		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
 		for(var i=0; i<Object.keys(chestGrounds).length; i++){
 			if(chestGrounds[i].id === chestData.locationID){
+				var chestGround = chestGrounds[i];
 				var chestPosition = {x : chestGrounds[i].posX,  y : chestGrounds[i].posY};
 				break;
 			}
 		}
-		if(chestPosition){
-				this.chests.push({
-					objectID : chestData.objectID,
-					grade : chestData.grade,
-					position : chestPosition,
-					size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
-				});
+		if(chestGround && chestPosition){
+			// var resourceData = Object.assign({}, util.findData(resourceTable, 'index'))
+			switch (chestData.grade) {
+				case 1:
+						var resourceIndex = gameConfig.CHEST_GRADE_1_RESOURCE_INDEX;
+					break;
+				case 2:
+					resourceIndex = gameConfig.CHEST_GRADE_2_RESOURCE_INDEX;
+					break;
+				case 3:
+					resourceIndex = gameConfig.CHEST_GRADE_3_RESOURCE_INDEX;
+					break;
+				case 4:
+					resourceIndex = gameConfig.CHEST_GRADE_4_RESOURCE_INDEX;
+					break;
+				case 5:
+					resourceIndex = gameConfig.CHEST_GRADE_5_RESOURCE_INDEX;
+					break;
+				default:
+			}
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', resourceIndex));
+			this.chests.push({
+				objectID : chestData.objectID,
+				grade : chestData.grade,
+				position : chestPosition,
+				size : {width : chestGround.radius * 2, height : chestGround.radius * 2},
+				center : {x : chestPosition.x + chestGround.radius, y : chestPosition.y + chestGround.radius},
+				imgData : resourceData
+			});
 		}
 		// for(var i=0; i<map.Chests.length; i++){
 		// 	if(map.Chests[i].id === chestData.locationID){

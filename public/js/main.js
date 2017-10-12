@@ -221,8 +221,8 @@ function setBaseSetting(){
   grid.src = resources.GRID_SRC;
 };
 function loadResources(){
-  // resourceObject.src = gameConfig.RESOURCE_SRC_OBJECT;
-  // resourceObject.onload = loadResourceHandler;
+  resourceObject.src = gameConfig.RESOURCE_SRC_OBJECT;
+  resourceObject.onload = loadResourceHandler;
   resourceCharacter.src = gameConfig.RESOURCE_SRC_CHARACTER;
   resourceCharacter.onload = loadResourceHandler;
   // resourceUI.src = gameConfig.RESOURCE_SRC_UI;
@@ -553,32 +553,45 @@ function drawScreen(){
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
 function drawObstacles(){
+  // ctx.beginPath();
+  // ctx.save();
+  // var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+  // ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
+  // ctx.rotate(radian);
+  // ctx.drawImage(resourceCharacter, Manager.users[index].imgData.srcPosX, Manager.users[index].imgData.srcPosY, Manager.users[index].imgData.srcWidth, Manager.users[index].imgData.srcHeight,
+  //               -Manager.users[index].imgData.width/2, -Manager.users[index].imgData.height/2, Manager.users[index].imgData.width, Manager.users[index].imgData.height);
+  // ctx.closePath();
 
   for(var i=0; i<Manager.obstacles.length; i++){
     ctx.beginPath();
-    if(Manager.obstacles[i].staticEle.isCollide){
-      ctx.fillStyle ="#ff0000";
-    }else{
-      ctx.fillStyle ="#000000";
-    }
+    // if(Manager.obstacles[i].staticEle.isCollide){
+    //   ctx.fillStyle ="#ff0000";
+    // }else{
+    //   ctx.fillStyle ="#000000";
+    // }
     var center = util.worldToLocalPosition(Manager.obstacles[i].center, gameConfig.userOffset);
-    ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
-            resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = '#003300';
-    ctx.stroke();
+    ctx.drawImage(resourceObject, Manager.obstacles[i].imgData.srcPosX, Manager.obstacles[i].imgData.srcPosY, Manager.obstacles[i].imgData.srcWidth, Manager.obstacles[i].imgData.srcHeight,
+                  center.x - Manager.obstacles[i].imgData.width/2 * gameConfig.scaleFactor, center.y - Manager.obstacles[i].imgData.height/2 * gameConfig.scaleFactor, Manager.obstacles[i].imgData.width * gameConfig.scaleFactor, Manager.obstacles[i].imgData.height * gameConfig.scaleFactor);
+    // ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
+    //         resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    // ctx.fill();
+    // ctx.lineWidth = 5;
+    // ctx.strokeStyle = '#003300';
+    // ctx.stroke();
     ctx.closePath();
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
   }
 };
 function drawChests(){
-  ctx.fillStyle = "#00ff00";
+  // ctx.fillStyle = "#00ff00";
   for(var i=0; i<Manager.chests.length; i++){
     ctx.beginPath();
-    var pos = util.worldToLocalPosition(Manager.chests[i].position, gameConfig.userOffset);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
-                  Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
+    var center = util.worldToLocalPosition(Manager.chests[i].center, gameConfig.userOffset);
+    ctx.drawImage(resourceObject, Manager.chests[i].imgData.srcPosX, Manager.chests[i].imgData.srcPosY, Manager.chests[i].imgData.srcWidth, Manager.chests[i].imgData.srcHeight,
+                  center.x - Manager.chests[i].imgData.width/2 * gameConfig.scaleFactor, center.y - Manager.chests[i].imgData.height/2 * gameConfig.scaleFactor, Manager.chests[i].imgData.width * gameConfig.scaleFactor, Manager.chests[i].imgData.height * gameConfig.scaleFactor);
+    // var pos = util.worldToLocalPosition(Manager.chests[i].position, gameConfig.userOffset);
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
+    //               Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
     ctx.closePath();
   }
 };
@@ -648,7 +661,7 @@ function drawUsers(){
     // var posX = util.worldXCoordToLocalX(Manager.users[index].position.x, gameConfig.userOffset.x);
     // var posY = util.worldYCoordToLocalY(Manager.users[index].position.y, gameConfig.userOffset.y);
     ctx.drawImage(resourceCharacter, Manager.users[index].imgData.srcPosX, Manager.users[index].imgData.srcPosY, Manager.users[index].imgData.srcWidth, Manager.users[index].imgData.srcHeight,
-                  -Manager.users[index].imgData.width/2, -Manager.users[index].imgData.height/2, Manager.users[index].imgData.width, Manager.users[index].imgData.height);
+                  -Manager.users[index].imgData.width/2 * gameConfig.scaleFactor, -Manager.users[index].imgData.height/2 * gameConfig.scaleFactor, Manager.users[index].imgData.width * gameConfig.scaleFactor, Manager.users[index].imgData.height * gameConfig.scaleFactor);
     //draw Hand
     ctx.drawImage(resourceCharacter, 0, 210, 90, 70, -40, -30, 80, 60);
     ctx.closePath();
@@ -746,7 +759,7 @@ function drawGrid(){
   //     }
   //   }
   // }
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 2;
   ctx.strokeStyle = 'rgb(103, 124, 81)';
   // ctx.globalAlpha = 0.15;
   ctx.beginPath();

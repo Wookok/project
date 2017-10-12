@@ -75,13 +75,22 @@ CManager.prototype = {
 	createObstacles : function(){
 		var trees = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_TREE));
 		for(var i=0; i<Object.keys(trees).length; i++){
-				var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius, trees[i].id, resources.OBJ_TREE_SRC);
-				this.obstacles.push(tempTree);
-				staticEles.push(tempTree.staticEle);
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', trees[i].imgData));
+			var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius, trees[i].id, resourceData);
+			this.obstacles.push(tempTree);
+			staticEles.push(tempTree.staticEle);
+		}
+		var rocks = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_ROCK));
+		for(var i=0; i<Object.keys(rocks).length; i++){
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', rocks[i].imgData));
+			var tempRock = new Obstacle(rocks[i].posX, rocks[i].posY, rocks[i].radius, rocks[i].id, resourceData);
+			this.obstacles.push(tempRock);
+			staticEles.push(tempRock.staticEle);
 		}
 		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
 		for(var i=0; i<Object.keys(chestGrounds).length; i++){
-			var tempChestGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius, chestGrounds[i].id, resources.OBJ_CHEST_GROUND_SRC);
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', chestGrounds[i].imgData));
+			var tempChestGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius, chestGrounds[i].id, resourceData);
 			this.obstacles.push(tempChestGround);
 			staticEles.push(tempChestGround.staticEle);
 		}
@@ -107,17 +116,40 @@ CManager.prototype = {
 		var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
 		for(var i=0; i<Object.keys(chestGrounds).length; i++){
 			if(chestGrounds[i].id === chestData.locationID){
+				var chestGround = chestGrounds[i];
 				var chestPosition = {x : chestGrounds[i].posX,  y : chestGrounds[i].posY};
 				break;
 			}
 		}
-		if(chestPosition){
-				this.chests.push({
-					objectID : chestData.objectID,
-					grade : chestData.grade,
-					position : chestPosition,
-					size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
-				});
+		if(chestGround && chestPosition){
+			// var resourceData = Object.assign({}, util.findData(resourceTable, 'index'))
+			switch (chestData.grade) {
+				case 1:
+						var resourceIndex = gameConfig.CHEST_GRADE_1_RESOURCE_INDEX;
+					break;
+				case 2:
+					resourceIndex = gameConfig.CHEST_GRADE_2_RESOURCE_INDEX;
+					break;
+				case 3:
+					resourceIndex = gameConfig.CHEST_GRADE_3_RESOURCE_INDEX;
+					break;
+				case 4:
+					resourceIndex = gameConfig.CHEST_GRADE_4_RESOURCE_INDEX;
+					break;
+				case 5:
+					resourceIndex = gameConfig.CHEST_GRADE_5_RESOURCE_INDEX;
+					break;
+				default:
+			}
+			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', resourceIndex));
+			this.chests.push({
+				objectID : chestData.objectID,
+				grade : chestData.grade,
+				position : chestPosition,
+				size : {width : chestGround.radius * 2, height : chestGround.radius * 2},
+				center : {x : chestPosition.x + chestGround.radius, y : chestPosition.y + chestGround.radius},
+				imgData : resourceData
+			});
 		}
 		// for(var i=0; i<map.Chests.length; i++){
 		// 	if(map.Chests[i].id === chestData.locationID){
@@ -608,9 +640,11 @@ var onMoveCalcCompelPos = function(user){
 module.exports = CManager;
 
 },{"../public/gameConfig.json":8,"../public/quadtree.min.js":9,"../public/resources.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CUser.js":5}],2:[function(require,module,exports){
-function CObstacle(posX, posY, radius, id, src){
+function CObstacle(posX, posY, radius, id, resourceData){
   this.objectID = id;
-  this.src = src;
+
+  this.imgData = resourceData;
+
   this.position = {
     x : posX, y : posY
   };
@@ -2309,9 +2343,9 @@ module.exports={
   "buffData" : "index,name,buffTickTime,buffType,buffEffectType,buffAmount,buffApplyHPTickPercent\n1,ignite1,0,5,5,,0\n2,ignite2,0,5,5,,0\n3,ignite3,0,5,5,,0\n4,ignite4,0,5,5,,0\n5,ignite5,0,5,5,,0\n6,maxHP1,0,2,1,100,0\n7,maxHP2,0,2,1,110,0\n8,maxHP3,0,2,1,120,0\n9,maxHP4,0,2,1,130,0\n10,maxHP5,0,2,1,140,0\n11,HPRegen1,0,2,5,10,0\n12,HPRegen2,0,2,5,11,0\n13,HPRegen3,0,2,5,12,0\n14,HPRegen4,0,2,5,13,0\n15,HPRegen5,0,2,5,14,0\n16,reductionFire1,0,2,23,5,0\n17,reductionFire2,0,2,23,6,0\n18,reductionFire3,0,2,23,7,0\n19,reductionFire4,0,2,23,8,0\n20,reductionFire5,0,2,23,9,0\n21,reductionFrost1,0,2,24,5,0\n22,reductionFrost2,0,2,24,6,0\n23,reductionFrost3,0,2,24,7,0\n24,reductionFrost4,0,2,24,8,0\n25,reductionFrost5,0,2,24,9,0\n26,damageByLife1,0,2,27,10,10\n27,damageByLife2,0,2,27,11,10\n28,damageByLife3,0,2,27,12,10\n29,damageByLife4,0,2,27,13,10\n30,damageByLife5,0,2,27,14,10\n31,moveSpeedByLife1,0,2,28,10,10\n32,moveSpeedByLife2,0,2,28,11,10\n33,moveSpeedByLife3,0,2,28,12,10\n34,moveSpeedByLife4,0,2,28,13,10\n35,moveSpeedByLife5,0,2,28,14,10\n36,chill1,0,5,2,0,0\n37,chill2,0,5,2,0,0\n38,chill3,0,5,2,0,0\n39,chill4,0,5,2,0,0\n40,chill5,0,5,2,0,0\n41,reductionAll1,0,2,26,10,0\n42,reductionAll2,0,2,26,10,0\n43,reductionAll3,0,2,26,10,0\n44,reductionAll4,0,2,26,10,0\n45,reductionAll5,0,2,26,10,0\n46,setImmortal1,0,5,1,0,0\n47,setImmortal2,0,5,1,0,0\n48,setImmortal3,0,5,1,0,0\n49,setImmortal4,0,5,1,0,0\n50,setImmortal5,0,5,1,0,0\n51,setFreeze1,0,5,3,0,0\n52,setFreeze2,0,5,3,0,0\n53,setFreeze3,0,5,3,0,0\n54,setFreeze4,0,5,3,0,0\n55,setFreeze5,0,5,3,0,0\n56,MaxMP1,0,2,2,100,0\n57,MaxMP2,0,2,2,100,0\n58,MaxMP3,0,2,2,100,0\n59,MaxMP4,0,2,2,100,0\n60,MaxMP5,0,2,2,100,0\n61,MPRegen1,0,2,7,10,0\n62,MPRegen2,0,2,7,10,0\n63,MPRegen3,0,2,7,10,0\n64,MPRegen4,0,2,7,10,0\n65,MPRegen5,0,2,7,10,0\n66,ResistAll1,0,2,22,10,0\n67,ResistAll2,0,2,22,10,0\n68,ResistAll3,0,2,22,10,0\n69,ResistAll4,0,2,22,10,0\n70,ResistAll5,0,2,22,10,0\n71,ResistFire1,0,2,19,10,0\n72,ResistFire2,0,2,19,10,0\n73,ResistFire3,0,2,19,10,0\n74,ResistFire4,0,2,19,10,0\n75,ResistFire5,0,2,19,10,0\n76,Silence,0,5,4,0,0\n81,Blur,0,5,6,0,0\n86,DispelBuff1,0,4,1,1,0\n87,DispelBuff2,1,4,1,2,0\n88,DispelBuff3,2,4,1,3,0\n89,DispelBuff4,3,4,1,4,0\n90,DispelBuff5,4,4,1,5,0\n91,damageRate1,0,2,18,10,0\n92,damageRate2,1,2,18,11,0\n93,damageRate3,2,2,18,12,0\n94,damageRate4,3,2,18,13,0\n95,damageRate5,4,2,18,14,0\n96,castSpeed1,0,2,10,10,0\n97,castSpeed2,1,2,10,11,0\n98,castSpeed3,2,2,10,12,0\n99,castSpeed4,3,2,10,13,0\n100,castSpeed5,4,2,10,14,0\n",
   "chestData" : "index,grade,HP,minGoldCount,maxGoldCount,minGoldAmount,maxGoldAmount,minJewelCount,maxJewelCount,minJewelAmount,maxJewelAmount,minSkillCount,maxSkillCount,SkillIndex1,SkillDropRate1,SkillIndex2,SkillDropRate2,SkillIndex3,SkillDropRate3,SkillIndex4,SkillDropRate4,SkillIndex5,SkillDropRate5,SkillIndex6,SkillDropRate6,SkillIndex7,SkillDropRate7,SkillIndex7,SkillDropRate7,SkillIndex8,SkillDropRate8,SkillIndex9,SkillDropRate9,SkillIndex10,SkillDropRate10,SkillIndex11,SkillDropRate11,SkillIndex12,SkillDropRate12,SkillIndex13,SkillDropRate13,SkillIndex14,SkillDropRate14,SkillIndex15,SkillDropRate15,SkillIndex16,SkillDropRate16,SkillIndex17,SkillDropRate17,SkillIndex18,SkillDropRate18,SkillIndex19,SkillDropRate19,SkillIndex20,SkillDropRate20\n1,1,100,3,5,30,50,0,0,0,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n2,2,200,4,6,50,75,0,1,1,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n3,3,300,5,7,75,100,1,2,1,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n",
   "obstacleData" :
-  "index,type,id,posX,posY,radius,chestGradeMin,chestGradeMax\n1,1,OTT1,200,200,100,,\n2,1,OTT2,500,500,100,,\n3,3,OCG1,350,50,50,2,3\n4,3,OCG2,50,350,50,1,2\n",
+  "index,type,id,posX,posY,radius,chestGradeMin,chestGradeMax,imgData\n1,1,OTT1,200,200,100,,,103\n2,1,OTT2,500,500,100,,,103\n3,2,OTR1,700,700,100,,,106\n4,2,OTR2,900,900,100,,,106\n5,3,OCG1,350,50,50,2,3,112\n6,3,OCG2,50,350,50,1,2,112\n",
   "resourceData" :
-  "index,name,source,srcPosX,srcPosY,srcWidth,srcHeight,width,height\n1,firoNovice,1,0,0,70,70,60,60\n2,firoApprentice,1,70,0,70,70,60,60\n3,firoAdept,1,140,0,70,70,60,60\n4,firoExpert,1,210,0,70,70,60,60\n5,firoMaster,1,280,0,70,70,60,60\n6,freezerNovice,1,0,70,70,70,60,60\n7,freezerApprentice,1,70,70,70,70,60,60\n8,freezerAdept,1,140,70,70,70,60,60\n9,freezerExpert,1,210,70,70,70,60,60\n10,freezerMaster,1,280,70,70,70,60,60\n11,mysterNovice,1,0,140,70,70,60,60\n12,mysterApprentice,1,70,140,70,70,60,60\n13,mysterAdept,1,140,140,70,70,60,60\n14,mysterExpert,1,210,140,70,70,60,60\n15,mysterMaster,1,280,140,70,70,60,60\n"
+  "index,name,source,srcPosX,srcPosY,srcWidth,srcHeight,width,height\n1,firoNovice,1,0,0,70,70,60,60\n2,firoApprentice,1,70,0,70,70,60,60\n3,firoAdept,1,140,0,70,70,60,60\n4,firoExpert,1,210,0,70,70,60,60\n5,firoMaster,1,280,0,70,70,60,60\n6,freezerNovice,1,0,70,70,70,60,60\n7,freezerApprentice,1,70,70,70,70,60,60\n8,freezerAdept,1,140,70,70,70,60,60\n9,freezerExpert,1,210,70,70,70,60,60\n10,freezerMaster,1,280,70,70,70,60,60\n11,mysterNovice,1,0,140,70,70,60,60\n12,mysterApprentice,1,70,140,70,70,60,60\n13,mysterAdept,1,140,140,70,70,60,60\n14,mysterExpert,1,210,140,70,70,60,60\n15,mysterMaster,1,280,140,70,70,60,60\n16,charHandIdle,1,0,210,90,70,80,60\n17,charHandCast1,1,,,,,,\n18,charHandCast2,1,,,,,,\n19,charHandCast3,1,,,,,,\n20,charHandCast4,1,,,,,,\n101,objTreeLarge,2,210,0,210,210,200,200\n102,objTreeMedium,2,210,0,210,210,160,160\n103,objTreeSmall,2,210,0,210,210,120,120\n104,objStoneLarge,2,0,0,210,210,160,160\n105,objStoneMedium,2,0,0,210,210,120,120\n106,objStoneSmall,2,0,0,210,210,80,80\n107,objChest1,2,0,210,90,90,80,80\n108,objChest2,2,90,210,90,90,80,80\n109,objChest3,2,180,210,90,90,80,80\n110,objChest4,2,270,210,90,90,80,80\n111,objChest5,2,360,210,90,90,80,80\n112,objChestGround,2,450,210,90,90,80,80\n113,objGold,2,0,300,70,70,60,60\n114,objJewel,2,70,300,70,70,60,60\n115,objSkillFire,2,0,370,70,70,60,60\n116,objSkillFrost,2,70,370,70,70,60,60\n117,objSkillArcane,2,140,370,70,70,60,60\n"
 }
 
 },{}],8:[function(require,module,exports){
@@ -2320,9 +2354,9 @@ module.exports={
   "INTERVAL" : 60,
   "FPS" : 60,
 
-  "RESOURCES_COUNT" : 1,
+  "RESOURCES_COUNT" : 2,
   "RESOURCE_SRC_CHARACTER" : "../images/Character.png",
-  "RESOURCE_SRC_OBJECT" : "",
+  "RESOURCE_SRC_OBJECT" : "../images/Objects.png",
   "RESOURCE_SRC_UI" : "",
   "SOURCE_CHARACTER" :	1,
   "SOURCE_OBJECT" : 2,
@@ -2417,7 +2451,13 @@ module.exports={
 
   "OBJ_TYPE_TREE" : 1,
   "OBJ_TYPE_ROCK" : 2,
-  "OBJ_TYPE_CHEST_GROUND" : 3
+  "OBJ_TYPE_CHEST_GROUND" : 3,
+
+  "CHEST_GRADE_1_RESOURCE_INDEX" : 107,
+  "CHEST_GRADE_2_RESOURCE_INDEX" : 108,
+  "CHEST_GRADE_3_RESOURCE_INDEX" : 109,
+  "CHEST_GRADE_4_RESOURCE_INDEX" : 110,
+  "CHEST_GRADE_5_RESOURCE_INDEX" : 111
 }
 
 },{}],9:[function(require,module,exports){
@@ -3248,8 +3288,8 @@ function setBaseSetting(){
   grid.src = resources.GRID_SRC;
 };
 function loadResources(){
-  // resourceObject.src = gameConfig.RESOURCE_SRC_OBJECT;
-  // resourceObject.onload = loadResourceHandler;
+  resourceObject.src = gameConfig.RESOURCE_SRC_OBJECT;
+  resourceObject.onload = loadResourceHandler;
   resourceCharacter.src = gameConfig.RESOURCE_SRC_CHARACTER;
   resourceCharacter.onload = loadResourceHandler;
   // resourceUI.src = gameConfig.RESOURCE_SRC_UI;
@@ -3576,36 +3616,49 @@ function setupSocket(){
 //draw
 function drawScreen(){
   //draw background
-  ctx.fillStyle = "rgb(145, 102, 64)";
+  ctx.fillStyle = "rgb(69, 46, 4)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
 function drawObstacles(){
+  // ctx.beginPath();
+  // ctx.save();
+  // var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
+  // ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
+  // ctx.rotate(radian);
+  // ctx.drawImage(resourceCharacter, Manager.users[index].imgData.srcPosX, Manager.users[index].imgData.srcPosY, Manager.users[index].imgData.srcWidth, Manager.users[index].imgData.srcHeight,
+  //               -Manager.users[index].imgData.width/2, -Manager.users[index].imgData.height/2, Manager.users[index].imgData.width, Manager.users[index].imgData.height);
+  // ctx.closePath();
 
   for(var i=0; i<Manager.obstacles.length; i++){
     ctx.beginPath();
-    if(Manager.obstacles[i].staticEle.isCollide){
-      ctx.fillStyle ="#ff0000";
-    }else{
-      ctx.fillStyle ="#000000";
-    }
+    // if(Manager.obstacles[i].staticEle.isCollide){
+    //   ctx.fillStyle ="#ff0000";
+    // }else{
+    //   ctx.fillStyle ="#000000";
+    // }
     var center = util.worldToLocalPosition(Manager.obstacles[i].center, gameConfig.userOffset);
-    ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
-            resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = '#003300';
-    ctx.stroke();
+    ctx.drawImage(resourceObject, Manager.obstacles[i].imgData.srcPosX, Manager.obstacles[i].imgData.srcPosY, Manager.obstacles[i].imgData.srcWidth, Manager.obstacles[i].imgData.srcHeight,
+                  center.x - Manager.obstacles[i].imgData.width/2 * gameConfig.scaleFactor, center.y - Manager.obstacles[i].imgData.height/2 * gameConfig.scaleFactor, Manager.obstacles[i].imgData.width * gameConfig.scaleFactor, Manager.obstacles[i].imgData.height * gameConfig.scaleFactor);
+    // ctx.arc(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor,
+    //         resources.OBJ_TREE_SIZE/2 * gameConfig.scaleFactor, 0, 2 * Math.PI);
+    // ctx.fill();
+    // ctx.lineWidth = 5;
+    // ctx.strokeStyle = '#003300';
+    // ctx.stroke();
     ctx.closePath();
     // ctx.fillRect(Manager.obstacles[index].staticEle.x, Manager.obstacles[index].staticEle.y, resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE);
   }
 };
 function drawChests(){
-  ctx.fillStyle = "#00ff00";
+  // ctx.fillStyle = "#00ff00";
   for(var i=0; i<Manager.chests.length; i++){
     ctx.beginPath();
-    var pos = util.worldToLocalPosition(Manager.chests[i].position, gameConfig.userOffset);
-    ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
-                  Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
+    var center = util.worldToLocalPosition(Manager.chests[i].center, gameConfig.userOffset);
+    ctx.drawImage(resourceObject, Manager.chests[i].imgData.srcPosX, Manager.chests[i].imgData.srcPosY, Manager.chests[i].imgData.srcWidth, Manager.chests[i].imgData.srcHeight,
+                  center.x - Manager.chests[i].imgData.width/2 * gameConfig.scaleFactor, center.y - Manager.chests[i].imgData.height/2 * gameConfig.scaleFactor, Manager.chests[i].imgData.width * gameConfig.scaleFactor, Manager.chests[i].imgData.height * gameConfig.scaleFactor);
+    // var pos = util.worldToLocalPosition(Manager.chests[i].position, gameConfig.userOffset);
+    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
+    //               Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
     ctx.closePath();
   }
 };
@@ -3675,7 +3728,7 @@ function drawUsers(){
     // var posX = util.worldXCoordToLocalX(Manager.users[index].position.x, gameConfig.userOffset.x);
     // var posY = util.worldYCoordToLocalY(Manager.users[index].position.y, gameConfig.userOffset.y);
     ctx.drawImage(resourceCharacter, Manager.users[index].imgData.srcPosX, Manager.users[index].imgData.srcPosY, Manager.users[index].imgData.srcWidth, Manager.users[index].imgData.srcHeight,
-                  -Manager.users[index].imgData.width/2, -Manager.users[index].imgData.height/2, Manager.users[index].imgData.width, Manager.users[index].imgData.height);
+                  -Manager.users[index].imgData.width/2 * gameConfig.scaleFactor, -Manager.users[index].imgData.height/2 * gameConfig.scaleFactor, Manager.users[index].imgData.width * gameConfig.scaleFactor, Manager.users[index].imgData.height * gameConfig.scaleFactor);
     //draw Hand
     ctx.drawImage(resourceCharacter, 0, 210, 90, 70, -40, -30, 80, 60);
     ctx.closePath();
@@ -3773,7 +3826,7 @@ function drawGrid(){
   //     }
   //   }
   // }
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 2;
   ctx.strokeStyle = 'rgb(103, 124, 81)';
   // ctx.globalAlpha = 0.15;
   ctx.beginPath();
