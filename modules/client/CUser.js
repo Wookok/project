@@ -11,6 +11,8 @@ var User = function(userData){
   this.type = userData.type
   this.imgData = userData.imgData;
 
+  this.imgHandIndex = 0;
+
   this.level = userData.level;
   this.exp = userData.exp;
 
@@ -48,6 +50,7 @@ var User = function(userData){
   this.setTargetDirection();
 
   this.updateInterval = false;
+  this.imgHandTimeout = false;
   this.updateFunction = null;
 
   this.entityTreeEle = {
@@ -63,7 +66,6 @@ var User = function(userData){
 
 User.prototype = {
   changeState : function(newState){
-
     this.currentState = newState;
 
     this.stop();
@@ -140,6 +142,11 @@ User.prototype = {
       this.isExecutedSkill = false;
       this.skillCastEffectPlay = false;
     }
+    if(this.imgHandTimeout){
+      clearTimeout(this.imgHandTimeout);
+      this.imgHandTimeout = false;
+    }
+    this.imgHandIndex = 0;
   },
   setEntityEle : function(){
     this.entityTreeEle = {
@@ -151,8 +158,9 @@ User.prototype = {
     };
   },
   makeSkillInstance : function(skillData){
-    var skillInstance = new Skill(skillData, skillData.fireTime - gameConfig.USER_ANI_TIME);
-    skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance);
+    var userAniTime = Math.floor(gameConfig.USER_ANI_TIME * (100 / this.castSpeed));
+    var skillInstance = new Skill(skillData, skillData.fireTime - userAniTime);
+    skillInstance.onUserAniStart = onCastSkillHandler.bind(this, skillInstance, userAniTime);
     skillInstance.onTimeOver = onTimeOverHandler.bind(this, skillInstance);
     return skillInstance;
   },
@@ -184,7 +192,17 @@ function onTimeOverHandler(skillInstance){
   this.skillCastEffectPlay = false;
   this.changeState(gameConfig.OBJECT_STATE_IDLE);
 };
-function onCastSkillHandler(skillInstance){
+function onCastSkillHandler(skillInstance, userAniTime){
+  var tickTime = userAniTime/5;
+  this.imgHandTimeout = setTimeout(imgHandTimeoutHandler.bind(this, tickTime), tickTime);
   console.log('cast ani start');
+};
+function imgHandTimeoutHandler(tickTime){
+  if(this.imgHandIndex < 4){
+    this.imgHandIndex++;
+    this.imgHandTimeout = setTimeout(imgHandTimeoutHandler.bind(this, tickTime), tickTime);
+  }else{
+    this.imgHandIndex = 0;
+  }
 };
 module.exports = User;

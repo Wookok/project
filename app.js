@@ -84,6 +84,9 @@ GM.onNeedInformCreateChest = function(chest){
   var chestData = GM.processChestDataSetting(chest);
   io.sockets.emit('createChest', chestData);
 };
+GM.onNeedInformDeleteChest = function(locationID){
+  io.sockets.emit('deleteChest', locationID);
+};
 GM.onNeedInformCreateObjs = function(objs){
   var objDatas = [];
   for(var i=0; i<objs.length; i++){

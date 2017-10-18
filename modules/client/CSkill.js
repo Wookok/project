@@ -67,7 +67,8 @@ CSkill.prototype = {
     }
   },
   makeProjectile : function(currentPosition, projectileID, direction){
-    var projectile = new ProjectileSkill(this, currentPosition, projectileID, direction)
+    var forePosition = util.calcForePosition(currentPosition, direction, gameConfig.PROJECTILE_FIRE_DISTANCE);
+    var projectile = new ProjectileSkill(this, forePosition, projectileID, direction)
     return projectile;
   }
 };

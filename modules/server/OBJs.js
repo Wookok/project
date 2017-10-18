@@ -5,16 +5,18 @@ function OBJSkill(objectID){
   this.objectID = objectID;
 
   this.skillIndex = 11;
+  this.skillProperty = 1;
 
   this.collectionEle = {};
 };
 OBJSkill.prototype = Object.create(GameObject.prototype);
 OBJSkill.prototype.constructor = OBJSkill;
 
-OBJSkill.prototype.initOBJSkill = function(position, radius, skillIndex){
+OBJSkill.prototype.initOBJSkill = function(position, radius, skillIndex, skillProperty){
   this.setSize(radius * 2, radius * 2);
   this.setPosition(position.x, position.y);
   this.skillIndex = skillIndex;
+  this.skillProperty = skillProperty;
 };
 OBJSkill.prototype.setCollectionEle = function(){
   this.collectionEle = {
@@ -189,14 +191,18 @@ OBJChest.prototype.setSkills = function(chestData){
   for(var i=0; i<skillCount; i++){
     var randVal = Math.floor(Math.random() * totalRate);
     var sumOfRate = 0;
-    for(var i=0; i<20; i++){
-      sumOfRate += chestData['SkillDropRate' + (i + 1)];
-      if(sumOfRate > randVal){
-        var skillIndex = chestData['SkillIndex' + (i + 1)];
+    for(var j=0; j<20; j++){
+      if(chestData['SkillDropRate' + (j + 1)]){
+        sumOfRate += chestData['SkillDropRate' + (j + 1)];
+        if(sumOfRate > randVal){
+          var skillIndex = chestData['SkillIndex' + (j + 1)];
+          this.skills.push(skillIndex);
+          break;
+        }
+      }else{
         break;
       }
     }
-    this.skills.push(skillIndex);
   }
 };
 OBJChest.prototype.setEntityEle = function(){

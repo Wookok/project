@@ -432,8 +432,8 @@ exports.calcTargetDirection = function(targetPosition, centerPosition, userDirec
   return returnVal;
 };
 exports.calcTargetPosition = function(centerPosition, direction, range){
-  var addPosX = range * Math.cos(direction * Math.PI/180);
-  var addPosY = range * Math.sin(direction * Math.PI/180);
+  var addPosX = range * Math.cos(direction * radianFactor);
+  var addPosY = range * Math.sin(direction * radianFactor);
 
   return {x : addPosX, y : addPosY};
 };
@@ -566,6 +566,12 @@ exports.getElementsByClassName = function(parentDiv, className){
     }
   }
   return returnDivs;
+};
+exports.calcForePosition = function(position, direction, distance){
+  return {
+    x : position.x + distance * Math.cos(direction * radianFactor),
+    y : position.y + distance * Math.sin(direction * radianFactor)
+  }
 };
 function generateRandomID(prefix){
   var output = prefix;

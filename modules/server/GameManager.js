@@ -13,6 +13,7 @@ var csvJson = require('../public/csvjson.js');
 
 var dataJson = require('../public/data.json');
 
+var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
 var chestTable = csvJson.toObject(dataJson.chestData, {delimiter : ',', quote : '"'});
 var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
 var resources = require('../public/resources.json');
@@ -94,6 +95,7 @@ function GameManager(){
   this.onNeedInformCreateObjs = new Function();
   this.onNeedInformDeleteObj = new Function();
   this.onNeedInformCreateChest = new Function();
+  this.onNeedInformDeleteChest = new Function();
 
   this.onNeedInformSkillData = new Function();
   this.onNeedInformProjectileDelete = new Function();
@@ -138,6 +140,11 @@ GameManager.prototype.mapSetting = function(){
   // this.setOBJExps();
   this.setOBJSkills();
   this.setOBJGolds();
+
+  this.testJewel();
+};
+GameManager.prototype.testJewel = function(){
+  var objJewel = this.createOBJs(1, gameConfig.PREFIX_OBJECT_JEWEL, 1, {x : 300, y: 300});
 };
 GameManager.prototype.updateGame = function(){
   if(this.chestInterval === false){
@@ -164,6 +171,12 @@ GameManager.prototype.setObstacles = function(){
     var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius * 2, trees[i].id);
     this.obstacles.push(tempTree);
     staticEles.push(tempTree.staticEle);
+  }
+  var rocks = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_ROCK));
+  for(var i=0; i<Object.keys(rocks).length; i++){
+    var tempRock = new Obstacle(rocks[i].posX, rocks[i].posY, rocks[i].radius * 2, rocks[i].id);
+    this.obstacles.push(tempRock);
+    staticEles.push(tempRock.staticEle);
   }
   // for(var index in map.Trees){
   //   var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
@@ -309,6 +322,7 @@ var onChestDestroyHandler = function(cht){
     }
   }
   this.onNeedInformCreateObjs(createdObjs);
+  this.onNeedInformDeleteChest(cht.locationID);
 };
 GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
   var createdObjs =[];
@@ -343,8 +357,9 @@ GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
       if(amount){
         var skillIndex = amount;
       }else{
-        amount = 21;
+        skillIndex = 21;
       }
+      var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
       var radius = gameConfig.OBJ_SKILL_RADIUS;
       if(nearPosition){
         var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
@@ -353,7 +368,7 @@ GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
                                           radius, serverConfig.OBJ_SKILL_RANGE_WITH_OTHERS, randomID, staticTree);
       }
 
-      objSkill.initOBJSkill(randomPos, radius, skillIndex);
+      objSkill.initOBJSkill(randomPos, radius, skillIndex, skillData.property);
       objSkill.setCollectionEle();
       // this.staticTree.push(food.staticEle);
       this.objSkills.push(objSkill);
@@ -446,13 +461,13 @@ GameManager.prototype.getObj = function(objID, affectNum, userID){
           return;
         }
       }
-    }
-  }else if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_JEWEL){
-    for(var i=0; i<this.objJewels.length; i++){
-      if(this.objJewels[i].objectID === objID){
-        this.users[userID].getJewel(affectNum);
-        this.objJewels.splice(i, 1);
-        this.onNeedInformDeleteObj(objID);
+    }else if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_JEWEL){
+      for(var i=0; i<this.objJewels.length; i++){
+        if(this.objJewels[i].objectID === objID){
+          this.users[userID].getJewel(affectNum);
+          this.objJewels.splice(i, 1);
+          this.onNeedInformDeleteObj(objID);
+        }
       }
     }
   }
@@ -848,11 +863,26 @@ GameManager.prototype.addPrivateData = function(userData){
 //   return projectileDatas;
 // };
 GameManager.prototype.processOBJDataSetting = function(data){
-  return {
-    objectID : data.objectID,
-    position : data.position,
-    radius : data.size.width/2
-  };
+  if(data.objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_GOLD){
+    return {
+      objectID : data.objectID,
+      position : data.position,
+      radius : data.size.width/2
+    };
+  }else if(data.objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_JEWEL){
+    return {
+      objectID : data.objectID,
+      position : data.position,
+      radius : data.size.width/2
+    };
+  }else if(data.objectID.substr(0, 3) === gameConfig.PREFIX_OBJECT_SKILL){
+    return {
+      objectID : data.objectID,
+      position : data.position,
+      radius : data.size.width/2,
+      property : data.skillProperty
+    };
+  }
 };
 GameManager.prototype.processOBJDataSettings = function(){
   var objDatas = [];
@@ -912,11 +942,24 @@ GameManager.prototype.processChestDataSettings = function(){
   return chestDatas;
 };
 GameManager.prototype.isCreateChest = function(){
-  if(this.chests.length === 0){
+  if(this.users.length < 10){
+    if(this.chests.length < 2){
+      return true;
+    }else{
+      return false;
+    }
+  }else if(this.users.length > 40){
+    if(this.chest.length < 9){
+      return true;
+    }else{
+      return false;
+    }
+  }else if(this.users.length / 5 > this.chests.length){
     return true;
   }else{
     return false;
   }
+  return false;
 };
 GameManager.prototype.upgradeSkill = function(user, skillIndex){
   if(user.objectID in this.users){
@@ -950,7 +993,21 @@ GameManager.prototype.cancelBlur = function(userID){
 }
 function chestIntervalHandler(){
   if(this.isCreateChest()){
-    this.createChest('OCG1');
+    var isCreate = false;
+    while(!isCreate){
+      var index = Math.floor(Math.random() * 9) + 1;
+      var isExist = false;
+      for(var i=0; i<this.chests.length; i++){
+        if(this.chests[i].locationID === gameConfig.PREFIX_OBSTACLE_CHEST_GROUND + index){
+          isExist = true;
+          break;
+        }
+      }
+      if(!isExist){
+        this.createChest(gameConfig.PREFIX_OBSTACLE_CHEST_GROUND + index);
+        isCreate = true;
+      }
+    }
   }
 };
 function updateIntervalHandler(){

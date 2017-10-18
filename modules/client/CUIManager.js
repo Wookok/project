@@ -32,6 +32,7 @@ var popUpSkillChange, popUpSkillContainer, popUpBackground;
 var popUpSkillInfoIcon, popUpSkillInfoDesc, popUpSkillUpgradeBtn;
 var popUpEquipBaseSkill, popUpEquipSkill1, popUpEquipSkill2, popUpEquipSkill3, popUpEquipSkill4, popUpEquipPassiveSkill;
 
+var miniMapUser, miniMapChest1, miniMapChest2, miniMapChest3, miniMapChest4, miniMapChest5, miniMapChest6, miniMapChest7, miniMapChest8, miniMapChest9;
 var blankImg = '../css/blankFrame.png';
 
 var sellectedPanel = null;
@@ -165,6 +166,17 @@ UIManager.prototype = {
     userStatPowerContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatPowerContainer), false);
     userStatMagicContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatMagicContainer), false);
     userStatSpeedContainer.addEventListener('mouseout', bottomTooltipOffHandler.bind(userStatSpeedContainer), false);
+
+    miniMapUser = document.getElementById('miniMapUser');
+    miniMapChest1 = document.getElementById('miniMapChest1');
+    miniMapChest2 = document.getElementById('miniMapChest2');
+    miniMapChest3 = document.getElementById('miniMapChest3');
+    miniMapChest4 = document.getElementById('miniMapChest4');
+    miniMapChest5 = document.getElementById('miniMapChest5');
+    miniMapChest6 = document.getElementById('miniMapChest6');
+    miniMapChest7 = document.getElementById('miniMapChest7');
+    miniMapChest8 = document.getElementById('miniMapChest8');
+    miniMapChest9 = document.getElementById('miniMapChest9');
   },
   drawStartScene : function(){
     // startScene.classList.add('enable');
@@ -520,6 +532,57 @@ UIManager.prototype = {
     popUpSkillInfoDesc.appendChild(skillDesc);
     // popUpSkillUpgradeBtn.addEventListener('click', skillUpgradeBtnHandler, false);
     popUpSkillUpgradeBtn.onclick = skillUpgradeBtnHandler.bind(this, skillData)
+  },
+  setMiniMapChests : function(chestDatas, chestLocationDatas){
+    miniMapChest1.setAttribute('locationID', chestLocationDatas[0].id);
+    miniMapChest1.style.left = Math.floor(chestLocationDatas[0].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest1.style.top = Math.floor(chestLocationDatas[0].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest2.setAttribute('locationID', chestLocationDatas[1].id);
+    miniMapChest2.style.left = Math.floor(chestLocationDatas[1].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest2.style.top = Math.floor(chestLocationDatas[1].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest3.setAttribute('locationID', chestLocationDatas[2].id);
+    miniMapChest3.style.left = Math.floor(chestLocationDatas[2].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest3.style.top = Math.floor(chestLocationDatas[2].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest4.setAttribute('locationID', chestLocationDatas[3].id);
+    miniMapChest4.style.left = Math.floor(chestLocationDatas[3].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest4.style.top = Math.floor(chestLocationDatas[3].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest5.setAttribute('locationID', chestLocationDatas[4].id);
+    miniMapChest5.style.left = Math.floor(chestLocationDatas[4].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest5.style.top = Math.floor(chestLocationDatas[4].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest6.setAttribute('locationID', chestLocationDatas[5].id);
+    miniMapChest6.style.left = Math.floor(chestLocationDatas[5].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest6.style.top = Math.floor(chestLocationDatas[5].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest7.setAttribute('locationID', chestLocationDatas[6].id);
+    miniMapChest7.style.left = Math.floor(chestLocationDatas[6].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest7.style.top = Math.floor(chestLocationDatas[6].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest8.setAttribute('locationID', chestLocationDatas[7].id);
+    miniMapChest8.style.left = Math.floor(chestLocationDatas[7].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest8.style.top = Math.floor(chestLocationDatas[7].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+    miniMapChest9.setAttribute('locationID', chestLocationDatas[8].id);
+    miniMapChest9.style.left = Math.floor(chestLocationDatas[8].posX * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapChest9.style.top = Math.floor(chestLocationDatas[8].posY * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+
+    // var parentDiv = miniMapChest1.parentNode;
+    var childDivs = miniMapChest1.parentNode.getElementsByTagName('div');
+    for(var i=1; i<childDivs.length; i++){
+      childDivs[i].classList.add('chestOff');
+    }
+    for(var i=0; i<chestDatas.length; i++){
+      for(var j=1; j<childDivs.length; j++){
+        var locationID = childDivs[j].getAttribute('locationID');
+        if(chestDatas[i].locationID === locationID){
+          childDivs[j].classList.remove('chestOff');
+          childDivs[j].classList.add('chestOn');
+          break;
+        }
+      }
+    }
+  },
+  updateMiniMapChests : function(){
+
+  },
+  updateMiniMapUser : function(position){
+
   }
 };
 function popChange(popWindow){

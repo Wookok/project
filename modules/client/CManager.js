@@ -124,25 +124,26 @@ CManager.prototype = {
 			// var resourceData = Object.assign({}, util.findData(resourceTable, 'index'))
 			switch (chestData.grade) {
 				case 1:
-						var resourceIndex = gameConfig.CHEST_GRADE_1_RESOURCE_INDEX;
+						var resourceIndex = gameConfig.RESOURCE_INDEX_CHEST_GRADE_1;
 					break;
 				case 2:
-					resourceIndex = gameConfig.CHEST_GRADE_2_RESOURCE_INDEX;
+					resourceIndex = gameConfig.RESOURCE_INDEX_CHEST_GRADE_2;
 					break;
 				case 3:
-					resourceIndex = gameConfig.CHEST_GRADE_3_RESOURCE_INDEX;
+					resourceIndex = gameConfig.RESOURCE_INDEX_CHEST_GRADE_3;
 					break;
 				case 4:
-					resourceIndex = gameConfig.CHEST_GRADE_4_RESOURCE_INDEX;
+					resourceIndex = gameConfig.RESOURCE_INDEX_CHEST_GRADE_4;
 					break;
 				case 5:
-					resourceIndex = gameConfig.CHEST_GRADE_5_RESOURCE_INDEX;
+					resourceIndex = gameConfig.RESOURCE_INDEX_CHEST_GRADE_5;
 					break;
 				default:
 			}
 			var resourceData = Object.assign({}, util.findData(resourceTable, 'index', resourceIndex));
 			this.chests.push({
 				objectID : chestData.objectID,
+				locationID : chestData.locationID,
 				grade : chestData.grade,
 				position : chestPosition,
 				size : {width : chestGround.radius * 2, height : chestGround.radius * 2},
@@ -164,6 +165,14 @@ CManager.prototype = {
 		// 		size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
 		// 	});
 		// }
+	},
+	deleteChest : function(locationID){
+		for(var i=0; i<this.chests.length; i++){
+			if(this.chests[i].locationID === locationID){
+				this.chests.splice(i, 1)
+				break;
+			}
+		}
 	},
 	setUser : function(userData){
 		if(!(userData.objectID in this.users)){
