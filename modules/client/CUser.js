@@ -62,6 +62,7 @@ var User = function(userData){
   };
 
   this.onMove = new Function();
+  this.onMainUserMove = new Function();
 };
 
 User.prototype = {
@@ -106,8 +107,13 @@ User.prototype = {
     util.rotate.call(this, deltaTime);
     this.timer = Date.now();
   },
-  move : function(deltaTime){
-    util.move.call(this, deltaTime);
+  move : function(deltaTime, isMoveSlight){
+    if(isMoveSlight){
+      util.move.call(this, deltaTime, isMoveSlight)
+    }else{
+      util.move.call(this, deltaTime);
+    }
+    this.onMainUserMove();
   },
   setTargetDirection : function(){
     util.setTargetDirection.call(this);

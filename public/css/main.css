@@ -225,7 +225,7 @@ canvas {
   display: block;
   width: 5px;
   height: 5px;
-  border-radius: 1px;
+  border-radius: 50%;
 }
 .gameSceneHudBottomLeft div[type="user"]{
   background: red;

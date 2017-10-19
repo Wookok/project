@@ -37,6 +37,7 @@ var CManager = function(){
 	this.objJewels = [];
 	this.objSkills = [];
 
+	this.onMainUserMove = new Function();
 	this.onSkillFire = new Function();
 	this.onProjectileSkillFire = new Function();
 	this.onCancelCasting = new Function();
@@ -538,9 +539,10 @@ CManager.prototype = {
 		for(var index in this.users){
 			if(this.users[index].objectID === userID){
 				this.user = this.users[index];
+				this.user.onMainUserMove = onMainUserMoveHandler.bind(this, this.user);
 			}
 		}
-		if(this.user === null){
+		if(!this.user){
 			console.log('if print me. Something is wrong');
 		}
 	},
@@ -645,4 +647,7 @@ var onMoveCalcCompelPos = function(user){
   }
   return addPos;
 };
+var onMainUserMoveHandler = function(user){
+	this.onMainUserMove(user);
+}
 module.exports = CManager;

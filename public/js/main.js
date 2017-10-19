@@ -197,6 +197,30 @@ function setBaseSetting(){
     console.log('unequip Passive : ' + buffGroupIndex);
     socket.emit('unequipPassive', buffGroupIndex);
   };
+  UIManager.onSkillIconClick = function(skillSlot){
+    if(skillSlot === gameConfig.SKILL_BASIC_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_BASIC_INDEX)){
+        var skillData = Object.assign({}, baseSkillData);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP1_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP1_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[0]);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP2_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP2_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[1]);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP3_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP3_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[2]);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP4_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP4_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[3]);
+      }
+    }
+    checkSkillConditionAndUse(skillData);
+  };
 
   UIManager.initStartScene();
   UIManager.initHUD();
@@ -348,6 +372,8 @@ function setupSocket(){
     UIManager.setHUDStats(user.statPower, user.statMagic, user.statSpeed);
     UIManager.setCooldownReduceRate(user.cooldownReduceRate);
     UIManager.setPopUpSkillChange();
+
+    UIManager.setUserPosition(user.position);
   });
 
   //change state game on
@@ -360,6 +386,9 @@ function setupSocket(){
     Manager.setChests(chestDatas);
 
     Manager.synchronizeUser(gameConfig.userID);
+    Manager.onMainUserMove = function(user){
+      UIManager.updateUserPosition(user.position);
+    }
     var chestLocationDatas = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
     UIManager.setMiniMapChests(chestDatas, chestLocationDatas);
     console.log(Manager.users);
@@ -524,9 +553,11 @@ function setupSocket(){
   socket.on('createChest', function(chestData){
     console.log(chestData);
     Manager.createChest(chestData);
+    UIManager.createChest(chestData.locationID);
   });
   socket.on('deleteChest', function(locationID){
     Manager.deleteChest(locationID);
+    UIManager.deleteChest(locationID);
   })
   socket.on('changeUserStat', function(userData){
     Manager.changeUserStat(userData);
@@ -849,7 +880,6 @@ var canvasEventHandler = function(e){
 
 var documentEventHandler = function(e){
   var keyCode = e.keyCode;
-  var userPosition = Manager.users[gameConfig.userID].center;
 
   if(keyCode === 69 || keyCode === 32){
     if(UIManager.checkCooltime(gameConfig.SKILL_BASIC_INDEX)){
@@ -872,7 +902,9 @@ var documentEventHandler = function(e){
       skillData = Object.assign({}, equipSkillDatas[3]);
     }
   }
-
+  checkSkillConditionAndUse(skillData);
+};
+function checkSkillConditionAndUse(skillData){
   if(skillData){
     if(Manager.user.MP > skillData.consumeMP){
       Manager.applyCastSpeed(gameConfig.userID, skillData);
@@ -884,7 +916,7 @@ var documentEventHandler = function(e){
           changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
         }
       }else{
-        useSkill(skillData, userPosition, Manager.users[gameConfig.userID]);
+        useSkill(skillData, Manager.users[gameConfig.userID].center, Manager.users[gameConfig.userID]);
       }
     }else{
       if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){

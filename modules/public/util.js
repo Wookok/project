@@ -12,9 +12,37 @@ exports.rotate = function(deltaTime){
     }
   }
   //check rotate direction
-  else if(this.direction > 0 && this.targetDirection < 0){
-    if((180 - this.direction + 180 + this.targetDirection) < (this.direction - this.targetDirection)){
-      if(Math.abs(this.targetDirection - this.direction) < this.rotateSpeed * deltaTime){
+  else{
+    if(this.direction > 0 && this.targetDirection < 0){
+      if((180 - this.direction + 180 + this.targetDirection) < (this.direction - this.targetDirection)){
+        if(Math.abs(this.targetDirection - this.direction) < this.rotateSpeed * deltaTime){
+          this.direction += Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction += this.rotateSpeed * deltaTime;
+        }
+      }else if(this.targetDirection < this.direction){
+        if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
+          this.direction -= Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction -= this.rotateSpeed * deltaTime;
+        }
+      }
+    }else if(this.direction < 0 && this.targetDirection >0 ){
+      if((180 + this.direction + 180 - this.targetDirection) < (this.targetDirection - this.direction)){
+        if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
+          this.direction -= Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction -= this.rotateSpeed * deltaTime;
+        }
+      }else if(this.targetDirection > this.direction){
+        if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
+          this.direction += Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction += this.rotateSpeed * deltaTime;
+        }
+      }
+    }else if(this.targetDirection > this.direction){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction += Math.abs(this.targetDirection - this.direction);
       }else{
         this.direction += this.rotateSpeed * deltaTime;
@@ -26,31 +54,8 @@ exports.rotate = function(deltaTime){
         this.direction -= this.rotateSpeed * deltaTime;
       }
     }
-  }else if(this.direction < 0 && this.targetDirection >0 ){
-    if((180 + this.direction + 180 - this.targetDirection) < (this.targetDirection - this.direction)){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-        this.direction -= Math.abs(this.targetDirection - this.direction);
-      }else{
-        this.direction -= this.rotateSpeed * deltaTime;
-      }
-    }else if(this.targetDirection > this.direction){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-        this.direction += Math.abs(this.targetDirection - this.direction);
-      }else{
-        this.direction += this.rotateSpeed * deltaTime;
-      }
-    }
-  }else if(this.targetDirection > this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-      this.direction += Math.abs(this.targetDirection - this.direction);
-    }else{
-      this.direction += this.rotateSpeed * deltaTime;
-    }
-  }else if(this.targetDirection < this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-      this.direction -= Math.abs(this.targetDirection - this.direction);
-    }else{
-      this.direction -= this.rotateSpeed * deltaTime;
+    if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
+      this.move(deltaTime, true);
     }
   }
 
@@ -62,7 +67,7 @@ exports.rotate = function(deltaTime){
 };
 
 //must use with bind or call method
-exports.move = function(deltaTime){
+exports.move = function(deltaTime, isMoveSlight){
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
@@ -83,8 +88,13 @@ exports.move = function(deltaTime){
     this.position.x += addPos.x;
     this.position.y += addPos.y;
   }
-  this.position.x += this.speed.x * deltaTime;
-  this.position.y += this.speed.y * deltaTime;
+  if(isMoveSlight){
+    this.position.x += this.speed.x * deltaTime * gameConfig.MOVE_SLIGHT_RATE;
+    this.position.y += this.speed.y * deltaTime * gameConfig.MOVE_SLIGHT_RATE;
+  }else{
+    this.position.x += this.speed.x * deltaTime;
+    this.position.y += this.speed.y * deltaTime;
+  }
 
   if(this.position.x < 0){
     this.position.x = 0;

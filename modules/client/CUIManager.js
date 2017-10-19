@@ -50,6 +50,7 @@ function UIManager(sTable, bTable){
 
   this.onStartBtnClick = new Function();
 
+  this.onSkillIconClick = new Function();
   this.onSkillUpgrade = new Function();
   this.onExchangeSkill = new Function();
   this.onExchangePassive = new Function();
@@ -135,6 +136,12 @@ UIManager.prototype = {
     hudEquipSkill3Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill3Img), false);
     hudEquipSkill4Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill4Img), false);
     hudPassiveSkillImg.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudPassiveSkillImg), false);
+
+    hudBaseSkillImg.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_BASIC_INDEX);
+    hudEquipSkill1Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP1_INDEX);
+    hudEquipSkill2Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP2_INDEX);
+    hudEquipSkill3Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP3_INDEX);
+    hudEquipSkill4Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP4_INDEX);
 
     hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
 
@@ -578,11 +585,31 @@ UIManager.prototype = {
       }
     }
   },
-  updateMiniMapChests : function(){
-
+  createChest : function(locationID){
+    var childDivs = miniMapChest1.parentNode.getElementsByTagName('div');
+    for(var i=0; i<childDivs.length; i++){
+      if(locationID === childDivs[i].getAttribute('locationID')){
+        childDivs[i].classList.remove('chestOff');
+        childDivs[i].classList.add('chestOn');
+      }
+    }
   },
-  updateMiniMapUser : function(position){
-
+  deleteChest : function(locationID){
+    var childDivs = miniMapChest1.parentNode.getElementsByTagName('div');
+    for(var i=0; i<childDivs.length; i++){
+      if(locationID === childDivs[i].getAttribute('locationID')){
+        childDivs[i].classList.add('chestOff');
+        childDivs[i].classList.remove('chestOn');
+      }
+    }
+  },
+  setUserPosition : function(position){
+    miniMapUser.style.left = Math.floor(position.x * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapUser.style.top = Math.floor(position.y * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+  },
+  updateUserPosition : function(position){
+    miniMapUser.style.left = Math.floor(position.x * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapUser.style.top = Math.floor(position.y * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
   }
 };
 function popChange(popWindow){
@@ -950,5 +977,8 @@ function bottomTooltipOffHandler(){
   for(var i=0; i<tooltipDivs.length; i++){
     this.removeChild(tooltipDivs[i]);
   }
+};
+function onSkillIconClickHandler(skillSlot){
+  this.onSkillIconClick(skillSlot);
 };
 module.exports = UIManager;

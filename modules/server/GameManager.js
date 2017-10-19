@@ -1360,8 +1360,8 @@ function affectIntervalHandler(){
           }
         }
       }else if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_CHEST){
-        for(var i=0; i<this.chests.length; i++){
-          if(this.chests[i].objectID === affectedEles[i].affectedID){
+        for(var j=0; j<this.chests.length; j++){
+          if(this.chests[j].objectID === affectedEles[i].affectedID){
             var dmg = 0;
             if(affectedEles[i].fireDamage){
               dmg += affectedEles[i].fireDamage;
@@ -1372,7 +1372,7 @@ function affectIntervalHandler(){
             if(affectedEles[i].arcaneDamage){
               dmg += affectedEles[i].arcaneDamage;
             }
-            this.chests[i].takeDamage(affectedEles[i].actorID, dmg);
+            this.chests[j].takeDamage(affectedEles[i].actorID, dmg);
             break;
           }
         }

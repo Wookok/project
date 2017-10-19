@@ -38,6 +38,7 @@ var CManager = function(){
 	this.objJewels = [];
 	this.objSkills = [];
 
+	this.onMainUserMove = new Function();
 	this.onSkillFire = new Function();
 	this.onProjectileSkillFire = new Function();
 	this.onCancelCasting = new Function();
@@ -539,9 +540,10 @@ CManager.prototype = {
 		for(var index in this.users){
 			if(this.users[index].objectID === userID){
 				this.user = this.users[index];
+				this.user.onMainUserMove = onMainUserMoveHandler.bind(this, this.user);
 			}
 		}
-		if(this.user === null){
+		if(!this.user){
 			console.log('if print me. Something is wrong');
 		}
 	},
@@ -646,6 +648,9 @@ var onMoveCalcCompelPos = function(user){
   }
   return addPos;
 };
+var onMainUserMoveHandler = function(user){
+	this.onMainUserMove(user);
+}
 module.exports = CManager;
 
 },{"../public/gameConfig.json":8,"../public/quadtree.min.js":9,"../public/resources.json":10,"../public/util.js":11,"./CObstacle.js":2,"./CUser.js":5}],2:[function(require,module,exports){
@@ -865,6 +870,7 @@ function UIManager(sTable, bTable){
 
   this.onStartBtnClick = new Function();
 
+  this.onSkillIconClick = new Function();
   this.onSkillUpgrade = new Function();
   this.onExchangeSkill = new Function();
   this.onExchangePassive = new Function();
@@ -950,6 +956,12 @@ UIManager.prototype = {
     hudEquipSkill3Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill3Img), false);
     hudEquipSkill4Img.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudEquipSkill4Img), false);
     hudPassiveSkillImg.addEventListener('mouseout', bottomSkillTooltipOffHandler.bind(hudPassiveSkillImg), false);
+
+    hudBaseSkillImg.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_BASIC_INDEX);
+    hudEquipSkill1Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP1_INDEX);
+    hudEquipSkill2Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP2_INDEX);
+    hudEquipSkill3Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP3_INDEX);
+    hudEquipSkill4Img.onclick = onSkillIconClickHandler.bind(this, gameConfig.SKILL_EQUIP4_INDEX);
 
     hudBtnSkillChange = document.getElementById('hudBtnSkillChange');
 
@@ -1393,11 +1405,31 @@ UIManager.prototype = {
       }
     }
   },
-  updateMiniMapChests : function(){
-
+  createChest : function(locationID){
+    var childDivs = miniMapChest1.parentNode.getElementsByTagName('div');
+    for(var i=0; i<childDivs.length; i++){
+      if(locationID === childDivs[i].getAttribute('locationID')){
+        childDivs[i].classList.remove('chestOff');
+        childDivs[i].classList.add('chestOn');
+      }
+    }
   },
-  updateMiniMapUser : function(position){
-
+  deleteChest : function(locationID){
+    var childDivs = miniMapChest1.parentNode.getElementsByTagName('div');
+    for(var i=0; i<childDivs.length; i++){
+      if(locationID === childDivs[i].getAttribute('locationID')){
+        childDivs[i].classList.add('chestOff');
+        childDivs[i].classList.remove('chestOn');
+      }
+    }
+  },
+  setUserPosition : function(position){
+    miniMapUser.style.left = Math.floor(position.x * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapUser.style.top = Math.floor(position.y * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
+  },
+  updateUserPosition : function(position){
+    miniMapUser.style.left = Math.floor(position.x * 100 / gameConfig.CANVAS_MAX_SIZE.width) + '%';
+    miniMapUser.style.top = Math.floor(position.y * 100 / gameConfig.CANVAS_MAX_SIZE.height) + '%';
   }
 };
 function popChange(popWindow){
@@ -1766,6 +1798,9 @@ function bottomTooltipOffHandler(){
     this.removeChild(tooltipDivs[i]);
   }
 };
+function onSkillIconClickHandler(skillSlot){
+  this.onSkillIconClick(skillSlot);
+};
 module.exports = UIManager;
 
 },{"../public/gameConfig.json":8,"../public/util.js":11}],5:[function(require,module,exports){
@@ -1833,6 +1868,7 @@ var User = function(userData){
   };
 
   this.onMove = new Function();
+  this.onMainUserMove = new Function();
 };
 
 User.prototype = {
@@ -1877,8 +1913,13 @@ User.prototype = {
     util.rotate.call(this, deltaTime);
     this.timer = Date.now();
   },
-  move : function(deltaTime){
-    util.move.call(this, deltaTime);
+  move : function(deltaTime, isMoveSlight){
+    if(isMoveSlight){
+      util.move.call(this, deltaTime, isMoveSlight)
+    }else{
+      util.move.call(this, deltaTime);
+    }
+    this.onMainUserMove();
   },
   setTargetDirection : function(){
     util.setTargetDirection.call(this);
@@ -2475,6 +2516,8 @@ module.exports={
   "OBJECT_STATE_CAST" : 4,
   "OBJECT_STATE_DEATH" : 5,
 
+  "MOVE_SLIGHT_RATE" : 0.3,
+
   "GAME_STATE_LOAD" : 1,
   "GAME_STATE_START_SCENE" : 2,
   "GAME_STATE_GAME_START" : 3,
@@ -2605,9 +2648,37 @@ exports.rotate = function(deltaTime){
     }
   }
   //check rotate direction
-  else if(this.direction > 0 && this.targetDirection < 0){
-    if((180 - this.direction + 180 + this.targetDirection) < (this.direction - this.targetDirection)){
-      if(Math.abs(this.targetDirection - this.direction) < this.rotateSpeed * deltaTime){
+  else{
+    if(this.direction > 0 && this.targetDirection < 0){
+      if((180 - this.direction + 180 + this.targetDirection) < (this.direction - this.targetDirection)){
+        if(Math.abs(this.targetDirection - this.direction) < this.rotateSpeed * deltaTime){
+          this.direction += Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction += this.rotateSpeed * deltaTime;
+        }
+      }else if(this.targetDirection < this.direction){
+        if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
+          this.direction -= Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction -= this.rotateSpeed * deltaTime;
+        }
+      }
+    }else if(this.direction < 0 && this.targetDirection >0 ){
+      if((180 + this.direction + 180 - this.targetDirection) < (this.targetDirection - this.direction)){
+        if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
+          this.direction -= Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction -= this.rotateSpeed * deltaTime;
+        }
+      }else if(this.targetDirection > this.direction){
+        if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
+          this.direction += Math.abs(this.targetDirection - this.direction);
+        }else{
+          this.direction += this.rotateSpeed * deltaTime;
+        }
+      }
+    }else if(this.targetDirection > this.direction){
+      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
         this.direction += Math.abs(this.targetDirection - this.direction);
       }else{
         this.direction += this.rotateSpeed * deltaTime;
@@ -2619,31 +2690,8 @@ exports.rotate = function(deltaTime){
         this.direction -= this.rotateSpeed * deltaTime;
       }
     }
-  }else if(this.direction < 0 && this.targetDirection >0 ){
-    if((180 + this.direction + 180 - this.targetDirection) < (this.targetDirection - this.direction)){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-        this.direction -= Math.abs(this.targetDirection - this.direction);
-      }else{
-        this.direction -= this.rotateSpeed * deltaTime;
-      }
-    }else if(this.targetDirection > this.direction){
-      if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-        this.direction += Math.abs(this.targetDirection - this.direction);
-      }else{
-        this.direction += this.rotateSpeed * deltaTime;
-      }
-    }
-  }else if(this.targetDirection > this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-      this.direction += Math.abs(this.targetDirection - this.direction);
-    }else{
-      this.direction += this.rotateSpeed * deltaTime;
-    }
-  }else if(this.targetDirection < this.direction){
-    if(Math.abs(this.targetDirection - this.direction)<this.rotateSpeed * deltaTime){
-      this.direction -= Math.abs(this.targetDirection - this.direction);
-    }else{
-      this.direction -= this.rotateSpeed * deltaTime;
+    if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
+      this.move(deltaTime, true);
     }
   }
 
@@ -2655,7 +2703,7 @@ exports.rotate = function(deltaTime){
 };
 
 //must use with bind or call method
-exports.move = function(deltaTime){
+exports.move = function(deltaTime, isMoveSlight){
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
@@ -2676,8 +2724,13 @@ exports.move = function(deltaTime){
     this.position.x += addPos.x;
     this.position.y += addPos.y;
   }
-  this.position.x += this.speed.x * deltaTime;
-  this.position.y += this.speed.y * deltaTime;
+  if(isMoveSlight){
+    this.position.x += this.speed.x * deltaTime * gameConfig.MOVE_SLIGHT_RATE;
+    this.position.y += this.speed.y * deltaTime * gameConfig.MOVE_SLIGHT_RATE;
+  }else{
+    this.position.x += this.speed.x * deltaTime;
+    this.position.y += this.speed.y * deltaTime;
+  }
 
   if(this.position.x < 0){
     this.position.x = 0;
@@ -3374,6 +3427,30 @@ function setBaseSetting(){
     console.log('unequip Passive : ' + buffGroupIndex);
     socket.emit('unequipPassive', buffGroupIndex);
   };
+  UIManager.onSkillIconClick = function(skillSlot){
+    if(skillSlot === gameConfig.SKILL_BASIC_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_BASIC_INDEX)){
+        var skillData = Object.assign({}, baseSkillData);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP1_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP1_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[0]);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP2_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP2_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[1]);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP3_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP3_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[2]);
+      }
+    }else if(skillSlot === gameConfig.SKILL_EQUIP4_INDEX){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP4_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[3]);
+      }
+    }
+    checkSkillConditionAndUse(skillData);
+  };
 
   UIManager.initStartScene();
   UIManager.initHUD();
@@ -3525,6 +3602,8 @@ function setupSocket(){
     UIManager.setHUDStats(user.statPower, user.statMagic, user.statSpeed);
     UIManager.setCooldownReduceRate(user.cooldownReduceRate);
     UIManager.setPopUpSkillChange();
+
+    UIManager.setUserPosition(user.position);
   });
 
   //change state game on
@@ -3537,6 +3616,9 @@ function setupSocket(){
     Manager.setChests(chestDatas);
 
     Manager.synchronizeUser(gameConfig.userID);
+    Manager.onMainUserMove = function(user){
+      UIManager.updateUserPosition(user.position);
+    }
     var chestLocationDatas = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
     UIManager.setMiniMapChests(chestDatas, chestLocationDatas);
     console.log(Manager.users);
@@ -3701,9 +3783,11 @@ function setupSocket(){
   socket.on('createChest', function(chestData){
     console.log(chestData);
     Manager.createChest(chestData);
+    UIManager.createChest(chestData.locationID);
   });
   socket.on('deleteChest', function(locationID){
     Manager.deleteChest(locationID);
+    UIManager.deleteChest(locationID);
   })
   socket.on('changeUserStat', function(userData){
     Manager.changeUserStat(userData);
@@ -4026,7 +4110,6 @@ var canvasEventHandler = function(e){
 
 var documentEventHandler = function(e){
   var keyCode = e.keyCode;
-  var userPosition = Manager.users[gameConfig.userID].center;
 
   if(keyCode === 69 || keyCode === 32){
     if(UIManager.checkCooltime(gameConfig.SKILL_BASIC_INDEX)){
@@ -4049,7 +4132,9 @@ var documentEventHandler = function(e){
       skillData = Object.assign({}, equipSkillDatas[3]);
     }
   }
-
+  checkSkillConditionAndUse(skillData);
+};
+function checkSkillConditionAndUse(skillData){
   if(skillData){
     if(Manager.user.MP > skillData.consumeMP){
       Manager.applyCastSpeed(gameConfig.userID, skillData);
@@ -4061,7 +4146,7 @@ var documentEventHandler = function(e){
           changeDrawMode(gameConfig.DRAW_MODE_SKILL_RANGE);
         }
       }else{
-        useSkill(skillData, userPosition, Manager.users[gameConfig.userID]);
+        useSkill(skillData, Manager.users[gameConfig.userID].center, Manager.users[gameConfig.userID]);
       }
     }else{
       if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
