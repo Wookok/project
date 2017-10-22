@@ -37,7 +37,10 @@ var loadedResourcesCount = 0;
 var resourceObject, resourceCharacter, resourceUI;
 
 var userHandImgData = new Array(5);
-var goldImgData, jewelImgData, skillFireImgData, skillFrostImgData, skillArcaneImgData;
+var objGoldImgData, objJewelImgData, objSkillFireImgData, objSkillFrostImgData, objSkillArcaneImgData;
+var castFireImgData, castFrostImgData, castArcaneImgData;
+var projectileFireImgData, projectileFrostImgData, projectileArcaneImgData;
+var skillFireImgData, skillFrostImgData, skillArcaneImgData;
 // var userImage, userHand;
 // var grid;
 
@@ -129,6 +132,9 @@ function update(){
 function stateFuncLoad(){
   setBaseSetting();
   setCanvasSize();
+  window.oncontextmenu = function(){
+    return false;
+  };
   window.onresize = function(){
     setCanvasSize();
   };
@@ -153,7 +159,6 @@ function stateFuncGame(){
 //show end message and restart button
 function stateFuncEnd(){
   //should init variables
-  console.log('end');
   canvasDisableEvent();
   documentDisableEvent();
   UIManager.initStandingScene();
@@ -221,10 +226,20 @@ function setBaseSetting(){
     }
     checkSkillConditionAndUse(skillData);
   };
-
+  UIManager.onSelectSkillCancelBtnClick = function(){
+    changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
+  };
   UIManager.initStartScene();
   UIManager.initHUD();
   UIManager.initPopUpSkillChanger();
+
+  document.body.onmousedown = function(e){
+    if(e.button === 2){
+      if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
+        changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
+      }
+    }
+  };
 
   // inner Modules
   util = require('../../modules/public/util.js');
@@ -249,11 +264,23 @@ function setBaseSetting(){
   userHandImgData[3] = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_USER_HAND_4));
   userHandImgData[4] = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_USER_HAND_5));
 
-  goldImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_GOLD));
-  jewelImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_JEWEL));
-  skillFireImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_FIRE));
-  skillFrostImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_FROST));
-  skillArcaneImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_ARCANE));
+  objGoldImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_OBJ_GOLD));
+  objJewelImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_OBJ_JEWEL));
+  objSkillFireImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_OBJ_SKILL_FIRE));
+  objSkillFrostImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_OBJ_SKILL_FROST));
+  objSkillArcaneImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_OBJ_SKILL_ARCANE));
+
+  castFireImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CASTING_FIRE));
+  castFrostImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CASTING_FROST));
+  castArcaneImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CASTING_ARCANE));
+
+  projectileFireImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_PROJECTILE_FIRE));
+  projectileFrostImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_PROJECTILE_FROST));
+  projectileArcaneImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_PROJECTILE_ARCANE));
+
+  skillFireImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_EFFECT_FIRE));
+  skillFrostImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_EFFECT_FROST));
+  skillArcaneImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_EFFECT_ARCANE));
 
   // grid = new Image();
   // grid.src = resources.GRID_SRC;
@@ -390,8 +417,10 @@ function setupSocket(){
       UIManager.updateUserPosition(user.position);
     }
     var chestLocationDatas = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
+
+    UIManager.setBoard(userDatas, gameConfig.userID);
     UIManager.setMiniMapChests(chestDatas, chestLocationDatas);
-    console.log(Manager.users);
+    // console.log(Manager.users);
 
     canvasAddEvent();
     documentAddEvent();
@@ -538,8 +567,8 @@ function setupSocket(){
   socket.on('deleteProjectile', function(projectileID, userID){
     Manager.deleteProjectile(projectileID, userID);
   });
-  socket.on('explodeProjectile', function(projectileID, userID){
-    Manager.explodeProjectile(projectileID, userID);
+  socket.on('explodeProjectile', function(projectileID, userID, position){
+    Manager.explodeProjectile(projectileID, userID, position);
   });
   socket.on('castCanceled', function(userID){
     Manager.cancelCasting(userID);
@@ -558,7 +587,10 @@ function setupSocket(){
   socket.on('deleteChest', function(locationID){
     Manager.deleteChest(locationID);
     UIManager.deleteChest(locationID);
-  })
+  });
+  socket.on('getResource', function(resourceData){
+    UIManager.getResource(resourceData);
+  });
   socket.on('changeUserStat', function(userData){
     Manager.changeUserStat(userData);
     if(userData.objectID === gameConfig.userID){
@@ -646,13 +678,13 @@ function drawChests(){
   }
 };
 function drawObjs(){
-  // var goldImgData, jewelImgData, skillFireImgData, skillFrostImgData, skillArcaneImgData;
+  // var objGoldImgData, objJewelImgData, objSkillFireImgData, objSkillFrostImgData, objSkillArcaneImgData;
 
   for(var i=0; i<Manager.objGolds.length; i++){
     ctx.beginPath();
     var posX = util.worldXCoordToLocalX(Manager.objGolds[i].position.x, gameConfig.userOffset.x);
     var posY = util.worldYCoordToLocalY(Manager.objGolds[i].position.y, gameConfig.userOffset.y);
-    ctx.drawImage(resourceObject, goldImgData.srcPosX, goldImgData.srcPosY, goldImgData.srcWidth, goldImgData.srcHeight, posX * gameConfig.scaleFactor, posY * gameConfig.scaleFactor, Manager.objGolds[i].radius * 2 * gameConfig.scaleFactor, Manager.objGolds[i].radius * 2 * gameConfig.scaleFactor);
+    ctx.drawImage(resourceObject, objGoldImgData.srcPosX, objGoldImgData.srcPosY, objGoldImgData.srcWidth, objGoldImgData.srcHeight, posX * gameConfig.scaleFactor, posY * gameConfig.scaleFactor, Manager.objGolds[i].radius * 2 * gameConfig.scaleFactor, Manager.objGolds[i].radius * 2 * gameConfig.scaleFactor);
     // ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.objGolds[i].radius * gameConfig.scaleFactor, 0, 2 * Math.PI);
     // var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
     // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
@@ -662,7 +694,7 @@ function drawObjs(){
     ctx.beginPath();
     var posX = util.worldXCoordToLocalX(Manager.objJewels[i].position.x, gameConfig.userOffset.x);
     var posY = util.worldYCoordToLocalY(Manager.objJewels[i].position.y, gameConfig.userOffset.y);
-    ctx.drawImage(resourceObject, jewelImgData.srcPosX, jewelImgData.srcPosY, jewelImgData.srcWidth, jewelImgData.srcHeight, posX * gameConfig.scaleFactor, posY * gameConfig.scaleFactor, Manager.objJewels[i].radius * 2 * gameConfig.scaleFactor, Manager.objJewels[i].radius * 2 * gameConfig.scaleFactor);
+    ctx.drawImage(resourceObject, objJewelImgData.srcPosX, objJewelImgData.srcPosY, objJewelImgData.srcWidth, objJewelImgData.srcHeight, posX * gameConfig.scaleFactor, posY * gameConfig.scaleFactor, Manager.objJewels[i].radius * 2 * gameConfig.scaleFactor, Manager.objJewels[i].radius * 2 * gameConfig.scaleFactor);
     // ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.objJewels[i].radius * gameConfig.scaleFactor, 0, 2 * Math.PI);
     // var pos = util.worldToLocalPosition(Manager.objSkills[i].position, gameConfig.userOffset);
     // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor, Manager.objSkills[i].radius * 2 * gameConfig.scaleFactor);
@@ -684,13 +716,13 @@ function drawObjs(){
     var posY = util.worldYCoordToLocalY(Manager.objSkills[i].position.y, gameConfig.userOffset.y);
     switch (Manager.objSkills[i].property) {
       case gameConfig.SKILL_PROPERTY_FIRE:
-        var skillImgData = skillFireImgData;
+        var skillImgData = objSkillFireImgData;
         break;
       case gameConfig.SKILL_PROPERTY_FROST:
-        skillImgData = skillFrostImgData;
+        skillImgData = objSkillFrostImgData;
         break;
       case gameConfig.SKILL_PROPERTY_ARCANE:
-        skillImgData = skillArcaneImgData;
+        skillImgData = objSkillArcaneImgData;
         break;
       default:
     }
@@ -729,38 +761,43 @@ function drawUsers(){
                 -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
     ctx.closePath();
 
-    // var centerX = util.worldXCoordToLocalX(Manager.users[index].position.x + Manager.users[index].size.width/2, gameConfig.userOffset.x);
-    // var centerY = util.worldYCoordToLocalY(Manager.users[index].position.y + Manager.users[index].size.height/2, gameConfig.userOffset.y);
-    //
-    // var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
-    //
-    // ctx.beginPath();
-    // ctx.fillStyle = "#ffff00";
-    // ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, 32 * gameConfig.scaleFactor, 0, 2 * Math.PI);
-    // ctx.fill();
-    // ctx.closePath();
-    // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor, Manager.users[index].size.width * gameConfig.scaleFactor);
-
-    // ctx.beginPath();
-    // ctx.save();
-    // ctx.setTransform(1,0,0,1,0,0);
-    // var center = util.worldToLocalPosition(Manager.users[index].center, gameConfig.userOffset);
-    // ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
-    // ctx.rotate(radian);
-    // ctx.fillStyle = 'yellow';
-    // ctx.arc(0, 0, 64 * gameConfig.scaleFactor, 0, 2 * Math.PI);
-    // ctx.fill();
-    // ctx.closePath();
-
     //draw cast effect
     if(Manager.users[index].skillCastEffectPlay){
-      ctx.fillStyle ="#00ff00";
+      // ctx.fillStyle ="#00ff00";
       ctx.beginPath();
-      ctx.arc(0, 0, 100, 0, 2 * Math.PI);
-      ctx.fill();
+      switch (Manager.users[index].currentSkill.property) {
+        case gameConfig.SKILL_PROPERTY_FIRE:
+          var imgData = castFireImgData;
+          break;
+        case gameConfig.SKILL_PROPERTY_FROST:
+          imgData = castFrostImgData;
+          break;
+        case gameConfig.SKILL_PROPERTY_ARCANE:
+          imgData = castArcaneImgData;
+          break;
+        default:
+      }
+      var scaleFactor = Manager.users[index].castEffectFactor;
+      ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+                  -imgData.width/2 * gameConfig.scaleFactor * scaleFactor, -imgData.height/2 * gameConfig.scaleFactor * scaleFactor, imgData.width * gameConfig.scaleFactor * scaleFactor, imgData.height * gameConfig.scaleFactor * scaleFactor);
       ctx.closePath();
     }
     ctx.restore();
+
+    //draw HP gauge
+    ctx.beginPath();
+    var pos = util.worldToLocalPosition(Manager.users[index].position, gameConfig.userOffset);
+
+    ctx.fillStyle = "#00ff00";
+    var HPPercent = Manager.users[index].HP / Manager.users[index].maxHP;
+    var width = Manager.users[index].HP / Manager.users[index].maxHP * 85 * gameConfig.scaleFactor;
+    var height = 10 * gameConfig.scaleFactor;
+    ctx.fillRect((pos.x - 10) * gameConfig.scaleFactor, (pos.y + 80) * gameConfig.scaleFactor, width, height);
+
+    ctx.strokeStyle = "#000000";
+    width = 85 * gameConfig.scaleFactor;
+    ctx.strokeRect((pos.x - 10) * gameConfig.scaleFactor, (pos.y + 80) * gameConfig.scaleFactor, width, height);
+    ctx.closePath();
   }
   ctx.globalAlpha = 1;
 };
@@ -768,11 +805,31 @@ function drawEffect(){
   for(var i=0; i<Manager.effects.length; i++){
     ctx.beginPath();
     ctx.fillStyle ="#ff0000";
-
+    switch (Manager.effects[i].property) {
+      case gameConfig.SKILL_PROPERTY_FIRE:
+        var imgData = skillFireImgData;
+        break;
+      case gameConfig.SKILL_PROPERTY_FROST:
+        imgData = skillFrostImgData;
+        break;
+      case gameConfig.SKILL_PROPERTY_ARCANE:
+        imgData = skillArcaneImgData;
+        break;
+      default:
+    }
     var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x + Manager.effects[i].radius, gameConfig.userOffset.x);
     var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y + Manager.effects[i].radius, gameConfig.userOffset.y);
-    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
-    ctx.fill();
+    // var radius = Manager.effects[i].radius;
+    var radius = Manager.effects[i].radius * Manager.effects[i].scaleFactor;
+    // var posX = util.worldXCoordToLocalX(Manager.effects[i].position.x, gameConfig.userOffset.x);
+    // var posY = util.worldYCoordToLocalY(Manager.effects[i].position.y, gameConfig.userOffset.y);
+    ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+                  (centerX - radius) * gameConfig.scaleFactor, (centerY - radius) * gameConfig.scaleFactor, radius * 2 * gameConfig.scaleFactor, radius * 2 * gameConfig.scaleFactor);
+    // var centerX = util.worldXCoordToLocalX(Manager.effects[i].position.x + Manager.effects[i].radius, gameConfig.userOffset.x);
+    // var centerY = util.worldYCoordToLocalY(Manager.effects[i].position.y + Manager.effects[i].radius, gameConfig.userOffset.y);
+    // ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.effects[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    // ctx.fill();
+
     ctx.closePath();
   }
 };
@@ -780,10 +837,23 @@ function drawProjectile(){
   for(var i=0; i<Manager.projectiles.length; i++){
     ctx.fillStyle ="#ff0000";
     ctx.beginPath();
-    var centerX = util.worldXCoordToLocalX(Manager.projectiles[i].position.x + Manager.projectiles[i].radius, gameConfig.userOffset.x);
-    var centerY = util.worldYCoordToLocalY(Manager.projectiles[i].position.y + Manager.projectiles[i].radius, gameConfig.userOffset.y);
-    ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.projectiles[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
-    ctx.fill();
+    var posX = util.worldXCoordToLocalX(Manager.projectiles[i].position.x, gameConfig.userOffset.x);
+    var posY = util.worldYCoordToLocalY(Manager.projectiles[i].position.y, gameConfig.userOffset.y);
+    // ctx.arc(centerX * gameConfig.scaleFactor, centerY * gameConfig.scaleFactor, Manager.projectiles[i].radius * gameConfig.scaleFactor, 0, Math.PI * 2);
+    switch (Manager.projectiles[i].property) {
+      case gameConfig.SKILL_PROPERTY_FIRE:
+        var imgData = projectileFireImgData;
+        break;
+      case gameConfig.SKILL_PROPERTY_FROST:
+        imgData = projectileFrostImgData;
+        break;
+      case gameConfig.SKILL_PROPERTY_ARCANE:
+        imgData = projectileArcaneImgData;
+        break;
+      default:
+    }
+    ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+                  posX * gameConfig.scaleFactor, posY * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
   }
 };
@@ -822,7 +892,7 @@ function drawGrid(){
   //     }
   //   }
   // }
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgb(103, 124, 81)';
   // ctx.globalAlpha = 0.15;
   ctx.beginPath();
@@ -879,30 +949,36 @@ var canvasEventHandler = function(e){
 };
 
 var documentEventHandler = function(e){
-  var keyCode = e.keyCode;
+  if(drawMode === gameConfig.DRAW_MODE_NORMAL){
+    var keyCode = e.keyCode;
 
-  if(keyCode === 69 || keyCode === 32){
-    if(UIManager.checkCooltime(gameConfig.SKILL_BASIC_INDEX)){
-      var skillData = Object.assign({}, baseSkillData);
+    if(keyCode === 69 || keyCode === 32){
+      if(UIManager.checkCooltime(gameConfig.SKILL_BASIC_INDEX)){
+        var skillData = Object.assign({}, baseSkillData);
+      }
+    }else if(keyCode === 49){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP1_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[0]);
+      }
+    }else if(keyCode === 50){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP2_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[1]);
+      }
+    }else if(keyCode === 51){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP3_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[2]);
+      }
+    }else if(keyCode === 52){
+      if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP4_INDEX)){
+        skillData = Object.assign({}, equipSkillDatas[3]);
+      }
+    }else if(keyCode === 27){
+      if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
+        changeDrawMode(gameConfig.DRAW_MODE_NORMAL)
+      }
     }
-  }else if(keyCode === 49){
-    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP1_INDEX)){
-      skillData = Object.assign({}, equipSkillDatas[0]);
-    }
-  }else if(keyCode === 50){
-    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP2_INDEX)){
-      skillData = Object.assign({}, equipSkillDatas[1]);
-    }
-  }else if(keyCode === 51){
-    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP3_INDEX)){
-      skillData = Object.assign({}, equipSkillDatas[2]);
-    }
-  }else if(keyCode === 52){
-    if(UIManager.checkCooltime(gameConfig.SKILL_EQUIP4_INDEX)){
-      skillData = Object.assign({}, equipSkillDatas[3]);
-    }
+    checkSkillConditionAndUse(skillData);
   }
-  checkSkillConditionAndUse(skillData);
 };
 function checkSkillConditionAndUse(skillData){
   if(skillData){
@@ -923,17 +999,20 @@ function checkSkillConditionAndUse(skillData){
         changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
       }
     }
-  }else if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
-    changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
   }
+  // else if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
+  //   changeDrawMode(gameConfig.DRAW_MODE_NORMAL);
+  // }
 };
 function changeDrawMode(mode){
   if(mode === gameConfig.DRAW_MODE_NORMAL){
     drawMode = gameConfig.DRAW_MODE_NORMAL;
     currentSkillData = null;
+    UIManager.disableSelectSkillInfo();
     canvas.removeEventListener('mousemove', mouseMoveHandler);
   }else if(mode === gameConfig.DRAW_MODE_SKILL_RANGE){
     drawMode = gameConfig.DRAW_MODE_SKILL_RANGE;
+    UIManager.enableSelectSkillInfo(currentSkillData);
     canvas.addEventListener('mousemove', mouseMoveHandler, false);
   }
 };

@@ -26,7 +26,10 @@ var userHPProgressBar, userMPProgressBar, userExpProgressBar;
 
 var isUseableBaseSkill = true, isUseableEquipSkill1 = true, isUseableEquipSkill2 = true, isUseableEquipSkill3 = true, isUseableEquipSkill4 = true;
 var hudBaseSkillMask, hudEquipSkill1Mask, hudEquipSkill2Mask, hudEquipSkill3Mask, hudEquipSkill4Mask;
+var hudBaseSkillBlockMask, hudEquipSkill1BlockMask, hudEquipSkill2BlockMask, hudEquipSkill3BlockMask, hudEquipSkill4BlockMask, hudPassiveSkillBlockMask;
 var userStatPowerContainer, userStatMagicContainer, userStatSpeedContainer;
+var gameSceneHudTopCenter, selectSkillIcon, selectSkillInfo, btnSelectSkillCancel;
+var goldContainer, jewelContainer;
 
 var popUpSkillChange, popUpSkillContainer, popUpBackground;
 var popUpSkillInfoIcon, popUpSkillInfoDesc, popUpSkillUpgradeBtn;
@@ -50,6 +53,7 @@ function UIManager(sTable, bTable){
 
   this.onStartBtnClick = new Function();
 
+  this.onSelectSkillCancelBtnClick = new Function();
   this.onSkillIconClick = new Function();
   this.onSkillUpgrade = new Function();
   this.onExchangeSkill = new Function();
@@ -162,6 +166,13 @@ UIManager.prototype = {
     hudEquipSkill3Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill3Mask, gameConfig.SKILL_EQUIP3_INDEX), false);
     hudEquipSkill4Mask.addEventListener('animationend', cooldownListener.bind(hudEquipSkill4Mask, gameConfig.SKILL_EQUIP4_INDEX), false);
 
+    hudBaseSkillBlockMask = document.getElementById('hudBaseSkillBlockMask');
+    hudEquipSkill1BlockMask = document.getElementById('hudEquipSkill1BlockMask');
+    hudEquipSkill2BlockMask = document.getElementById('hudEquipSkill2BlockMask');
+    hudEquipSkill3BlockMask = document.getElementById('hudEquipSkill3BlockMask');
+    hudEquipSkill4BlockMask = document.getElementById('hudEquipSkill4BlockMask');
+    hudPassiveSkillBlockMask = document.getElementById('hudPassiveSkillBlockMask');
+
     userStatPowerContainer = document.getElementById('userStatPowerContainer');
     userStatMagicContainer = document.getElementById('userStatMagicContainer');
     userStatSpeedContainer = document.getElementById('userStatSpeedContainer');
@@ -184,6 +195,14 @@ UIManager.prototype = {
     miniMapChest7 = document.getElementById('miniMapChest7');
     miniMapChest8 = document.getElementById('miniMapChest8');
     miniMapChest9 = document.getElementById('miniMapChest9');
+
+    gameSceneHudTopCenter = document.getElementById('gameSceneHudTopCenter');
+    selectSkillIcon = document.getElementById('selectSkillIcon');
+    selectSkillInfo = document.getElementById('selectSkillInfo');
+    btnSelectSkillCancel = document.getElementById('btnSelectSkillCancel');
+    btnSelectSkillCancel.onclick = onSelectSkillCancelBtnClickHandler.bind(this);
+    goldContainer = document.getElementById('goldContainer');
+    jewelContainer = document.getElementById('jewelContainer');
   },
   drawStartScene : function(){
     // startScene.classList.add('enable');
@@ -203,6 +222,66 @@ UIManager.prototype = {
     gameScene.classList.remove('enable');
     standingScene.classList.add('enable');
     standingScene.classList.remove('disable');
+  },
+  enableSelectSkillInfo : function(skillData){
+    selectSkillIcon.src = skillData.skillIcon;
+    selectSkillInfo.innerHTML = skillData.name;
+
+    gameSceneHudTopCenter.classList.add('enable');
+    gameSceneHudTopCenter.classList.remove('disable');
+
+    switch (skillData.index) {
+      case baseSkill:
+        hudEquipSkill1BlockMask.classList.remove('disable');
+        hudEquipSkill2BlockMask.classList.remove('disable');
+        hudEquipSkill3BlockMask.classList.remove('disable');
+        hudEquipSkill4BlockMask.classList.remove('disable');
+        hudPassiveSkillBlockMask.classList.remove('disable');
+        break;
+      case equipSkills[0]:
+        hudBaseSkillBlockMask.classList.remove('disable');
+        hudEquipSkill2BlockMask.classList.remove('disable');
+        hudEquipSkill3BlockMask.classList.remove('disable');
+        hudEquipSkill4BlockMask.classList.remove('disable');
+        hudPassiveSkillBlockMask.classList.remove('disable');
+        break;
+      case equipSkills[1]:
+        hudBaseSkillBlockMask.classList.remove('disable');
+        hudEquipSkill1BlockMask.classList.remove('disable');
+        hudEquipSkill3BlockMask.classList.remove('disable');
+        hudEquipSkill4BlockMask.classList.remove('disable');
+        hudPassiveSkillBlockMask.classList.remove('disable');
+        break;
+      case equipSkills[2]:
+        hudBaseSkillBlockMask.classList.remove('disable');
+        hudEquipSkill1BlockMask.classList.remove('disable');
+        hudEquipSkill2BlockMask.classList.remove('disable');
+        hudEquipSkill4BlockMask.classList.remove('disable');
+        hudPassiveSkillBlockMask.classList.remove('disable');
+        break;
+      case equipSkills[3]:
+        hudBaseSkillBlockMask.classList.remove('disable');
+        hudEquipSkill1BlockMask.classList.remove('disable');
+        hudEquipSkill2BlockMask.classList.remove('disable');
+        hudEquipSkill3BlockMask.classList.remove('disable');
+        hudPassiveSkillBlockMask.classList.remove('disable');
+        break;
+      default:
+    }
+  },
+  disableSelectSkillInfo : function(){
+    selectSkillIcon.src = "";
+    selectSkillInfo.innerHTML = "";
+
+    gameSceneHudTopCenter.classList.add('disable');
+    gameSceneHudTopCenter.classList.remove('enable');
+
+    hudBaseSkillBlockMask.classList.add('disable');
+    hudEquipSkill1BlockMask.classList.add('disable');
+    hudEquipSkill2BlockMask.classList.add('disable');
+    hudEquipSkill3BlockMask.classList.add('disable');
+    hudEquipSkill4BlockMask.classList.add('disable');
+    hudPassiveSkillBlockMask.classList.add('disable');
   },
   syncSkills : function(bSkill, bSkillData, eSkills, eSkillDatas, pSkills, iSkill, iSkillData){
     baseSkill = bSkill;
@@ -305,6 +384,10 @@ UIManager.prototype = {
     popUpBackground.onclick = function(){
       popChange(popUpSkillChange);
     }
+  },
+  getResource : function(resourceData){
+    goldContainer.innerHTML = resourceData.gold;
+    jewelContainer.innerHTML = resourceData.jewel;
   },
   updateBuffIcon : function(passiveList, buffList){
     while(gameSceneBuffsContainer.firstChild){
@@ -539,6 +622,58 @@ UIManager.prototype = {
     popUpSkillInfoDesc.appendChild(skillDesc);
     // popUpSkillUpgradeBtn.addEventListener('click', skillUpgradeBtnHandler, false);
     popUpSkillUpgradeBtn.onclick = skillUpgradeBtnHandler.bind(this, skillData)
+  },
+  setBoard : function(userDatas, userID){
+    var rank = [];
+    var isRanker = false;
+    for(var i=0; i<userDatas.length; i++){
+
+    }
+
+    // var usersMass = [];
+    // var rank = [];
+    // for(var index in Manager.users){
+    //   var totalMass = Manager.users[index].mass;
+    //   for(var i=0; i<Manager.users[index].clones.length; i++){
+    //     totalMass += Manager.users[index].clones[i].mass;
+    //   }
+    //   usersMass.push({name : Manager.users[index].name, mass : totalMass});
+    // }
+    // for(var i=0; i<usersMass.length; i++){
+    //   if(rank.length === 0){
+    //     rank.push(usersMass[i]);
+    //   }else{
+    //     var insertIndex = 0;
+    //     for(var j=0; j<rank.length; j++){
+    //       if(rank[j].mass < usersMass[i].mass){
+    //         insertIndex = j;
+    //         break;
+    //       }
+    //       insertIndex ++;
+    //     }
+    //     rank.splice(insertIndex, 0, usersMass[i]);
+    //   }
+    // }
+    // var nodesLength = board.childNodes.length;
+    // for(var i=0; i < nodesLength; i++){
+    //   board.removeChild(board.childNodes[0]);
+    // }
+    // var x = document.createElement("H2");
+    // var t = document.createTextNode('Rank');
+    // x.appendChild(t);
+    // board.appendChild(x);
+    //
+    // if(rank.length > 10){
+    //   var length = 10;
+    // }else{
+    //   length = rank.length;
+    // }
+    // for(var i=0; i<length; i++){
+    //   var x = document.createElement("P");
+    //   var t = document.createTextNode(rank[i].name + ' : ' + Math.floor(rank[i].mass));
+    //   x.appendChild(t);
+    //   board.appendChild(x);
+    // }
   },
   setMiniMapChests : function(chestDatas, chestLocationDatas){
     miniMapChest1.setAttribute('locationID', chestLocationDatas[0].id);
@@ -981,4 +1116,7 @@ function bottomTooltipOffHandler(){
 function onSkillIconClickHandler(skillSlot){
   this.onSkillIconClick(skillSlot);
 };
+function onSelectSkillCancelBtnClickHandler(){
+  this.onSelectSkillCancelBtnClick();
+}
 module.exports = UIManager;

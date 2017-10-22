@@ -29,6 +29,7 @@ var User = function(userData){
   this.isExecutedSkill = false;
   //Effect around user skill effect, when cast skill. skill onFire set false.
   this.skillCastEffectPlay = false;
+  this.castEffectFactor = 1;
 
   this.size = userData.size;
 
@@ -176,9 +177,15 @@ User.prototype = {
   executeSkill : function(){
     if(!this.isExecutedSkill){
       this.skillCastEffectPlay = true;
+      this.skillCastEffectStartTime = Date.now();
       this.isExecutedSkill = true;
       this.currentSkill.executeSkill();
     }
+    this.setCastEffectFactor();
+  },
+  setCastEffectFactor : function(){
+    var timeDiff = Date.now() - this.skillCastEffectStartTime;
+    this.castEffectFactor = util.interpolationSine(timeDiff);
   },
   updateSkillPossessions : function(possessSkills){
     this.possessSkills = possessSkills;

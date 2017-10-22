@@ -60,6 +60,10 @@ GM.onNeedInformUserGetExp = function(user){
   var userData = GM.processChangedUserStat(user);
   io.to(user.socketID).emit('changeUserStat', userData);
 };
+GM.onNeedInformUserGetResource = function(user){
+  var resourceData = GM.processUserResource(user);
+  io.to(user.socketID).emit('getResource', resourceData);
+}
 GM.onNeedInformUserLevelUp = function(user){
   var userData = GM.processChangedUserStat(user);
   io.sockets.emit('changeUserStat', userData);
@@ -107,7 +111,7 @@ GM.onNeedInformProjectileDelete = function(projectileData){
   io.sockets.emit('deleteProjectile', projectileData.objectID, projectileData.id);
 };
 GM.onNeedInformProjectileExplode = function(projectileData){
-  io.sockets.emit('explodeProjectile', projectileData.objectID, projectileData.id);
+  io.sockets.emit('explodeProjectile', projectileData.objectID, projectileData.id, {x : projectileData.x, y : projectileData.y});
 };
 
 io.on('connection', function(socket){

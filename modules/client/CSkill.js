@@ -6,6 +6,7 @@ function CSkill(skillData, userAniStartTime){
 
   this.index = skillData.index;
   this.type = skillData.type;
+  this.property = skillData.property;
 
   this.consumeMP = skillData.consumeMP;
   this.totalTime = skillData.totalTime;

@@ -68,6 +68,7 @@ exports.rotate = function(deltaTime){
 
 //must use with bind or call method
 exports.move = function(deltaTime, isMoveSlight){
+
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
@@ -82,11 +83,12 @@ exports.move = function(deltaTime, isMoveSlight){
   if(Math.abs(distY) < Math.abs(this.speed.y) * deltaTime){
     this.speed.y = distY;
   }
-
   var addPos = this.onMove(this);
-  if(addPos !== undefined){
-    this.position.x += addPos.x;
-    this.position.y += addPos.y;
+  if(addPos){
+    if(exports.isNumeric(addPos.x) && exports.isNumeric(addPos.y)){
+      this.position.x += addPos.x;
+      this.position.y += addPos.y;
+    }
   }
   if(isMoveSlight){
     this.position.x += this.speed.x * deltaTime * gameConfig.MOVE_SLIGHT_RATE;
@@ -186,6 +188,8 @@ exports.checkCircleCollision = function(tree, posX, posY, radius, id){
       var distSquareDiff = Math.pow(radius + item.width/2,2) - Math.pow(itemCenterX - objCenterX,2) - Math.pow(itemCenterY - objCenterY,2);
 
       if(distSquareDiff > 0 ){
+        returnVal.collisionPosition = {x : (objCenterX + itemCenterX) / 2,
+                                       y : (objCenterY + itemCenterY) / 2};
         //collision occured
         returnVal.push(item);
       }
@@ -195,7 +199,7 @@ exports.checkCircleCollision = function(tree, posX, posY, radius, id){
 };
 exports.calcCompelPos = function(obj, collisionObjs){
   var addPos = { x : 0 , y : 0 };
-  for(var i in collisionObjs){
+  for(var i=0; i<collisionObjs.length; i++){
     var objCenterX = obj.x + obj.width/2;
     var objCenterY = obj.y + obj.height/2;
 
@@ -583,6 +587,16 @@ exports.calcForePosition = function(position, direction, distance){
     y : position.y + distance * Math.sin(direction * radianFactor)
   }
 };
+exports.interpolationSine = function(time, lifeTime){
+  if(lifeTime){
+    return gameConfig.SKILL_EFFECT_INTERPOLATION_FACTOR * Math.sin(Math.PI * time / lifeTime) + 0.5;
+  }else{
+    return gameConfig.CAST_EFFECT_INTERPOLATION_FACTOR * Math.sin(2 * Math.PI * time / 1000) + 1;
+  }
+};
+exports.isNumeric = function(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
 function generateRandomID(prefix){
   var output = prefix;
   for(var i=0; i<6; i++){

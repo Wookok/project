@@ -3,8 +3,8 @@ var serverConfig = require('./serverConfig.json');
 
 var SkillCollider = function(user, skillData){
   this.id = user.objectID;
-  this.x = skillData.targetPosition.x;
-  this.y = skillData.targetPosition.y;
+  this.x = skillData.targetPosition.x - skillData.explosionRadius;
+  this.y = skillData.targetPosition.y - skillData.explosionRadius;
   this.width = skillData.explosionRadius * 2;
   this.height = skillData.explosionRadius * 2;
 
@@ -85,7 +85,10 @@ ProjectileCollider.prototype = {
     }
     return false;
   },
-  explode : function(){
+  explode : function(collisionPosition){
+    var centerX = this.x + this.width/2;
+    var centerY = this.y + this.height/2;
+
     if(this.type === gameConfig.SKILL_TYPE_PROJECTILE_TICK_EXPLOSION){
       this.fireDamage = this.fireDamage * this.explosionDamageRate/100;
       this.frostDamage = this.frostDamage * this.explosionDamageRate/100;
@@ -93,7 +96,13 @@ ProjectileCollider.prototype = {
     }
     this.width = this.explosionRadius * 2;
     this.height = this.explosionRadius * 2;
-    console.log('projectile is explode');
+    if(collisionPosition){
+      this.x = collisionPosition.x - this.explosionRadius;
+      this.y = collisionPosition.y - this.explosionRadius;
+    }else{
+      this.x = centerX - this.explosionRadius;
+      this.y = centerY - this.explosionRadius;
+    }
   }
 }
 

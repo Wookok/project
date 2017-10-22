@@ -89,6 +89,7 @@ function GameManager(){
   this.onNeedInformUserTakeDamage = new Function();
   this.onNeedInformUserReduceMP = new Function();
   this.onNeedInformUserGetExp = new Function();
+  this.onNeedInformUserGetResource = new Function();
   this.onNeedInformUserLevelUp = new Function();
   this.onNeedInformUserDeath = new Function();
 
@@ -168,13 +169,13 @@ GameManager.prototype.updateGame = function(){
 GameManager.prototype.setObstacles = function(){
   var trees = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_TREE));
   for(var i=0; i<Object.keys(trees).length; i++){
-    var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius * 2, trees[i].id);
+    var tempTree = new Obstacle(trees[i].posX, trees[i].posY, trees[i].radius, trees[i].id);
     this.obstacles.push(tempTree);
     staticEles.push(tempTree.staticEle);
   }
   var rocks = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_ROCK));
   for(var i=0; i<Object.keys(rocks).length; i++){
-    var tempRock = new Obstacle(rocks[i].posX, rocks[i].posY, rocks[i].radius * 2, rocks[i].id);
+    var tempRock = new Obstacle(rocks[i].posX, rocks[i].posY, rocks[i].radius, rocks[i].id);
     this.obstacles.push(tempRock);
     staticEles.push(tempRock.staticEle);
   }
@@ -188,7 +189,7 @@ GameManager.prototype.setObstacles = function(){
 GameManager.prototype.setChestsLocation = function(){
   var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
   for(var i=0; i<Object.keys(chestGrounds).length; i++){
-    var tempGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius * 2, chestGrounds[i].id);
+    var tempGround = new Obstacle(chestGrounds[i].posX, chestGrounds[i].posY, chestGrounds[i].radius, chestGrounds[i].id);
 
     this.chestLocations.push(tempGround);
     staticEles.push(tempGround.staticEle);
@@ -516,6 +517,7 @@ GameManager.prototype.joinUser = function(user){
   this.users[user.objectID].onTakeDamage = SUtil.onUserTakeDamage.bind(this);
   this.users[user.objectID].onReduceMP = SUtil.onUserReduceMP.bind(this);
   this.users[user.objectID].onGetExp = SUtil.onUserGetExp.bind(this);
+  this.users[user.objectID].onGetResource = SUtil.onUserGetResource.bind(this);
   this.users[user.objectID].onLevelUP = SUtil.onUserLevelUP.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
   // this.objExpsCount += serverConfig.OBJ_EXP_ADD_PER_USER;
@@ -572,8 +574,8 @@ GameManager.prototype.applySkill = function(userID, skillData){
     }
 
     //healHP, MP
-    var healHPAmount = (!isNaN(skillData.healHP) ? skillData.healHP : 0) + this.users[userID].maxHP * (!isNaN(skillData.healHPRate) ? skillData.healHPRate : 0) / 100;
-    var healMPAmount = (!isNaN(skillData.healMP) ? skillData.healMP : 0) + this.users[userID].maxMP * (!isNaN(skillData.healMPRate) ? skillData.healMPRate : 0) / 100;
+    var healHPAmount = (util.isNumeric(skillData.healHP) ? skillData.healHP : 0) + this.users[userID].maxHP * (util.isNumeric(skillData.healHPRate) ? skillData.healHPRate : 0) / 100;
+    var healMPAmount = (util.isNumeric(skillData.healMP) ? skillData.healMP : 0) + this.users[userID].maxMP * (util.isNumeric(skillData.healMPRate) ? skillData.healMPRate : 0) / 100;
     if(healHPAmount > 0 || healMPAmount > 0){
       this.users[userID].healHPMP(healHPAmount, healMPAmount);
     }
@@ -606,8 +608,8 @@ GameManager.prototype.applyProjectile = function(userID, projectileDatas){
       this.users[userID].addBuff(projectileDatas[0].buffToTarget, userID);
     }
     //healHP, MP
-    var healHPAmount = (!isNaN(projectileDatas[0].healHP) ? projectileDatas[0].healHP : 0) + this.users[userID].maxHP * (!isNaN(projectileDatas[0].healHPRate) ? projectileDatas[0].healHPRate : 0) / 100;
-    var healMPAmount = (!isNaN(projectileDatas[0].healMP) ? projectileDatas[0].healMP : 0) + this.users[userID].maxMP * (!isNaN(projectileDatas[0].healMPRate) ? projectileDatas[0].healMPRate : 0) / 100;
+    var healHPAmount = (util.isNumeric(projectileDatas[0].healHP) ? projectileDatas[0].healHP : 0) + this.users[userID].maxHP * (util.isNumeric(projectileDatas[0].healHPRate) ? projectileDatas[0].healHPRate : 0) / 100;
+    var healMPAmount = (util.isNumeric(projectileDatas[0].healMP) ? projectileDatas[0].healMP : 0) + this.users[userID].maxMP * (util.isNumeric(projectileDatas[0].healMPRate) ? projectileDatas[0].healMPRate : 0) / 100;
     if(healHPAmount > 0 || healMPAmount > 0){
       this.users[userID].healHPMP(healHPAmount, healMPAmount);
     }
@@ -646,40 +648,42 @@ GameManager.prototype.checkCheat = function(userData){
 };
 GameManager.prototype.updateUserData = function(userData){
   if(userData.objectID in this.users){
-    if(userData.time){
-      this.users[userData.objectID].beforePositions.push({
-        x : this.users[userData.objectID].position.x,
-        y : this.users[userData.objectID].position.y,
-        time : this.users[userData.objectID].time
-      });
-      if(this.users[userData.objectID].beforePositions.length > 5){
-        while(this.users[userData.objectID].beforePositions.length > 5){
-          this.users[userData.objectID].beforePositions.splice(0, 1);
+    if(util.isNumeric(userData.position.x) && util.isNumeric(userData.position.y)){
+      if(userData.time){
+        this.users[userData.objectID].beforePositions.push({
+          x : this.users[userData.objectID].position.x,
+          y : this.users[userData.objectID].position.y,
+          time : this.users[userData.objectID].time
+        });
+        if(this.users[userData.objectID].beforePositions.length > 5){
+          while(this.users[userData.objectID].beforePositions.length > 5){
+            this.users[userData.objectID].beforePositions.splice(0, 1);
+          }
         }
+        // for(var i=0; i<this.users[userData.objectID].beforePositions.length; i++){
+        //   // console.log(Date.now() - this.users[userData.objectID].beforePositions[i].time);
+        //   if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 300){
+        //     this.users[userData.objectID].before300msPos.x = this.users[userData.objectID].beforePositions[i].x;
+        //     this.users[userData.objectID].before300msPos.y = this.users[userData.objectID].beforePositions[i].y;
+        //   }else if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 150){
+        //     this.users[userData.objectID].before150msPos.x = this.users[userData.objectID].beforePositions[i].x;
+        //     this.users[userData.objectID].before150msPos.y = this.users[userData.objectID].beforePositions[i].y;
+        //   }
+        // }
+        this.users[userData.objectID].time = userData.time;
       }
-      // for(var i=0; i<this.users[userData.objectID].beforePositions.length; i++){
-      //   // console.log(Date.now() - this.users[userData.objectID].beforePositions[i].time);
-      //   if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 300){
-      //     this.users[userData.objectID].before300msPos.x = this.users[userData.objectID].beforePositions[i].x;
-      //     this.users[userData.objectID].before300msPos.y = this.users[userData.objectID].beforePositions[i].y;
-      //   }else if(Date.now() - this.users[userData.objectID].beforePositions[i].time > 150){
-      //     this.users[userData.objectID].before150msPos.x = this.users[userData.objectID].beforePositions[i].x;
-      //     this.users[userData.objectID].before150msPos.y = this.users[userData.objectID].beforePositions[i].y;
-      //   }
-      // }
-      this.users[userData.objectID].time = userData.time;
-    }
-    this.users[userData.objectID].currentState = userData.currentState;
-    this.users[userData.objectID].position = userData.position;
-    this.users[userData.objectID].direction = userData.direction;
-    if(userData.latency){
-      this.users[userData.objectID].latency = userData.latency;
-    }
-    if(userData.targetPosition){
-      this.users[userData.objectID].targetPosition = userData.targetPosition;
-    }
-    if(userData.skillIndex){
-      this.users[userData.objectID].currentSkill = userData.skillIndex;
+      this.users[userData.objectID].currentState = userData.currentState;
+      this.users[userData.objectID].position = userData.position;
+      this.users[userData.objectID].direction = userData.direction;
+      if(userData.latency){
+        this.users[userData.objectID].latency = userData.latency;
+      }
+      if(userData.targetPosition){
+        this.users[userData.objectID].targetPosition = userData.targetPosition;
+      }
+      if(userData.skillIndex){
+        this.users[userData.objectID].currentSkill = userData.skillIndex;
+      }
     }
   }else{
     console.log('cant find user data');
@@ -749,6 +753,8 @@ GameManager.prototype.processUserDataSettings = function(){
       objectID : index,
       type : this.users[index].type,
 
+      killScore : this.users[index].killScore,
+
       currentState : this.users[index].currentState,
       position : this.users[index].position,
       targetPosition : this.users[index].targetPosition,
@@ -788,6 +794,13 @@ GameManager.prototype.processChangedUserStat = function(user){
     rotateSpeed : user.rotateSpeed,
 
     conditions : user.conditions
+  };
+};
+GameManager.prototype.processUserResource = function(user){
+  return{
+    objectID : user.objectID,
+    gold : user.gold,
+    jewel : user.jewel
   };
 };
 GameManager.prototype.processUserPrivateDataSetting = function(user){
@@ -1042,6 +1055,7 @@ function updateIntervalHandler(){
         }else if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
           if(!tempCollider.isCollide){
             tempCollider.isCollide = true;
+            tempCollider.collisionPosition = collisionObjs.collisionPosition;
           }else if(tempCollider.isCollide){
             if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_USER){
               affectedEles.push(SUtil.setAffectedEleColSkillWithEntity(tempCollider, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_USER));
@@ -1202,7 +1216,11 @@ function updateIntervalHandler(){
         }
       }else if(this.projectiles[i].type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
         if(this.projectiles[i].isExpired() || this.projectiles[i].isCollide){
-          this.projectiles[i].explode();
+          if(this.projectiles[i].collisionPosition){
+            this.projectiles[i].explode(this.projectiles[i].collisionPosition);
+          }else{
+            this.projectiles[i].explode();
+          }
           this.skills.push(this.projectiles[i]);
           this.onNeedInformProjectileExplode(this.projectiles[i]);
           this.projectiles.splice(i, 1);
@@ -1296,6 +1314,7 @@ function staticIntervalHandler(){
         }else if(tempCollider.type === gameConfig.SKILL_TYPE_PROJECTILE_EXPLOSION){
           if(!tempCollider.isCollide){
             tempCollider.isCollide = true;
+            tempCollider.collisionPosition = collisionObjs.collisionPosition;
           }else if(tempCollider.isCollide){
             if(collisionObjs[j].id.substr(0,3) === gameConfig.PREFIX_OBSTACLE_TREE){
               affectedEles.push(SUtil.setAffectedEleColSkillWithObject(tempCollider.id, collisionObjs[j].id, serverConfig.COLLISION_SKILL_WITH_TREE));

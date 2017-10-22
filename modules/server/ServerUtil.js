@@ -92,12 +92,15 @@ exports.onUserReduceMP = function(user){
 exports.onUserGetExp = function(user){
   this.onNeedInformUserGetExp(user);
 };
+exports.onUserGetResource = function(user){
+  this.onNeedInformUserGetResource(user);
+};
 exports.onUserLevelUP = function(user){
   this.onNeedInformUserLevelUp(user);
 };
 exports.onUserDeath = function(attackUserID, exp, deadUserID){
   if(attackUserID in this.users){
-    this.users[attackUserID].getExp(exp);
+    this.users[attackUserID].getExp(exp, true);
   }else{
     console.log(attackUserID + ' is not exists');
   }

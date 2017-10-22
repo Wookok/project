@@ -70,6 +70,17 @@
     </div>
   </div>
   <div id="gameScene" class="disable">
+    <div class="gameSceneHudTopCenter disable" id="gameSceneHudTopCenter">
+      <div class="selectSkillContainer">
+        <img src="" id="selectSkillIcon">
+        <div id="selectSkillInfo"></div>
+      </div>
+      <button class="btnSelectSkillCancel" id="btnSelectSkillCancel">Cancel</button>
+    </div>
+    <div class="gameSceneHudTopRightCenter">
+      <div id="goldContainer">0</div>
+      <div id="jewelContainer">0</div>
+    </div>
     <div class="gameSceneHudTopRight">
     </div>
     <div class="gameSceneHudBottomLeft">
@@ -117,27 +128,33 @@
         <div class="hudBaseSkill">
           <div class="hudSkillImgContainer"><img src="" id="hudBaseSkillImg"></div>
           <div id="hudBaseSkillMask" class="skillMask"></div>
+          <div id="hudBaseSkillBlockMask" class="skillBlockMask disable"></div>
         </div>
         <div class="hudEquipSkills">
           <div class="hudEquipSkill1">
             <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill1Img"></div>
             <div id="hudEquipSkill1Mask" class="skillMask"></div>
+            <div id="hudEquipSkill1BlockMask" class="skillBlockMask disable"></div>
           </div>
           <div id="hudEquipSkill2" class="hudEquipSkill2">
             <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill2Img"></div>
             <div id="hudEquipSkill2Mask" class="skillMask"></div>
+            <div id="hudEquipSkill2BlockMask" class="skillBlockMask disable"></div>
           </div>
           <div id="hudEquipSkill3" class="hudEquipSkill3">
             <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill3Img"></div>
             <div id="hudEquipSkill3Mask" class="skillMask"></div>
+            <div id="hudEquipSkill3BlockMask" class="skillBlockMask disable"></div>
           </div>
           <div id="hudEquipSkill4" class="hudEquipSkill4">
             <div class="hudSkillImgContainer"><img src="" id="hudEquipSkill4Img"></div>
             <div id="hudEquipSkill4Mask" class="skillMask"></div>
+            <div id="hudEquipSkill4BlockMask" class="skillBlockMask disable"></div>
           </div>
         </div>
         <div id="hudPassiveSkill" class="hudPassiveSkill">
           <div class="hudSkillImgContainer"><img src="" id="hudPassiveSkillImg"></div>
+          <div id="hudPassiveSkillBlockMask" class="skillBlockMask disable"></div>
         </div>
       </div>
     </div>

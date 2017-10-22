@@ -382,15 +382,18 @@ CManager.prototype = {
 					}else{
 						console.log('skill type error!!!');
 					}
-					this.users[userID].setSkill(skillInstance);
+			this.users[userID].setSkill(skillInstance);
 		}
 	},
 	applySkill : function(skillData){
 		this.effects.push({
-			position : skillData.targetPosition,
+			property : skillData.property,
+			position : {x : skillData.targetPosition.x - skillData.explosionRadius,
+									y : skillData.targetPosition.y - skillData.explosionRadius},
 			radius : skillData.explosionRadius,
 			startTime : Date.now(),
 			lifeTime  : skillData.effectLastTime,
+			scaleFactor : 1,
 
 			isCheckCollision : false
 		});
@@ -401,6 +404,7 @@ CManager.prototype = {
 			objectID : skillData.objectID,
 
 			type : skillData.type,
+			property : skillData.property,
 
 			position : skillData.position,
 			speed : skillData.speed,
@@ -410,10 +414,12 @@ CManager.prototype = {
 
 			timer : Date.now(),
 			effect : {
-					position : skillData.position,
-					radius : skillData.explosionRadius,
-					startTime : 0,
-					lifeTime : skillData.lifeTime
+				property : skillData.property,
+				position : skillData.position,
+				radius : skillData.explosionRadius,
+				startTime : 0,
+				lifeTime : skillData.lifeTime,
+				scaleFactor : 1
 			},
 
 			move : function(){
@@ -428,11 +434,12 @@ CManager.prototype = {
 		    }
 		    return true;
 		  },
-			explode : function(){
-				this.setEffect();
+			explode : function(position){
+				this.setEffect(position);
 				console.log('explode!!!!!!');
 			},
-			setEffect : function(){
+			setEffect : function(position){
+				this.effect.position = position;
 				this.effect.startTime = Date.now();
 			}
 		});
@@ -464,11 +471,11 @@ CManager.prototype = {
 			}
 		}
 	},
-	explodeProjectile : function(projectileID, userID){
+	explodeProjectile : function(projectileID, userID, position){
 		for(var i=0; i<this.projectiles.length; i++){
 			if(this.projectiles[i].objectID === projectileID){
 				if(this.projectiles[i].userID === userID){
-					this.projectiles[i].explode();
+					this.projectiles[i].explode(position);
 					// this.projectiles[i].startEffectTimer();
 					this.effects.push(this.projectiles[i].effect);
 					this.projectiles.splice(i, 1);
@@ -637,6 +644,8 @@ function staticIntervalHandler(){
 		}
 		if(this.effects[i].startTime + this.effects[i].lifeTime < Date.now()){
 			this.effects.splice(i, 1);
+		}else{
+			this.effects[i].scaleFactor = util.interpolationSine(Date.now() - this.effects[i].startTime, this.effects[i].lifeTime);
 		}
 	}
 };

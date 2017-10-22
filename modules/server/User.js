@@ -20,6 +20,8 @@ function User(socketID, userStat, userBase, exp){
   // base setting;
   this.type = userStat.type;
 
+  this.killScore = 0;
+
   this.gold = 0;
   this.jewel = 0;
 
@@ -111,6 +113,7 @@ function User(socketID, userStat, userBase, exp){
   this.onTakeDamage = new Function();
   this.onReduceMP = new Function();
   this.onGetExp = new Function();
+  this.onGetResource = new Function();
   this.onLevelUP = new Function();
   this.onDeath = new Function();
 
@@ -795,27 +798,27 @@ User.prototype.takeDamage = function(attackUserID, fireDamage, frostDamage, arca
 
     var dmg = 0;
     var dmgToMP = 0;
-    if(!isNaN(fireDamage)){
+    if(util.isNumeric(fireDamage)){
       var dmgFire = (fireDamage + additionalDamage + additionalFireDamage - (this.reductionAll + this.reductionFire)) * additionalDamageRate/100 * additionalFireDamageRate/100 * (1 - this.resistAll/100) * (1 - this.resistFire/100) ;
       if(dmgFire <= 0){
         dmgFire = 1;
       }
       dmg += dmgFire;
     }
-    if(!isNaN(frostDamage)){
+    if(util.isNumeric(frostDamage)){
       var dmgFrost = (frostDamage + additionalDamage + additionalFrostDamage - (this.reductionAll + this.reductionFrost)) * additionalDamageRate/100 * additionalFrostDamageRate/100 * (1 - this.resistAll/100) * (1 - this.resistFrost/100);
       if(dmgFrost <= 0){
         dmgFrost = 1;
       }
       dmg += dmgFrost;
     }
-    if(!isNaN(arcaneDamage)){
+    if(util.isNumeric(arcaneDamage)){
       var dmgArcane = (arcaneDamage + additionalDamage + additionalArcaneDamage - (this.reductionAll + this.reductionArcane)) * additionalDamageRate/100 * additionalFrostDamageRate/100 * (1 - this.resistAll/100) * (1 - this.resistArcane/100);
       if(dmgArcane <= 0){
         dmgArcane = 1 ;
       }
       dmg += dmgFrost;
-      if(!isNaN(damageToMP)){
+      if(util.isNumeric(damageToMP)){
         dmgToMP = damageToMP;
       }
     }
@@ -862,10 +865,10 @@ User.prototype.takeDamageToMP = function(dmgToMP){
 User.prototype.healHPMP = function(hpAmount, mpAmount){
   var beforeHP = this.HP;
   var beforeMP = this.MP;
-  if(!isNaN(hpAmount)){
+  if(util.isNumeric(hpAmount)){
     this.healHP(hpAmount);
   }
-  if(!isNaN(mpAmount)){
+  if(util.isNumeric(mpAmount)){
     this.healMP(mpAmount)
   }
   if(beforeHP !== this.HP || beforeMP !== this.MP){
@@ -914,7 +917,7 @@ User.prototype.cancelBlur = function(){
   }
   this.onChangeStat(this);
 };
-User.prototype.getExp = function(exp){
+User.prototype.getExp = function(exp, isKillUser){
   var userLevelData = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', this.type, 'level', this.level));
   if(userLevelData.needExp === -1){
     console.log('user reach max level');
@@ -926,16 +929,21 @@ User.prototype.getExp = function(exp){
     this.exp -= userLevelData.needExp;
     this.levelUp();
   }
+  if(isKillUser){
+    this.killScore ++;
+  }
 };
 User.prototype.getGold = function(goldAmount){
-  if(!isNaN(goldAmount)){
+  if(util.isNumeric(goldAmount)){
     this.gold += goldAmount;
   }
+  this.onGetResource(this);
 };
 User.prototype.getJewel = function(jewelAmount){
-  if(!isNaN(jewelAmount)){
+  if(util.isNumeric(jewelAmount)){
     this.jewel += jewelAmount;
   }
+  this.onGetResource(this);
 };
 User.prototype.levelUp = function(){
   this.level ++;
