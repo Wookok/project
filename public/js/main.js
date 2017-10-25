@@ -41,6 +41,8 @@ var objGoldImgData, objJewelImgData, objSkillFireImgData, objSkillFrostImgData, 
 var castFireImgData, castFrostImgData, castArcaneImgData;
 var projectileFireImgData, projectileFrostImgData, projectileArcaneImgData;
 var skillFireImgData, skillFrostImgData, skillArcaneImgData;
+var conditionFreezeImgData, conditionChillImgData, conditionImmortalImgData, conditionSilenceImgData,
+    conditionIgnite1ImgData, conditionIgnite2ImgData, conditionIgnite3ImgData, conditionIgnite4ImgData, conditionIgnite5ImgData;
 // var userImage, userHand;
 // var grid;
 
@@ -282,6 +284,15 @@ function setBaseSetting(){
   skillFrostImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_EFFECT_FROST));
   skillArcaneImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_SKILL_EFFECT_ARCANE));
 
+  conditionFreezeImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_FREEZE));
+  conditionChillImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_CHILL));
+  conditionImmortalImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_IMMORTAL));
+  conditionSilenceImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_SILENCE));
+  conditionIgnite1ImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_IGNITE1));
+  conditionIgnite2ImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_IGNITE2));
+  conditionIgnite3ImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_IGNITE3));
+  conditionIgnite4ImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_IGNITE4));
+  conditionIgnite5ImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_IGNITE5));
   // grid = new Image();
   // grid.src = resources.GRID_SRC;
 };
@@ -341,6 +352,7 @@ function drawGame(){
   drawChests();
   drawEffect();
   drawProjectile();
+  drawRiseText();
   if(drawMode === gameConfig.DRAW_MODE_SKILL_RANGE){
     drawSkillRange();
   }
@@ -481,9 +493,10 @@ function setupSocket(){
     changeState(gameConfig.GAME_STATE_GAME_ON);
     userDataUpdateInterval = setInterval(updateUserDataHandler, INTERVAL_TIMER);
   });
-  socket.on('userJoined', function(data){
+  socket.on('userJoined', function(data, rankDatas){
     data.imgData = Manager.setImgData(data);
     Manager.setUser(data);
+    UIManager.updateBoard(rankDatas, gameConfig.userID);
     console.log('user joined ' + data.objectID);
   });
   socket.on('userDataUpdate', function(userData){
@@ -592,6 +605,10 @@ function setupSocket(){
     UIManager.getResource(resourceData);
   });
   socket.on('changeUserStat', function(userData){
+    if(userData.objectID === gameConfig.userID){
+      var beforeHP = Manager.getUserHP(userData.objectID);
+      var beforeExp = Manager.getUserExp(userData.objectID);
+    }
     Manager.changeUserStat(userData);
     if(userData.objectID === gameConfig.userID){
       UIManager.updateHP(userData);
@@ -599,6 +616,17 @@ function setupSocket(){
 
       var needExp = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', characterType, 'level', userData.level)).needExp;
       UIManager.updateExp(userData, needExp);
+    }
+    if(userData.objectID === gameConfig.userID){
+      var afterHP = Manager.getUserHP(userData.objectID);
+      var afterExp = Manager.getUserExp(userData.objectID);
+      var userCenter = Manager.getUserCenter(userData.objectID);
+      if(beforeHP !== afterHP){
+        Manager.addRiseText(afterHP - beforeHP, 'rgb(255, 0, 0)', userCenter);
+      }
+      if(afterExp > beforeExp){
+        Manager.addRiseText(afterExp - beforeExp, 'rgb(0, 255, 0)', userCenter);
+      }
     }
   });
   socket.on('userDamaged', function(userData){
@@ -616,12 +644,13 @@ function setupSocket(){
     UIManager.updatePossessionSkills(possessSkills);
     UIManager.setPopUpSkillChange();
   });
-  socket.on('userDead', function(attackUserID, deadUserID){
+  socket.on('userDead', function(attackUserID, deadUserID, userDatas){
     if(deadUserID === gameConfig.userID){
       Manager.iamDead();
       changeState(gameConfig.GAME_STATE_END);
     }
     Manager.kickUser(deadUserID);
+    UIManager.updateBoard(userDatas, gameConfig.userID);
   });
   socket.on('userLeave', function(objID){
     Manager.kickUser(objID);
@@ -782,6 +811,46 @@ function drawUsers(){
                   -imgData.width/2 * gameConfig.scaleFactor * scaleFactor, -imgData.height/2 * gameConfig.scaleFactor * scaleFactor, imgData.width * gameConfig.scaleFactor * scaleFactor, imgData.height * gameConfig.scaleFactor * scaleFactor);
       ctx.closePath();
     }
+    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_FREEZE]){
+      ctx.drawImage(resourceCharacter, conditionFreezeImgData.srcPosX, conditionFreezeImgData.srcPosY, conditionFreezeImgData.srcWidth, conditionFreezeImgData.srcHeight,
+                    -conditionFreezeImgData.width/2 * gameConfig.scaleFactor, -conditionFreezeImgData.height/2 * gameConfig.scaleFactor, conditionFreezeImgData.width * gameConfig.scaleFactor, conditionFreezeImgData.height * gameConfig.scaleFactor);
+    }
+    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_CHILL]){
+      ctx.drawImage(resourceCharacter, conditionChillImgData.srcPosX, conditionChillImgData.srcPosY, conditionChillImgData.srcWidth, conditionChillImgData.srcHeight,
+                    -conditionChillImgData.width/2 * gameConfig.scaleFactor, -conditionChillImgData.height/2 * gameConfig.scaleFactor, conditionChillImgData.width * gameConfig.scaleFactor, conditionChillImgData.height * gameConfig.scaleFactor);
+    }
+    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_SILENCE]){
+      ctx.drawImage(resourceCharacter, conditionSilenceImgData.srcPosX, conditionSilenceImgData.srcPosY, conditionSilenceImgData.srcWidth, conditionSilenceImgData.srcHeight,
+                    -conditionSilenceImgData.width/2 * gameConfig.scaleFactor, -conditionSilenceImgData.height/2 * gameConfig.scaleFactor, conditionSilenceImgData.width * gameConfig.scaleFactor, conditionSilenceImgData.height * gameConfig.scaleFactor);
+    }
+    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_IMMORTAL]){
+      radian = Manager.users[index].effectRotateDegree * radianFactor;
+      ctx.rotate(radian);
+      ctx.drawImage(resourceCharacter, conditionImmortalImgData.srcPosX, conditionImmortalImgData.srcPosY, conditionImmortalImgData.srcWidth, conditionImmortalImgData.srcHeight,
+                    -conditionImmortalImgData.width/2 * gameConfig.scaleFactor, -conditionImmortalImgData.height/2 * gameConfig.scaleFactor, conditionImmortalImgData.width * gameConfig.scaleFactor, conditionImmortalImgData.height * gameConfig.scaleFactor);
+    }
+    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_IGNITE]){
+      switch (Manager.users[index].effectIndex) {
+        case 0:
+          imgData = conditionIgnite1ImgData;
+          break;
+        case 1:
+          imgData = conditionIgnite2ImgData;
+          break;
+        case 2:
+          imgData = conditionIgnite3ImgData;
+          break;
+        case 3:
+          imgData = conditionIgnite4ImgData;
+          break;
+        case 4:
+          imgData = conditionIgnite5ImgData;
+          break;
+        default:
+      }
+      ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+                  -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
+    }
     ctx.restore();
 
     //draw HP gauge
@@ -855,6 +924,15 @@ function drawProjectile(){
     ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
                   posX * gameConfig.scaleFactor, posY * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor, Manager.projectiles[i].radius * 2 * gameConfig.scaleFactor);
     ctx.closePath();
+  }
+};
+function drawRiseText(){
+  for(var i=0; i<Manager.riseText.length; i++){
+    ctx.font = "30px Arial";
+    ctx.fillStyle = Manager.riseText[i].color;
+    // console.log(Manager.riseText[i].position);
+    var pos = util.worldToLocalPosition(Manager.riseText[i].position, gameConfig.userOffset);
+    ctx.fillText(Manager.riseText[i].text, pos.x, pos.y);
   }
 };
 function drawSkillRange(){

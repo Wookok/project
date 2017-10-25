@@ -31,6 +31,7 @@ var CManager = function(){
 	this.obstacles = [];
 	this.effects = [];
 	this.projectiles = [];
+	this.riseText = [];
 
 	// this.objExps = [];
 	this.objGolds = [];
@@ -418,7 +419,7 @@ CManager.prototype = {
 				position : skillData.position,
 				radius : skillData.explosionRadius,
 				startTime : 0,
-				lifeTime : skillData.lifeTime,
+				lifeTime : skillData.effectLastTime,
 				scaleFactor : 1
 			},
 
@@ -553,6 +554,41 @@ CManager.prototype = {
 			console.log('if print me. Something is wrong');
 		}
 	},
+	addRiseText : function(amount, color, position){
+		var riseText = {text : amount, color : color, position : position};
+		this.riseText.push(riseText);
+		var thisRiseText = this.riseText;
+		var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
+
+		var tempInterval = setInterval(function(){
+			riseText.position.y -= 1;
+		}, INTERVAL_TIMER);
+		setTimeout(function(){
+			var index = thisRiseText.indexOf(riseText);
+			if(index >= 0){
+				thisRiseText.splice(index, 1);
+			}
+			clearInterval(tempInterval);
+		}, gameConfig.RISE_TEXT_LIFE_TIME);
+	},
+	getUserHP : function(userID){
+		if(userID in this.users){
+			return this.users[userID].HP;
+		}
+	},
+	getUserExp : function(userID){
+		if(userID in this.users){
+			return this.users[userID].exp;
+		}
+	},
+	getUserCenter : function(userID){
+		if(userID in this.users){
+			return {
+				x : this.users[userID].center.x,
+				y : this.users[userID].center.y
+			};
+		}
+	},
 	processUserData : function(){
 		return {
 			objectID : this.user.objectID,
@@ -597,7 +633,7 @@ function staticIntervalHandler(){
 					tempCollider.isCollide = true;
 					setTimeout(function(){
 						tempCollider.isCollide = false;
-					}, gameConfig.SKiLL_HIT_EFFECT_TIME);
+					}, gameConfig.SKILL_HIT_EFFECT_TIME);
 				}
 			}
 		}
@@ -627,7 +663,7 @@ function staticIntervalHandler(){
 								 tempCollider.isCollide = true;
 								 setTimeout(function(){
 									 tempCollider.isCollide = false;
-								 }, gameConfig.SKiLL_HIT_EFFECT_TIME);
+								 }, gameConfig.SKILL_HIT_EFFECT_TIME);
 							 }
 						 }
 					 }

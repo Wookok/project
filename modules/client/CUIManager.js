@@ -29,7 +29,7 @@ var hudBaseSkillMask, hudEquipSkill1Mask, hudEquipSkill2Mask, hudEquipSkill3Mask
 var hudBaseSkillBlockMask, hudEquipSkill1BlockMask, hudEquipSkill2BlockMask, hudEquipSkill3BlockMask, hudEquipSkill4BlockMask, hudPassiveSkillBlockMask;
 var userStatPowerContainer, userStatMagicContainer, userStatSpeedContainer;
 var gameSceneHudTopCenter, selectSkillIcon, selectSkillInfo, btnSelectSkillCancel;
-var goldContainer, jewelContainer;
+var goldContainer, jewelContainer, gameSceneHudTopRight;
 
 var popUpSkillChange, popUpSkillContainer, popUpBackground;
 var popUpSkillInfoIcon, popUpSkillInfoDesc, popUpSkillUpgradeBtn;
@@ -203,6 +203,7 @@ UIManager.prototype = {
     btnSelectSkillCancel.onclick = onSelectSkillCancelBtnClickHandler.bind(this);
     goldContainer = document.getElementById('goldContainer');
     jewelContainer = document.getElementById('jewelContainer');
+    gameSceneHudTopRight = document.getElementById('gameSceneHudTopRight');
   },
   drawStartScene : function(){
     // startScene.classList.add('enable');
@@ -625,55 +626,29 @@ UIManager.prototype = {
   },
   setBoard : function(userDatas, userID){
     var rank = [];
-    var isRanker = false;
+    var userRank = 0;
+    userDatas.sort(function(a, b){
+      return b.killScore - a.killScore;
+    });
     for(var i=0; i<userDatas.length; i++){
-
+      if(userID === userDatas[i].objectID){
+        userRank = i + 1;
+      }
+      rank.push({rank : i + 1, name : userDatas[i].objectID, kill : userDatas[i].killScore });
     }
-
-    // var usersMass = [];
-    // var rank = [];
-    // for(var index in Manager.users){
-    //   var totalMass = Manager.users[index].mass;
-    //   for(var i=0; i<Manager.users[index].clones.length; i++){
-    //     totalMass += Manager.users[index].clones[i].mass;
-    //   }
-    //   usersMass.push({name : Manager.users[index].name, mass : totalMass});
-    // }
-    // for(var i=0; i<usersMass.length; i++){
-    //   if(rank.length === 0){
-    //     rank.push(usersMass[i]);
-    //   }else{
-    //     var insertIndex = 0;
-    //     for(var j=0; j<rank.length; j++){
-    //       if(rank[j].mass < usersMass[i].mass){
-    //         insertIndex = j;
-    //         break;
-    //       }
-    //       insertIndex ++;
-    //     }
-    //     rank.splice(insertIndex, 0, usersMass[i]);
-    //   }
-    // }
-    // var nodesLength = board.childNodes.length;
-    // for(var i=0; i < nodesLength; i++){
-    //   board.removeChild(board.childNodes[0]);
-    // }
-    // var x = document.createElement("H2");
-    // var t = document.createTextNode('Rank');
-    // x.appendChild(t);
-    // board.appendChild(x);
-    //
-    // if(rank.length > 10){
-    //   var length = 10;
-    // }else{
-    //   length = rank.length;
-    // }
-    // for(var i=0; i<length; i++){
-    //   var x = document.createElement("P");
-    //   var t = document.createTextNode(rank[i].name + ' : ' + Math.floor(rank[i].mass));
-    //   x.appendChild(t);
-    //   board.appendChild(x);
-    // }
+    var output = "";
+    var length = rank.length > 10 ? 10 : rank.length;
+    for(var i=0; i<length; i++){
+      output += rank[i].rank + ' : ' + rank[i].name + ' : ' + rank[i].kill + '<br>';
+    }
+    if(userRank > 10){
+      output += rank[i].rank + ' : ' + rank[i].name + ' : ' + rank[i].kill;
+    }
+    gameSceneHudTopRight.innerHTML = "";
+    gameSceneHudTopRight.innerHTML = output;
+  },
+  updateBoard : function(userDatas, userID){
+    this.setBoard(userDatas, userID);
   },
   setMiniMapChests : function(chestDatas, chestLocationDatas){
     miniMapChest1.setAttribute('locationID', chestLocationDatas[0].id);

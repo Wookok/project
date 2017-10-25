@@ -67,8 +67,8 @@ CSkill.prototype = {
       clearTimeout(this.totalTimeout);
     }
   },
-  makeProjectile : function(currentPosition, projectileID, direction){
-    var forePosition = util.calcForePosition(currentPosition, direction, gameConfig.PROJECTILE_FIRE_DISTANCE);
+  makeProjectile : function(userCenter, projectileID, direction){
+    var forePosition = util.calcForePosition(userCenter, this.radius, direction, gameConfig.PROJECTILE_FIRE_DISTANCE);
     var projectile = new ProjectileSkill(this, forePosition, projectileID, direction)
     return projectile;
   }

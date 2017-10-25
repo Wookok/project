@@ -31,6 +31,10 @@ var User = function(userData){
   this.skillCastEffectPlay = false;
   this.castEffectFactor = 1;
 
+  this.effectTimer = Date.now();
+  this.effectRotateDegree = 0;
+  this.effectIndex = 0;
+
   this.size = userData.size;
 
   this.position = userData.position;
@@ -101,12 +105,12 @@ User.prototype = {
     this.center.y = this.position.y + this.size.height/2
   },
   idle : function(){
-    this.timer = Date.now();
+    this.doEveryTick();
   },
   rotate : function(){
     var deltaTime = (Date.now() - this.timer)/1000;
     util.rotate.call(this, deltaTime);
-    this.timer = Date.now();
+    this.doEveryTick();
   },
   move : function(deltaTime, isMoveSlight){
     if(isMoveSlight){
@@ -127,7 +131,19 @@ User.prototype = {
   },
   attack : function(){
     this.executeSkill();
+    this.doEveryTick();
+  },
+  doEveryTick : function(){
     this.timer = Date.now();
+    if(Date.now() - this.effectTimer >= gameConfig.USER_EFFECT_CHANGE_TIME){
+      this.effectTimer = Date.now();
+      this.effectRotateDegree += 10;
+      if(this.effectIndex > 4){
+        this.effectIndex = 0;
+      }else{
+        this.effectIndex += 1;
+      }
+    }
   },
   addPosAndTargetPos : function(addPosX , addPosY){
     this.position.x += addPosX;
@@ -193,7 +209,7 @@ User.prototype = {
     console.log(this.possessSkills);
   },
   makeProjectile : function(projectileID, skillInstance, direction){
-    var projectile = skillInstance.makeProjectile(this.position, projectileID, direction);
+    var projectile = skillInstance.makeProjectile(this.center, projectileID, direction);
     return projectile;
   }
 };

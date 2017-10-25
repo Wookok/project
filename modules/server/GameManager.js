@@ -520,9 +520,11 @@ GameManager.prototype.joinUser = function(user){
   this.users[user.objectID].onGetResource = SUtil.onUserGetResource.bind(this);
   this.users[user.objectID].onLevelUP = SUtil.onUserLevelUP.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
+  this.setStartBuff(user);
   // this.objExpsCount += serverConfig.OBJ_EXP_ADD_PER_USER;
   this.objGoldsCount += serverConfig.OBJ_GOLD_ADD_PER_USER;
-  console.log(this.users);
+  console.log(user.conditions);
+  // console.log(this.users);
   console.log(user.objectID + ' join in GameManager');
 };
 GameManager.prototype.kickUser = function(user){
@@ -537,6 +539,9 @@ GameManager.prototype.kickUser = function(user){
 GameManager.prototype.stopUser = function(user){
   user.stop();
 };
+GameManager.prototype.setStartBuff = function(user){
+  this.users[user.objectID].addBuff(serverConfig.START_BUFF_INDEX, user.objectID);
+}
 //user initialize
 GameManager.prototype.initializeUser = function(user, baseSkill, possessSkills, inherentPassiveSkill){
   // check ID is unique
@@ -751,6 +756,7 @@ GameManager.prototype.processUserDataSettings = function(){
   for(var index in this.users){
     userData.push({
       objectID : index,
+      name : this.users[index].objectID,
       type : this.users[index].type,
 
       killScore : this.users[index].killScore,
@@ -802,6 +808,15 @@ GameManager.prototype.processUserResource = function(user){
     gold : user.gold,
     jewel : user.jewel
   };
+};
+GameManager.prototype.processScoreDatas = function(){
+  var datas = [];
+  for(var i in this.users){
+    if(!this.users[i].isDead){
+      datas.push({name : this.users[i].objectID, killScore : this.users[i].killScore});
+    }
+  }
+  return datas;
 };
 GameManager.prototype.processUserPrivateDataSetting = function(user){
   return {

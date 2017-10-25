@@ -21,6 +21,7 @@ function User(socketID, userStat, userBase, exp){
   this.type = userStat.type;
 
   this.killScore = 0;
+  this.isDead = false;
 
   this.gold = 0;
   this.jewel = 0;
@@ -231,16 +232,16 @@ User.prototype.updateStatAndCondition = function(){
   var buffList = [];
 
   //set inherent passive buffs
-  if(this.inherentPassiveSkill){
-    var inherentPassiveBuffGroupIndex = Object.assign({}, util.findData(skillTable, 'index', this.inherentPassiveSkill)).buffToSelf;
-    var inherentPassiveBuffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', inherentPassiveBuffGroupIndex));
-    var buffs = util.findAndSetBuffs(inherentPassiveBuffGroupData, buffTable, this.objectID);
-    for(var i=0; i<buffs.length; i++){
-      if(buffs[i].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL){
-        buffList.push(buffs[j]);
-      }
-    }
-  }
+  // if(this.inherentPassiveSkill){
+  //   var inherentPassiveBuffGroupIndex = Object.assign({}, util.findData(skillTable, 'index', this.inherentPassiveSkill)).buffToSelf;
+  //   var inherentPassiveBuffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', inherentPassiveBuffGroupIndex));
+  //   var buffs = util.findAndSetBuffs(inherentPassiveBuffGroupData, buffTable, this.objectID);
+  //   for(var i=0; i<buffs.length; i++){
+  //     if(buffs[i].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL){
+  //       buffList.push(buffs[i]);
+  //     }
+  //   }
+  // }
   //set passive buffs
   for(var i=0; i<this.passiveList.length; i++){
     buffs = util.findAndSetBuffs(this.passiveList[i], buffTable, this.objectID);
@@ -255,7 +256,7 @@ User.prototype.updateStatAndCondition = function(){
     if(Date.now() - this.buffList[i].startTime > this.buffList[i].buffLifeTime){
       this.buffList.splice(i, 1);
     }else{
-      buffs = util.findAndSetBuffs(this.buffList[i], buffTable, this.buffList[i].actorID);
+      buffs = util.getBuffs(this.buffList[i]);
       for(var j=0; j<buffs.length; j++){
         if(buffs[j].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL && Date.now() - this.buffList[i].tickStartTime > buffs[j].buffTickTime){
           buffList.push(buffs[j]);
@@ -375,6 +376,8 @@ User.prototype.updateStatAndCondition = function(){
           }
           break;
         case serverConfig.BUFF_TYPE_SET_CONDITION:
+          console.log('BUFF_TYPE_SET_CONDITION');
+          console.log(buffList);
           if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IMMORTAL){
             this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = buffList[buffIndex].actorID;
           }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_CHILL){
@@ -545,7 +548,9 @@ function regenIntervalHandler(){
 };
 User.prototype.addBuff = function(buffGroupIndex, actorID){
   //check apply rate with resist
+  console.log('addBuff');
   var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
+  console.log(buffGroupData);
   if(buffGroupData){
     var isApply = false;
     var rate = Math.floor(Math.random() * 101);
@@ -891,17 +896,21 @@ User.prototype.healMP = function(amount){
 };
 User.prototype.death = function(attackUserID){
   //calculate exp to attacker
-  console.log(this.objectID + ' is dead by ' + attackUserID);
-  this.buffList = [];
-  this.passiveList = [];
-  clearInterval(this.buffUpdateInterval);
-  clearInterval(this.regenInterval);
+  if(!this.isDead){
+    this.isDead = true;
 
-  this.buffUpdateInterval = false;
-  this.regenInterval = false;
+    console.log(this.objectID + ' is dead by ' + attackUserID);
+    this.buffList = [];
+    this.passiveList = [];
+    clearInterval(this.buffUpdateInterval);
+    clearInterval(this.regenInterval);
 
-  var exp = this.level *  10000;
-  this.onDeath(attackUserID, exp, this.objectID);
+    this.buffUpdateInterval = false;
+    this.regenInterval = false;
+
+    var exp = this.level *  10000;
+    this.onDeath(attackUserID, exp, this.objectID);
+  }
 };
 User.prototype.cancelBlur = function(){
   for(var i=this.buffList.length - 1; i>=0; i--){
@@ -931,6 +940,7 @@ User.prototype.getExp = function(exp, isKillUser){
   }
   if(isKillUser){
     this.killScore ++;
+    console.log(this.killScore);
   }
 };
 User.prototype.getGold = function(goldAmount){

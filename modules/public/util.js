@@ -530,7 +530,16 @@ exports.findAndSetBuffs = function(buffGroupData, buffTable, actorID){
     }
   }
   return returnVal;
-}
+};
+exports.getBuffs = function(buffGroupData){
+  var returnVal = [];
+  for(var i=0; i<5; i++){
+    if(buffGroupData['buff' + (i + 1)]){
+      returnVal.push(buffGroupData['buff' + (i + 1)]);
+    }
+  }
+  return returnVal;
+};
 exports.generateRandomUniqueID = function(uniqueCheckArray, prefix, idCount){
   if(!idCount){
     var IDisUnique = false;
@@ -581,11 +590,11 @@ exports.getElementsByClassName = function(parentDiv, className){
   }
   return returnDivs;
 };
-exports.calcForePosition = function(position, direction, distance){
+exports.calcForePosition = function(center, radius, direction, distance){
   return {
-    x : position.x + distance * Math.cos(direction * radianFactor),
-    y : position.y + distance * Math.sin(direction * radianFactor)
-  }
+    x : center.x + distance * Math.cos(direction * radianFactor) - radius,
+    y : center.y + distance * Math.sin(direction * radianFactor) - radius
+  };
 };
 exports.interpolationSine = function(time, lifeTime){
   if(lifeTime){
