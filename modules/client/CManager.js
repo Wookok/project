@@ -30,9 +30,11 @@ var CManager = function(){
 	this.chests = [];
 	this.obstacles = [];
 	this.effects = [];
+	this.userEffects = [];
 	this.projectiles = [];
 	this.riseText = [];
 
+	this.userEffectTimer = Date.now();
 	// this.objExps = [];
 	this.objGolds = [];
 	this.objJewels = [];
@@ -422,7 +424,6 @@ CManager.prototype = {
 				lifeTime : skillData.effectLastTime,
 				scaleFactor : 1
 			},
-
 			move : function(){
 				var deltaTime = (Date.now() - this.timer)/ 1000;
 		    this.position.x += this.speed.x * deltaTime;
@@ -542,6 +543,11 @@ CManager.prototype = {
 			console.log('can`t find user data');
 		}
 	},
+	updateUserBuffImgData : function(userID, buffImgDataList){
+		if(userID in this.users){
+			this.users[userID].updateBuffImgData(buffImgDataList);
+		}
+	},
 	// set this client user
 	synchronizeUser : function(userID){
 		for(var index in this.users){
@@ -623,6 +629,24 @@ CManager.prototype = {
 };
 
 function staticIntervalHandler(){
+	for(var i=this.userEffects.length - 1; i>=0; i--){
+		if(Date.now() - this.userEffects[i].startTime >= this.userEffects[i].resourceLifeTime){
+			this.userEffects.splice(i, 1);
+		}else if(Date.now() - this.userEffects[i].effectTimer >= gameConfig.USER_EFFECT_CHANGE_TIME){
+			this.userEffects[i].changeIndex();
+		}
+	}
+	if(Date.now() - this.userEffectTimer >= gameConfig.USER_EFFECT_CHANGE_TIME){
+		for(var index in this.users){
+			for(var i=0; i<this.users[index].buffImgDataList.length; i++){
+				if(!this.users[index].buffImgDataList[i].isAttach){
+					var userEffect = util.makeUserEffect(this.users[index], this.users[index].buffImgDataList[i]);
+					this.userEffects.push(userEffect);
+				}
+			}
+		}
+		this.userEffectTimer = Date.now();
+	}
 	var i=checkCollisionEles.length;
 	while(i--){
 		var collisionObjs = util.checkCircleCollision(staticTree, checkCollisionEles[i].position.x, checkCollisionEles[i].position.y, checkCollisionEles[i].radius, gameConfig.PREFIX_SKILL);
@@ -639,7 +663,6 @@ function staticIntervalHandler(){
 		}
 		checkCollisionEles.splice(i, 1);
 	}
-
 
 	//user elements update for collision check
 	for(var index in this.users){

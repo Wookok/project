@@ -376,8 +376,6 @@ User.prototype.updateStatAndCondition = function(){
           }
           break;
         case serverConfig.BUFF_TYPE_SET_CONDITION:
-          console.log('BUFF_TYPE_SET_CONDITION');
-          console.log(buffList);
           if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_IMMORTAL){
             this.conditions[gameConfig.USER_CONDITION_IMMORTAL] = buffList[buffIndex].actorID;
           }else if(buffList[buffIndex].buffEffectType === serverConfig.BUFF_EFFECT_TYPE_SET_CONDITION_CHILL){

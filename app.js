@@ -72,7 +72,8 @@ GM.onNeedInformUserLevelUp = function(user){
 GM.onNeedInformBuffUpdate = function(user){
   var buffData = GM.processBuffDataSetting(user);
   console.log(buffData);
-  io.to(user.socketID).emit('updateBuff', buffData);
+  io.sockets.emit('updateBuff', buffData);
+  // io.to(user.socketID).emit('updateBuff', buffData);
 };
 GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
   io.to(socketID).emit('upgradeSkill', beforeSkillIndex, afterSkillIndex);
@@ -168,6 +169,7 @@ io.on('connection', function(socket){
 
     socket.emit('syncAndSetSkills', userData);
     socket.emit('resStartGame', userDatas, objDatas, chestDatas);
+    GM.setStartBuff(user);
   });
   var count = 1;
   socket.on('reqRestartGame', function(charType, equipSkills){

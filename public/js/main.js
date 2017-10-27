@@ -12,6 +12,7 @@ var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : 
 var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
 var resourceTable = csvJson.toObject(dataJson.resourceData, {delimiter : ',', quote : '"'});
 var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
+var effectGroupTable = csvJson.toObject(dataJson.effectGroupData, {delimiter : ',', quote : '"'});
 var socket;
 
 // document elements
@@ -347,6 +348,7 @@ function drawGame(){
   drawBackground();
   drawGrid();
   drawObjs();
+  drawUserEffect();
   drawUsers();
   drawObstacles();
   drawChests();
@@ -636,8 +638,21 @@ function setupSocket(){
     }
   });
   socket.on('updateBuff', function(buffData){
-    UIManager.updateBuffIcon(buffData.passiveList, buffData.buffList);
-  })
+    if(buffData.objectID === gameConfig.userID){
+      UIManager.updateBuffIcon(buffData.passiveList, buffData.buffList);
+    }
+    //set buffImg data
+    var buffImgDataList = [];
+    for(var i=0; i<buffData.buffList.length; i++){
+      var buffImgDataIndex = Object.assign({}, util.findData(buffGroupTable, 'index', buffData.buffList[i].index)).buffEffectGroup;
+      var buffImgData = Object.assign({}, util.findData(effectGroupTable, 'index', buffImgDataIndex));
+      var hasResource = util.setResourceData(resourceTable, buffImgData);
+      if(hasResource){
+        buffImgDataList.push(buffImgData);
+      }
+    }
+    Manager.updateUserBuffImgData(buffData.objectID, buffImgDataList);
+  });
   socket.on('updateSkillPossessions', function(possessSkillIndexes){
     Manager.updateSkillPossessions(gameConfig.userID, possessSkillIndexes);
     possessSkills = possessSkillIndexes;
@@ -762,6 +777,14 @@ function drawObjs(){
     ctx.closePath();
   }
 };
+function drawUserEffect(){
+  for(var i=0; i<Manager.userEffects.length; i++){
+    var imgData = Manager.userEffects[i]['resourceIndex' + (Manager.userEffects[i].effectIndex + 1)];
+    var center = util.worldToLocalPosition(Manager.userEffects[i].center, gameConfig.userOffset);
+    ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+                  (center.x - imgData.width/2) * gameConfig.scaleFactor, (center.y -imgData.height/2) * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
+  }
+};
 function drawUsers(){
   for(var index in Manager.users){
     if(Manager.users[index].conditions[gameConfig.USER_CONDITION_BLUR]){
@@ -811,46 +834,69 @@ function drawUsers(){
                   -imgData.width/2 * gameConfig.scaleFactor * scaleFactor, -imgData.height/2 * gameConfig.scaleFactor * scaleFactor, imgData.width * gameConfig.scaleFactor * scaleFactor, imgData.height * gameConfig.scaleFactor * scaleFactor);
       ctx.closePath();
     }
-    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_FREEZE]){
-      ctx.drawImage(resourceCharacter, conditionFreezeImgData.srcPosX, conditionFreezeImgData.srcPosY, conditionFreezeImgData.srcWidth, conditionFreezeImgData.srcHeight,
-                    -conditionFreezeImgData.width/2 * gameConfig.scaleFactor, -conditionFreezeImgData.height/2 * gameConfig.scaleFactor, conditionFreezeImgData.width * gameConfig.scaleFactor, conditionFreezeImgData.height * gameConfig.scaleFactor);
-    }
-    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_CHILL]){
-      ctx.drawImage(resourceCharacter, conditionChillImgData.srcPosX, conditionChillImgData.srcPosY, conditionChillImgData.srcWidth, conditionChillImgData.srcHeight,
-                    -conditionChillImgData.width/2 * gameConfig.scaleFactor, -conditionChillImgData.height/2 * gameConfig.scaleFactor, conditionChillImgData.width * gameConfig.scaleFactor, conditionChillImgData.height * gameConfig.scaleFactor);
-    }
-    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_SILENCE]){
-      ctx.drawImage(resourceCharacter, conditionSilenceImgData.srcPosX, conditionSilenceImgData.srcPosY, conditionSilenceImgData.srcWidth, conditionSilenceImgData.srcHeight,
-                    -conditionSilenceImgData.width/2 * gameConfig.scaleFactor, -conditionSilenceImgData.height/2 * gameConfig.scaleFactor, conditionSilenceImgData.width * gameConfig.scaleFactor, conditionSilenceImgData.height * gameConfig.scaleFactor);
-    }
-    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_IMMORTAL]){
-      radian = Manager.users[index].effectRotateDegree * radianFactor;
-      ctx.rotate(radian);
-      ctx.drawImage(resourceCharacter, conditionImmortalImgData.srcPosX, conditionImmortalImgData.srcPosY, conditionImmortalImgData.srcWidth, conditionImmortalImgData.srcHeight,
-                    -conditionImmortalImgData.width/2 * gameConfig.scaleFactor, -conditionImmortalImgData.height/2 * gameConfig.scaleFactor, conditionImmortalImgData.width * gameConfig.scaleFactor, conditionImmortalImgData.height * gameConfig.scaleFactor);
-    }
-    if(Manager.users[index].conditions[gameConfig.USER_CONDITION_IGNITE]){
-      switch (Manager.users[index].effectIndex) {
-        case 0:
-          imgData = conditionIgnite1ImgData;
-          break;
-        case 1:
-          imgData = conditionIgnite2ImgData;
-          break;
-        case 2:
-          imgData = conditionIgnite3ImgData;
-          break;
-        case 3:
-          imgData = conditionIgnite4ImgData;
-          break;
-        case 4:
-          imgData = conditionIgnite5ImgData;
-          break;
-        default:
+    for(var i=0; i<Manager.users[index].buffImgDataList.length; i++){
+      var imgIndex = Manager.users[index].effectIndex % Manager.users[index].buffImgDataList[i].resourceLength + 1;
+      var imgData = Manager.users[index].buffImgDataList[i]['resourceIndex' + imgIndex];
+      if(Manager.users[index].buffImgDataList[i].isAttach){
+        if(Manager.users[index].buffImgDataList[i].isRotate){
+          ctx.restore();
+          ctx.save();
+          ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
+          var effectRadian = (Manager.users[index].buffImgDataList[i].rotateStartDegree + Manager.users[index].effectRotateDegree) * radianFactor;
+          ctx.rotate(effectRadian);
+          ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+            -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
+          ctx.restore();
+          ctx.save();
+          ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
+          ctx.rotate(radian);
+        }else{
+          ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+            -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
+        }
       }
-      ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
-                  -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
     }
+    // if(Manager.users[index].conditions[gameConfig.USER_CONDITION_FREEZE]){
+    //   ctx.drawImage(resourceCharacter, conditionFreezeImgData.srcPosX, conditionFreezeImgData.srcPosY, conditionFreezeImgData.srcWidth, conditionFreezeImgData.srcHeight,
+    //                 -conditionFreezeImgData.width/2 * gameConfig.scaleFactor, -conditionFreezeImgData.height/2 * gameConfig.scaleFactor, conditionFreezeImgData.width * gameConfig.scaleFactor, conditionFreezeImgData.height * gameConfig.scaleFactor);
+    // }
+    // if(Manager.users[index].conditions[gameConfig.USER_CONDITION_CHILL]){
+    //   ctx.drawImage(resourceCharacter, conditionChillImgData.srcPosX, conditionChillImgData.srcPosY, conditionChillImgData.srcWidth, conditionChillImgData.srcHeight,
+    //                 -conditionChillImgData.width/2 * gameConfig.scaleFactor, -conditionChillImgData.height/2 * gameConfig.scaleFactor, conditionChillImgData.width * gameConfig.scaleFactor, conditionChillImgData.height * gameConfig.scaleFactor);
+    // }
+    // if(Manager.users[index].conditions[gameConfig.USER_CONDITION_SILENCE]){
+    //   ctx.drawImage(resourceCharacter, conditionSilenceImgData.srcPosX, conditionSilenceImgData.srcPosY, conditionSilenceImgData.srcWidth, conditionSilenceImgData.srcHeight,
+    //                 -conditionSilenceImgData.width/2 * gameConfig.scaleFactor, -conditionSilenceImgData.height/2 * gameConfig.scaleFactor, conditionSilenceImgData.width * gameConfig.scaleFactor, conditionSilenceImgData.height * gameConfig.scaleFactor);
+    // }
+    // if(Manager.users[index].conditions[gameConfig.USER_CONDITION_IMMORTAL]){
+    //   radian = Manager.users[index].effectRotateDegree * radianFactor;
+    //   ctx.rotate(radian);
+    //   ctx.drawImage(resourceCharacter, conditionImmortalImgData.srcPosX, conditionImmortalImgData.srcPosY, conditionImmortalImgData.srcWidth, conditionImmortalImgData.srcHeight,
+    //                 -conditionImmortalImgData.width/2 * gameConfig.scaleFactor, -conditionImmortalImgData.height/2 * gameConfig.scaleFactor, conditionImmortalImgData.width * gameConfig.scaleFactor, conditionImmortalImgData.height * gameConfig.scaleFactor);
+    // }
+    // if(Manager.users[index].conditions[gameConfig.USER_CONDITION_IGNITE]){
+    //   switch (Manager.users[index].effectIndex) {
+    //     case 0:
+    //       imgData = conditionIgnite1ImgData;
+    //       break;
+    //     case 1:
+    //       imgData = conditionIgnite2ImgData;
+    //       break;
+    //     case 2:
+    //       imgData = conditionIgnite3ImgData;
+    //       break;
+    //     case 3:
+    //       imgData = conditionIgnite4ImgData;
+    //       break;
+    //     case 4:
+    //       imgData = conditionIgnite5ImgData;
+    //       break;
+    //     default:
+    //   }
+    //   ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+    //               -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
+    // }
+
     ctx.restore();
 
     //draw HP gauge

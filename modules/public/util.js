@@ -540,6 +540,64 @@ exports.getBuffs = function(buffGroupData){
   }
   return returnVal;
 };
+exports.setResourceData = function(resourceTable, buffImgData){
+  var resourceDataList = [];
+  buffImgData.resourceLength = 0;
+  for(var i=0; i<10; i++){
+    var resourceIndex = buffImgData['resourceIndex' + (i + 1)];
+    if(resourceIndex){
+      var resourceData = Object.assign({}, exports.findData(resourceTable, 'index', resourceIndex));
+      buffImgData['resourceIndex' + (i + 1)] = resourceData;
+      buffImgData.resourceLength = i + 1;
+    }else{
+      break;
+    }
+  }
+  if(buffImgData.resourceLength){
+    return true;
+  }else{
+    return false;
+  }
+};
+exports.makeUserEffect = function(user, effectData){
+  //set effect center
+  var effectCenter = { x : user.center.x, y : user.center.y };
+  //set effect index
+  var effectIndex = 0;
+  //set effect
+  var effect = {
+    index : effectData.index,
+    isRotate : effectData.isRotate,
+    resourceIndex1 : effectData.resourceIndex1,
+    resourceIndex2 : effectData.resourceIndex2,
+    resourceIndex3 : effectData.resourceIndex3,
+    resourceIndex4 : effectData.resourceIndex4,
+    resourceIndex5 : effectData.resourceIndex5,
+    resourceIndex6 : effectData.resourceIndex6,
+    resourceIndex7 : effectData.resourceIndex7,
+    resourceIndex8 : effectData.resourceIndex8,
+    resourceIndex9 : effectData.resourceIndex9,
+    resourceIndex10 : effectData.resourceIndex10,
+    resourceLength : effectData.resourceLength,
+
+    resourceLifeTime : effectData.resourceLifeTime,
+    startTime : Date.now(),
+    effectTimer : Date.now(),
+
+    effectIndex : effectIndex,
+    center : effectCenter,
+
+    changeIndex : function(){
+      if(this.effectIndex + 1 >= this.resourceLength){
+        this.effectIndex = 0;
+      }else{
+        this.effectIndex++;
+      }
+      this.effectTimer = Date.now();
+    }
+  }
+  return effect;
+};
 exports.generateRandomUniqueID = function(uniqueCheckArray, prefix, idCount){
   if(!idCount){
     var IDisUnique = false;

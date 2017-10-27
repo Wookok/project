@@ -11,6 +11,8 @@ var User = function(userData){
   this.type = userData.type
   this.imgData = userData.imgData;
 
+  this.buffImgDataList = [];
+
   this.imgHandIndex = 0;
 
   this.level = userData.level;
@@ -138,11 +140,17 @@ User.prototype = {
     if(Date.now() - this.effectTimer >= gameConfig.USER_EFFECT_CHANGE_TIME){
       this.effectTimer = Date.now();
       this.effectRotateDegree += 10;
-      if(this.effectIndex > 4){
+      if(this.effectIndex > 100){
         this.effectIndex = 0;
       }else{
         this.effectIndex += 1;
       }
+    }
+  },
+  updateBuffImgData : function(buffImgDataList){
+    this.buffImgDataList = [];
+    for(var i=0; i<buffImgDataList.length; i++){
+      this.buffImgDataList.push(buffImgDataList[i]);
     }
   },
   addPosAndTargetPos : function(addPosX , addPosY){

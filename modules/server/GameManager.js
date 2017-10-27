@@ -520,10 +520,10 @@ GameManager.prototype.joinUser = function(user){
   this.users[user.objectID].onGetResource = SUtil.onUserGetResource.bind(this);
   this.users[user.objectID].onLevelUP = SUtil.onUserLevelUP.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
-  this.setStartBuff(user);
+  // this.setStartBuff(user);
   // this.objExpsCount += serverConfig.OBJ_EXP_ADD_PER_USER;
   this.objGoldsCount += serverConfig.OBJ_GOLD_ADD_PER_USER;
-  console.log(user.conditions);
+  // console.log(user.conditions);
   // console.log(this.users);
   console.log(user.objectID + ' join in GameManager');
 };
@@ -754,6 +754,10 @@ GameManager.prototype.processUserDataSettings = function(){
   var userData = [];
 
   for(var index in this.users){
+    // var buffIndexList = [];
+    // for(var i=0; i<this.users[index].buffList.length; i++){
+    //   buffIndexList.push({index : this.users[index].buffList[i].index, startTime : this.users[index].buffList[i].startTime});
+    // };
     userData.push({
       objectID : index,
       name : this.users[index].objectID,
@@ -779,7 +783,8 @@ GameManager.prototype.processUserDataSettings = function(){
       MP : this.users[index].MP,
       castSpeed : this.users[index].castSpeed,
 
-      conditions : this.users[index].conditions
+      conditions : this.users[index].conditions,
+      // buffList : buffIndexList
     });
   };
 
@@ -836,6 +841,7 @@ GameManager.prototype.processBuffDataSetting = function(user){
     passiveIndexList.push(user.passiveList[i].index);
   }
   return{
+    objectID : user.objectID,
     buffList : buffIndexList,
     passiveList : passiveIndexList,
   }
