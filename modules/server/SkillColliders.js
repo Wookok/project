@@ -3,6 +3,7 @@ var serverConfig = require('./serverConfig.json');
 
 var SkillCollider = function(user, skillData){
   this.id = user.objectID;
+  this.index = skillData.index;
   this.x = skillData.targetPosition.x - skillData.explosionRadius;
   this.y = skillData.targetPosition.y - skillData.explosionRadius;
   this.width = skillData.explosionRadius * 2;
@@ -26,6 +27,7 @@ var SkillCollider = function(user, skillData){
 
 var ProjectileCollider = function(user, projectileData){
   this.id = user.objectID;
+  this.index = projectileData.index;
   this.objectID = projectileData.objectID;
   this.x = projectileData.position.x;
   this.y = projectileData.position.y;

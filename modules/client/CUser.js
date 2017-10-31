@@ -11,6 +11,7 @@ var User = function(userData){
   this.type = userData.type
   this.imgData = userData.imgData;
 
+  this.hitImgDataList = [];
   this.buffImgDataList = [];
 
   this.imgHandIndex = 0;
@@ -146,12 +147,21 @@ User.prototype = {
         this.effectIndex += 1;
       }
     }
+    for(var i=this.hitImgDataList.length - 1; i>=0; i--){
+      if(Date.now() - this.hitImgDataList[i].startTime >= this.hitImgDataList[i].resourceLifeTime){
+        this.hitImgDataList.splice(i, 1);
+      }
+    }
   },
   updateBuffImgData : function(buffImgDataList){
     this.buffImgDataList = [];
     for(var i=0; i<buffImgDataList.length; i++){
       this.buffImgDataList.push(buffImgDataList[i]);
     }
+  },
+  updateSkillHitImgData : function(skillImgData){
+    skillImgData.startTime = Date.now();
+    this.hitImgDataList.push(skillImgData);
   },
   addPosAndTargetPos : function(addPosX , addPosY){
     this.position.x += addPosX;

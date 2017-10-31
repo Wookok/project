@@ -83,8 +83,8 @@ exports.onUserChangePrivateStat = function(user){
 exports.onUserChangeStat = function(user){
   this.onNeedInformUserChangeStat(user);
 };
-exports.onUserTakeDamage = function(user, dmg){
-  this.onNeedInformUserTakeDamage(user, dmg);
+exports.onUserTakeDamage = function(user, dmg, skillIndex){
+  this.onNeedInformUserTakeDamage(user, dmg, skillIndex);
 };
 exports.onUserReduceMP = function(user){
   this.onNeedInformUserReduceMP(user);
@@ -110,6 +110,7 @@ exports.setAffectedEleColSkillWithEntity = function(skill, affectedID, collision
   return {
     collisionType : collisionType,
     skillType : skill.type,
+    skillIndex : skill.index,
 
     projectileID : skill.objectID || 0,
     actorID : skill.id,

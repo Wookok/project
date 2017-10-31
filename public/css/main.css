@@ -440,7 +440,22 @@ canvas {
     height : 0%;
   }
 }
-
+.buffBeforeEndAni{
+  animation-name : buffBeforeEndAnimation;
+  animation-duration: 1s;
+  animation-direction: alternate-reverse;
+  animation-iteration-count : 5;
+}
+@keyframes buffBeforeEndAnimation {
+  from {
+    opacity: 1;
+    filter: alpha(opacity=100);
+  }
+  to {
+    opacity: 0.2;
+    filter: alpha(opacity=20);
+  }
+}
 .gameSceneHudBottomRight {
   position : absolute;;
   right: 20px;
@@ -461,7 +476,52 @@ canvas {
   height: 150px;
   background: green;
 }
-
+.gameSceneDeadScene{
+  display : none;
+  background-color: rgb(30, 30, 30);
+  width : 100%;
+  height : 50%;
+  position: absolute;
+  top : 25%;
+  z-index: 25;
+}
+.gameSceneDeadScene span{
+  position: absolute;
+  width: 300px;
+  height: 100px;
+  font-size : 50px;
+  color : white;
+  text-align : center;
+  left : 50%;
+  top : 50%;
+  transform: translate(-50%, -50%);
+}
+.chestAni{
+  animation-name: chestAnimation;
+  animation-duration: 1.5s;
+  animation-iteration-count: 3;
+  animation-direction: alternate-reverse;
+}
+@keyframes chestAnimation {
+  0% { box-shadow: 0 0 -1px 3px #0000ff; }
+  40% { box-shadow: 0 0 5px 3px #0000ff; }
+  60% { box-shadow: 0 0 5px 3px #0000ff; }
+  100% { box-shadow: 0 0 -1px 3px #0000ff; }
+}
+.deadSceneAni{
+  animation-name: deadSceneAnimation;
+  animation-duration: 3s;
+}
+@keyframes deadSceneAnimation {
+  from{
+    opacity : 0;
+    filter: alpha(opacity=0);
+  }
+to{
+    opacity : 1;
+    filter: alpha(opacity=100);
+  }
+}
 .popUpSkillChange {
   position : absolute;
   left : 50%;
@@ -473,6 +533,12 @@ canvas {
 
   background: rgba(70, 50, 70, 0.4);
   border-radius: 10px;
+}
+.popUpSkillChange .selected{
+  background: rgba(255, 255, 0, 1);
+}
+.popUpSkillChange .equipable{
+  background: rgba(0, 255, 255, 1);
 }
 .popUpSkillContainer {
   position: absolute;
@@ -558,6 +624,23 @@ canvas {
   color : white;
   background: blue;
 }
+.popUpSkillUpgradeCostGold{
+  position: absolute;
+  right: 75px;
+  top: 10px;
+  width: 60px;
+  height: 70px;
+  background: blue;
+}
+.popUpSkillUpgradeCostJewel{
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  width: 60px;
+  height: 70px;
+
+  background: blue;
+}
 .popUpSkillUpgradeBtn {
   right: 15px;
   bottom: 10px;
@@ -576,6 +659,26 @@ canvas {
   opacity: 0.3;
   background: gray;
   z-index: 15;
+}
+.flashMessageTable{
+  position: absolute;
+  left: 50%;
+  top: 0%;
+  width: 500px;
+  transform: translateX(-50%);
+  height: 50%;
+  display: table;
+
+  z-index: 20;
+  pointer-events: none;
+}
+td{
+  display: table-cell;
+  vertical-align: bottom;
+}
+.flashMessage{
+  text-align: center;
+  color : red;
 }
 .bottomTooltip {
   width: 120px;

@@ -548,6 +548,11 @@ CManager.prototype = {
 			this.users[userID].updateBuffImgData(buffImgDataList);
 		}
 	},
+	updateSkillHitImgData : function(userID, skillImgData){
+		if(userID in this.users){
+			this.users[userID].updateSkillHitImgData(skillImgData);
+		}
+	},
 	// set this client user
 	synchronizeUser : function(userID){
 		for(var index in this.users){

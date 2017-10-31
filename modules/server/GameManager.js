@@ -574,7 +574,7 @@ GameManager.prototype.applySkill = function(userID, skillData){
       var frostDamage = skillData.frostDamage * skillData.damageToSelfRate/100;
       var arcaneDamage = skillData.arcaneDamage * skillData.damageToSelfRate/100;
       var damageToMP = 0;
-      this.users[userID].takeDamage(userID, fireDamage, frostDamage, arcaneDamage, damageToMP, skillData.hitBuffList);
+      this.users[userID].takeDamage(userID, fireDamage, frostDamage, arcaneDamage, damageToMP, skillData.hitBuffList, skillData.index);
       this.users[userID].addBuff(skillData.buffToTarget, userID);
     }
 
@@ -609,7 +609,7 @@ GameManager.prototype.applyProjectile = function(userID, projectileDatas){
       var frostDamage = projectileDatas[0].frostDamage * projectileDatas[0].damageToSelfRate/100;
       var arcaneDamage = projectileDatas[0].arcaneDamage * projectileDatas[0].damageToSelfRate/100;
       var damageToMP = 0;
-      this.users[userID].takeDamage(userID, fireDamage, frostDamage, arcaneDamage, damageToMP, skillData.hitBuffList);
+      this.users[userID].takeDamage(userID, fireDamage, frostDamage, arcaneDamage, damageToMP, projectileDatas[0].hitBuffList, projectileDatas[0].index);
       this.users[userID].addBuff(projectileDatas[0].buffToTarget, userID);
     }
     //healHP, MP
@@ -1393,7 +1393,7 @@ function affectIntervalHandler(){
       if(affectedEles[i].collisionType === serverConfig.COLLISION_SKILL_WITH_USER){
         if(affectedEles[i].affectedID in this.users){
           this.users[affectedEles[i].affectedID].takeDamage(affectedEles[i].actorID, affectedEles[i].fireDamage, affectedEles[i].frostDamage,
-                                                  affectedEles[i].arcaneDamage, affectedEles[i].damageToMP, affectedEles[i].hitBuffList);
+                                                  affectedEles[i].arcaneDamage, affectedEles[i].damageToMP, affectedEles[i].hitBuffList, affectedEles[i].skillIndex);
           this.users[affectedEles[i].affectedID].addBuff(affectedEles[i].buffToTarget, affectedEles[i].actorID);
           if(affectedEles[i].additionalBuffToTarget){
             this.users[affectedEles[i].affectedID].addBuff(affectedEles[i].additionalBuffToTarget, affectedEles[i].actorID);

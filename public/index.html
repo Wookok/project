@@ -162,6 +162,9 @@
       <div id="hudBtnSkillChange" class="hudBtnSkillChange">
       </div>
     </div>
+    <div class="gameSceneDeadScene" id="gameSceneDeadScene">
+      <span id="deadSceneText"></span>
+    </div>
     <canvas id="canvas" height="1000" width="1000"></canvas>
   </div>
   <div id="standingScene" class="disable">
@@ -233,9 +236,11 @@
       <div class="popUpSkillInfo"></div>
         <div id="popUpSkillInfoIcon" class="popUpSkillInfoIcon"></div>
         <div id="popUpSkillInfoDesc" class="popUpSkillInfoDesc"></div>
+        <div id="popUpSkillUpgradeCostGold" class="popUpSkillUpgradeCostGold"></div>
+        <div id="popUpSkillUpgradeCostJewel" class="popUpSkillUpgradeCostJewel"></div>
       <button id="popUpSkillUpgradeBtn" class="popUpSkillUpgradeBtn">Upgrade</button>
     </div>
-    <div id="popUpEquipSkillContainer" class="popUpEquipSkillContainer">
+    <div class="popUpEquipSkillContainer">
       <div id="popUpEquipBaseSkill" class="popUpEquipBaseSkill"></div>
       <div id="popUpEquipSkill1" class="popUpEquipSkill1"></div>
       <div id="popUpEquipSkill2" class="popUpEquipSkill2"></div>
@@ -247,6 +252,9 @@
   <div id="popUpBackground" class="popUpBackground disable">
   </div>
   <div id="bottomTooltip"><div>
+  <table class="flashMessageTable"><tbody><tr>
+    <td id="flashMessageContainer"></td>
+  </tr></tbody></table>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/bundle.js"></script>
 </body>

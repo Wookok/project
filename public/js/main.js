@@ -76,6 +76,7 @@ var equipSkills = new Array(4);
 var equipSkillDatas = new Array(4);
 var possessSkills = [];
 
+var killUser = null;
 //state changer
 function changeState(newState){
   clearInterval(drawInterval);
@@ -164,8 +165,13 @@ function stateFuncEnd(){
   //should init variables
   canvasDisableEvent();
   documentDisableEvent();
-  UIManager.initStandingScene();
-  changeState(gameConfig.GAME_STATE_RESTART_SCENE);
+
+  UIManager.playDeadScene(killUser);
+  setTimeout(function(){
+    UIManager.disableDeadScene();
+    UIManager.initStandingScene();
+    changeState(gameConfig.GAME_STATE_RESTART_SCENE);
+  }, gameConfig.DEAD_SCENE_PLAY_TIME);
 };
 function stateFuncStandbyRestart(){
   drawRestartScene();
@@ -631,7 +637,15 @@ function setupSocket(){
       }
     }
   });
-  socket.on('userDamaged', function(userData){
+  socket.on('userDamaged', function(userData, skillIndex){
+    if(skillIndex){
+      var skillImgDataIndex = Object.assign({}, util.findData(skillTable, 'index', skillIndex)).hitEffectGroup;
+      var skillImgData = Object.assign({}, util.findData(effectGroupTable, 'index', skillImgDataIndex));
+      var hasResource = util.setResourceData(resourceTable, skillImgData);
+      if(hasResource){
+        Manager.updateSkillHitImgData(userData.objectID, skillImgData);
+      }
+    }
     Manager.changeUserStat(userData);
     if(userData.objectID === gameConfig.userID){
       UIManager.updateHP(userData);
@@ -664,6 +678,7 @@ function setupSocket(){
       Manager.iamDead();
       changeState(gameConfig.GAME_STATE_END);
     }
+    killUser = attackUserID;
     Manager.kickUser(deadUserID);
     UIManager.updateBoard(userDatas, gameConfig.userID);
   });
@@ -833,6 +848,28 @@ function drawUsers(){
       ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
                   -imgData.width/2 * gameConfig.scaleFactor * scaleFactor, -imgData.height/2 * gameConfig.scaleFactor * scaleFactor, imgData.width * gameConfig.scaleFactor * scaleFactor, imgData.height * gameConfig.scaleFactor * scaleFactor);
       ctx.closePath();
+    }
+    for(var i=0; i<Manager.users[index].hitImgDataList.length; i++){
+      var imgIndex = Manager.users[index].effectIndex % Manager.users[index].hitImgDataList[i].resourceLength + 1;
+      var imgData = Manager.users[index].hitImgDataList[i]['resourceIndex' + imgIndex];
+      if(Manager.users[index].hitImgDataList[i].isAttach){
+        if(Manager.users[index].hitImgDataList[i].isRotate){
+          ctx.restore();
+          ctx.save();
+          ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
+          var effectRadian = (Manager.users[index].hitImgDataList[i].rotateStartDegree + Manager.users[index].effectRotateDegree) * radianFactor;
+          ctx.rotate(effectRadian);
+          ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+            -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
+          ctx.restore();
+          ctx.save();
+          ctx.translate(center.x * gameConfig.scaleFactor, center.y * gameConfig.scaleFactor);
+          ctx.rotate(radian);
+        }else{
+          ctx.drawImage(resourceCharacter, imgData.srcPosX, imgData.srcPosY, imgData.srcWidth, imgData.srcHeight,
+            -imgData.width/2 * gameConfig.scaleFactor, -imgData.height/2 * gameConfig.scaleFactor, imgData.width * gameConfig.scaleFactor, imgData.height * gameConfig.scaleFactor);
+        }
+      }
     }
     for(var i=0; i<Manager.users[index].buffImgDataList.length; i++){
       var imgIndex = Manager.users[index].effectIndex % Manager.users[index].buffImgDataList[i].resourceLength + 1;

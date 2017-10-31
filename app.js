@@ -44,10 +44,10 @@ var INTERVAL_TIMER = 1000/gameConfig.INTERVAL;
 
 var io = socketio.listen(server);
 
-GM.onNeedInformUserTakeDamage = function(user, dmg){
+GM.onNeedInformUserTakeDamage = function(user, dmg, skillIndex){
   var userData = GM.processChangedUserStat(user);
   userData.damagedAmount = dmg;
-  io.sockets.emit('userDamaged', userData);
+  io.sockets.emit('userDamaged', userData, skillIndex);
 };
 GM.onNeedInformUserDeath = function(attackUserID, deadUserID){
   var userDatas = GM.processScoreDatas();

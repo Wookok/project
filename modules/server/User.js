@@ -95,6 +95,8 @@ function User(socketID, userStat, userBase, exp){
   this.reductionAll = 0;  this.reductionFire = 0;  this.reductionFrost = 0;  this.reductionArcane = 0;
   this.cooldownReduceRate = 0;
 
+  this.regenTimer = Date.now();
+
   this.baseSkill = 0;
   // this.equipSkills = [];
   this.possessSkills = [];
@@ -512,17 +514,17 @@ User.prototype.updateStatAndCondition = function(){
     this.onChangePrivateStat(this);
   }
 };
-User.prototype.regenHPMP = function(){
+User.prototype.regenHPMP = function(timeRate){
   var beforeHP = this.HP;
   var beforeMP = this.MP;
-  this.healHP(this.HPRegen);
-  this.healMP(this.MPRegen);
+  this.healHP(this.HPRegen * timeRate);
+  this.healMP(this.MPRegen * timeRate);
   if(beforeHP !== this.HP || beforeMP !== this.MP){
     this.onChangeStat(this);
   }
 };
-User.prototype.igniteHP = function(attackUserID){
-  var igniteDamage = this.maxHP * serverConfig.IGNITE_DAMAGE_RATE/100;
+User.prototype.igniteHP = function(attackUserID, timeRate){
+  var igniteDamage = timeRate * this.maxHP * serverConfig.IGNITE_DAMAGE_RATE/100;
   console.log('ignite ' + this.objectID + ' : ' + igniteDamage);
   this.takeDamage(attackUserID, igniteDamage);
   // this.takeDamage(igniteDamage);
@@ -539,10 +541,12 @@ function buffUpdateHandler(){
   this.updateStatAndCondition();
 };
 function regenIntervalHandler(){
-  this.regenHPMP();
+  var timeRate = (Date.now() - this.regenTimer) / 1000;
+  this.regenHPMP(timeRate);
   if(this.conditions[gameConfig.USER_CONDITION_IGNITE]){
-    this.igniteHP(this.conditions[gameConfig.USER_CONDITION_IGNITE]);
+    this.igniteHP(this.conditions[gameConfig.USER_CONDITION_IGNITE], timeRate);
   }
+  this.regenTimer = Date.now();
 };
 User.prototype.addBuff = function(buffGroupIndex, actorID){
   //check apply rate with resist
@@ -658,27 +662,32 @@ User.prototype.upgradeSkill = function(skillIndex){
     var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
     var nextSkillIndex = skillData.nextSkillIndex;
     if(nextSkillIndex !== -1){
-      if(isBaseSkill){
-        this.baseSkill = nextSkillIndex;
-        this.onSkillUpgrade(skillIndex, nextSkillIndex);
-      }else if(isInherentSkill){
-        this.inherentPassiveSkill = nextSkillIndex;
-        this.onSkillUpgrade(skillIndex, nextSkillIndex);
-      }else if(isPossession){
-        var index = this.possessSkills.indexOf(skillIndex);
-        this.possessSkills.splice(index, 1);
-        this.possessSkills.push(nextSkillIndex);
-        //check equip passive
-        for(var i=0; i<this.passiveList.length; i++){
-          var buffGroupIndex = skillData.buffToSelf;
-          if(this.passiveList[i].index === buffGroupIndex){
-            var nextBuffGroupIndex = Object.assign({}, util.findData(skillTable, 'index', nextSkillIndex)).buffToSelf;
-            var nextBuffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', nextBuffGroupIndex));
-            this.passiveList.splice(i, 1, nextBuffGroupData);
-            break;
+      if(this.gold >= skillData.upgradeGoldAmount && this.jewel >= skillData.upgradeJewelAmount){
+        if(isBaseSkill){
+          this.baseSkill = nextSkillIndex;
+          this.onSkillUpgrade(skillIndex, nextSkillIndex);
+        }else if(isInherentSkill){
+          this.inherentPassiveSkill = nextSkillIndex;
+          this.onSkillUpgrade(skillIndex, nextSkillIndex);
+        }else if(isPossession){
+          var index = this.possessSkills.indexOf(skillIndex);
+          this.possessSkills.splice(index, 1);
+          this.possessSkills.push(nextSkillIndex);
+          //check equip passive
+          for(var i=0; i<this.passiveList.length; i++){
+            var buffGroupIndex = skillData.buffToSelf;
+            if(this.passiveList[i].index === buffGroupIndex){
+              var nextBuffGroupIndex = Object.assign({}, util.findData(skillTable, 'index', nextSkillIndex)).buffToSelf;
+              var nextBuffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', nextBuffGroupIndex));
+              this.passiveList.splice(i, 1, nextBuffGroupData);
+              break;
+            }
           }
+          this.onSkillUpgrade(skillIndex, nextSkillIndex);
         }
-        this.onSkillUpgrade(skillIndex, nextSkillIndex);
+      }else{
+        //need more resource maybe cheat?
+        console.log('cheating!!!');
       }
     }
   }else{
@@ -746,7 +755,7 @@ User.prototype.stop = function(){
     this.currentSkill = undefined;
   }
 };
-User.prototype.takeDamage = function(attackUserID, fireDamage, frostDamage, arcaneDamage, damageToMP, hitBuffList){
+User.prototype.takeDamage = function(attackUserID, fireDamage, frostDamage, arcaneDamage, damageToMP, hitBuffList, skillIndex){
   if(!this.conditions[gameConfig.USER_CONDITION_IMMORTAL]){
     if(this.conditions[gameConfig.USER_CONDITION_BLUR]){
       this.cancelBlur();
@@ -831,7 +840,7 @@ User.prototype.takeDamage = function(attackUserID, fireDamage, frostDamage, arca
     }
 
     this.HP -= dmg;
-    this.onTakeDamage(this, dmg);
+    this.onTakeDamage(this, dmg, skillIndex);
     console.log(this.objectID + ' : ' + this.HP);
     if(dmgToMP > 0){
       this.takeDamageToMP(dmgToMP);
@@ -975,6 +984,7 @@ User.prototype.levelUp = function(){
   }
 };
 User.prototype.startUpdate = function(){
+  this.isDead = false;
   if(!this.buffUpdateInterval){
     this.buffUpdateInterval = setInterval(buffUpdateHandler.bind(this), INTERVAL_TIMER);
   }
