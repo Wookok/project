@@ -1,10 +1,13 @@
 var serverConfig = require('./serverConfig.json');
+var gameConfig = require('../public/gameConfig.json');
 var util = require('../public/util.js');
 var csvJson = require('../public/csvjson.js')
 var dataJson = require('../public/data.json');
+var serverDataJson = require('./serverData.json');
 
 var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
 var buffTable = csvJson.toObject(dataJson.buffData, {delimiter : ',', quote : '"'});
+var charDropTable = csvJson.toObject(serverDataJson.charDrop, {delimiter : ',', quote : '"'});
 
 exports.generateRandomUniqueID = function(uniqueCheckArray, prefix){
   var IDisUnique = false;
@@ -55,8 +58,10 @@ exports.generateRandomPos = function(checkTree, minX, minY, maxX, maxY, radius, 
   return pos;
 };
 exports.generateNearPos = function(position, range){
-  var addPosX = (Math.random() < 0.5 ? -1 : 1) * Math.floor(Math.random()*range);
-  var addPosY = (Math.random() < 0.5 ? -1 : 1) * Math.floor(Math.random()*range);
+  var randVal = Math.random();
+  var addPosX = (Math.random() < 0.5 ? -1 : 1) * Math.floor((randVal < 0.8 ? 0.8 : randVal)*range);
+  randVal = Math.random();
+  var addPosY = (Math.random() < 0.5 ? -1 : 1) * Math.floor((randVal < 0.8 ? 0.8 : randVal)*range);
 
   return {x : position.x + addPosX, y : position.y + addPosY};
 };
@@ -74,8 +79,9 @@ exports.goldToRadius = function(gold){
 exports.onUserBuffExchange = function(user){
   this.onNeedInformBuffUpdate(user);
 };
-exports.onUserSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
-  this.onNeedInformSkillUpgrade(socketID, beforeSkillIndex, afterSkillIndex);
+exports.onUserSkillUpgrade = function(user, beforeSkillIndex, afterSkillIndex){
+  var resourceData = this.processUserResource(user);
+  this.onNeedInformSkillUpgrade(user.socketID, beforeSkillIndex, afterSkillIndex, resourceData);
 };
 exports.onUserChangePrivateStat = function(user){
   this.onNeedInformUserChangePrivateStat(user);
@@ -95,16 +101,63 @@ exports.onUserGetExp = function(user){
 exports.onUserGetResource = function(user){
   this.onNeedInformUserGetResource(user);
 };
+exports.onUserSkillChangeToResource = function(user, skillIndex){
+  this.onNeedInformUserSkillChangeToResource(user.socketID, skillIndex);
+};
 exports.onUserLevelUP = function(user){
   this.onNeedInformUserLevelUp(user);
 };
-exports.onUserDeath = function(attackUserID, exp, deadUserID){
+exports.onUserDeath = function(user, attackUserID, deadUserID){
+  var dropData = Object.assign({}, util.findDataWithTwoColumns(charDropTable, 'level', user.level, 'type', user.type));
+
   if(attackUserID in this.users){
-    this.users[attackUserID].getExp(exp, true);
+    this.users[attackUserID].getExp(dropData.provideExp, true);
   }else{
     console.log(attackUserID + ' is not exists');
   }
   this.onNeedInformUserDeath(attackUserID, deadUserID);
+
+  user.decreaseLevel(dropData.levelTo);
+  user.decreaseResource(dropData.resourceReductionRate);
+
+  //set drop resources
+  var golds = [], jewels = [], skills = [];
+  var goldCount = Math.floor(Math.random() * (dropData.goldDropMaxCount - dropData.goldDropMinCount + 1) + dropData.goldDropMinCount);
+  var jewelCount = Math.floor(Math.random() * (dropData.jewelDropMaxCount - dropData.jewelDropMinCount + 1) + dropData.jewelDropMinCount);
+  var skillCount = Math.floor(Math.random() * (dropData.skillDropMaxCount - dropData.skillDropMinCount + 1) + dropData.skillDropMinCount);
+
+  for(var i=0; i<goldCount; i++){
+    var goldAmount = Math.floor(Math.random() * (dropData.goldDropMax - dropData.goldDropMin + 1) + dropData.goldDropMin);
+    golds.push(goldAmount);
+  }
+  for(var i=0; i<jewelCount; i++){
+    jewels.push(1);
+  }
+  var totalRate = 0;
+  for(var i=0; i<10; i++){
+    if(dropData['skillDropRate' + (i + 1)]){
+      totalRate += dropData['skillDropRate' + (i + 1)];
+    }else{
+      break;
+    }
+  }
+  for(var i=0; i<skillCount; i++){
+    var randVal = Math.floor(Math.random() * totalRate);
+    var sumOfRate = 0;
+    for(var j=0; i<10; j++){
+      if(dropData['skillDropRate' + (j + 1)]){
+        sumOfRate += dropData['skillDropRate' + (j + 1)];
+        if(sumOfRate > randVal){
+          var skillIndex = dropData['dropSkillIndex' + (j + 1)];
+          skills.push(skillIndex);
+          break;
+        }
+      }else{
+        break;
+      }
+    }
+  }
+  userDrop.call(this, golds, jewels, skills, user.center);
 };
 exports.setAffectedEleColSkillWithEntity = function(skill, affectedID, collisionType){
   return {
@@ -272,3 +325,56 @@ exports.checkUserBuff = function(user, skillData){
   skillData.arcaneDamage = skillData.arcaneDamage + (additionalDamage + additionalArcaneDamage) * additionalArcaneDamageRate/100 * additionalDamageRate/100;
   skillData.hitBuffList = hitBuffList;
 };
+
+exports.onChestDestroy = function(cht){
+  var createdObjs = [];
+  for(var i=0; i<cht.golds.length; i++){
+    var objGold = this.createOBJs(1, gameConfig.PREFIX_OBJECT_GOLD, cht.golds[i], cht.position);
+    createdObjs.push(objGold[0]);
+  }
+  for(var i=0; i<cht.jewels.length; i++){
+    var objJewel = this.createOBJs(1, gameConfig.PREFIX_OBJECT_JEWEL, cht.jewels[i], cht.position);
+    createdObjs.push(objJewel[0]);
+  }
+  // for(var i=0; i<cht.exps.length; i++){
+  //   var objExp = this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
+  //   createdObjs.push(objExp[0]);
+  // }
+  for(var i=0; i<cht.skills.length; i++){
+    var objSkill = this.createOBJs(1, gameConfig.PREFIX_OBJECT_SKILL, cht.skills[i], cht.position);
+    createdObjs.push(objSkill[0]);
+  }
+  for(var i=0; i<this.chests.length; i++){
+    if(this.chests[i].objectID === cht.objectID){
+      this.chests.splice(i, 1);
+    }
+  }
+  this.onNeedInformCreateObjs(createdObjs);
+  this.onNeedInformDeleteChest(cht.locationID);
+};
+
+exports.onChestDamaged = function(locationID, HP){
+  this.onNeedInformChestDamaged(locationID, HP);
+}
+
+function userDrop(golds, jewels, skills, position){
+  var createdObjs = [];
+  for(var i=0; i<golds.length; i++){
+    var objGold = this.createOBJs(1, gameConfig.PREFIX_OBJECT_GOLD, golds[i], position);
+    createdObjs.push(objGold[0]);
+  }
+  for(var i=0; i<jewels.length; i++){
+    var objJewel = this.createOBJs(1, gameConfig.PREFIX_OBJECT_JEWEL, jewels[i], position);
+    createdObjs.push(objJewel[0]);
+  }
+  // for(var i=0; i<cht.exps.length; i++){
+  //   var objExp = this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
+  //   createdObjs.push(objExp[0]);
+  // }
+  for(var i=0; i<skills.length; i++){
+    var objSkill = this.createOBJs(1, gameConfig.PREFIX_OBJECT_SKILL, skills[i], position);
+    createdObjs.push(objSkill[0]);
+  }
+
+  this.onNeedInformCreateObjs(createdObjs);
+}

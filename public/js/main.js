@@ -562,7 +562,7 @@ function setupSocket(){
       }
     }, timeoutTime);
   });
-  socket.on('upgradeSkill', function(beforeSkillIndex, afterSkillIndex){
+  socket.on('upgradeSkill', function(beforeSkillIndex, afterSkillIndex, resourceData){
     if(beforeSkillIndex === baseSkill){
       baseSkill = afterSkillIndex;
       baseSkillData = Object.assign({}, util.findData(skillTable, 'index', afterSkillIndex));
@@ -580,6 +580,7 @@ function setupSocket(){
       }
     }
     updateCharTypeSkill();
+    UIManager.setResource(resourceData);
   });
   socket.on('updateUserPrivateStat', function(statData){
     UIManager.setHUDStats(statData.statPower, statData.statMagic, statData.statSpeed);
@@ -605,12 +606,33 @@ function setupSocket(){
     Manager.createChest(chestData);
     UIManager.createChest(chestData.locationID);
   });
+  socket.on('chestDamaged', function(locationID, HP){
+    Manager.updateChest(locationID, HP);
+  });
   socket.on('deleteChest', function(locationID){
     Manager.deleteChest(locationID);
     UIManager.deleteChest(locationID);
   });
   socket.on('getResource', function(resourceData){
-    UIManager.getResource(resourceData);
+    var beforeGold = UIManager.getUserGold();
+    var beforeJewel = UIManager.getUserJewel();
+
+    UIManager.setResource(resourceData);
+
+    var afterGold = UIManager.getUserGold();
+    var afterJewel = UIManager.getUserJewel();
+    var center = Manager.getUserCenter(gameConfig.userID);
+    if(afterGold > beforeGold){
+      Manager.addRiseText('Gold ' + (afterGold - beforeGold), 'rgb(255, 255, 0)', center);
+    }
+    if(afterJewel > beforeJewel){
+      Manager.addRiseText('Jewel ' + (afterJewel - beforeJewel), 'rgb(0, 255, 255)', center);
+    }
+  });
+  socket.on('skillChangeToResource', function(skillIndex){
+    var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
+    UIManager.addResource(skillData.exchangeToGold, skillData.exchangeToJewel);
+    UIManager.makeDivFlashMessage(skillData);
   });
   socket.on('changeUserStat', function(userData){
     if(userData.objectID === gameConfig.userID){
@@ -630,10 +652,10 @@ function setupSocket(){
       var afterExp = Manager.getUserExp(userData.objectID);
       var userCenter = Manager.getUserCenter(userData.objectID);
       if(beforeHP !== afterHP){
-        Manager.addRiseText(afterHP - beforeHP, 'rgb(255, 0, 0)', userCenter);
+        Manager.addRiseText('HP ' + (afterHP - beforeHP), 'rgb(0, 0, 255)', userCenter);
       }
       if(afterExp > beforeExp){
-        Manager.addRiseText(afterExp - beforeExp, 'rgb(0, 255, 0)', userCenter);
+        Manager.addRiseText('EXP ' + (afterExp - beforeExp), 'rgb(255, 255, 0)', userCenter);
       }
     }
   });
@@ -672,6 +694,8 @@ function setupSocket(){
     possessSkills = possessSkillIndexes;
     UIManager.updatePossessionSkills(possessSkills);
     UIManager.setPopUpSkillChange();
+
+
   });
   socket.on('userDead', function(attackUserID, deadUserID, userDatas){
     if(deadUserID === gameConfig.userID){
@@ -733,6 +757,15 @@ function drawChests(){
     // var pos = util.worldToLocalPosition(Manager.chests[i].position, gameConfig.userOffset);
     // ctx.fillRect(pos.x * gameConfig.scaleFactor, pos.y * gameConfig.scaleFactor,
     //               Manager.chests[i].size.width * gameConfig.scaleFactor, Manager.chests[i].size.height * gameConfig.scaleFactor);
+
+    ctx.fillStyle = "00ff00";
+    var width = Manager.chests[i].HP / Manager.chests[i].maxHP * 85 * gameConfig.scaleFactor;
+    var height = 10 * gameConfig.scaleFactor;
+    ctx.fillRect((center.x - 42.5) * gameConfig.scaleFactor, (center.y + 60) * gameConfig.scaleFactor, width, height);
+
+    ctx.strokeStyle = "#000000";
+    width = 85 * gameConfig.scaleFactor;
+    ctx.strokeRect((center.x - 42.5) * gameConfig.scaleFactor, (center.y + 60) * gameConfig.scaleFactor, width, height);
     ctx.closePath();
   }
 };
@@ -941,7 +974,6 @@ function drawUsers(){
     var pos = util.worldToLocalPosition(Manager.users[index].position, gameConfig.userOffset);
 
     ctx.fillStyle = "#00ff00";
-    var HPPercent = Manager.users[index].HP / Manager.users[index].maxHP;
     var width = Manager.users[index].HP / Manager.users[index].maxHP * 85 * gameConfig.scaleFactor;
     var height = 10 * gameConfig.scaleFactor;
     ctx.fillRect((pos.x - 10) * gameConfig.scaleFactor, (pos.y + 80) * gameConfig.scaleFactor, width, height);

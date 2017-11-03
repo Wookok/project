@@ -149,6 +149,8 @@ CManager.prototype = {
 				objectID : chestData.objectID,
 				locationID : chestData.locationID,
 				grade : chestData.grade,
+				HP : chestData.HP,
+				maxHP : chestData.maxHP,
 				position : chestPosition,
 				size : {width : chestGround.radius * 2, height : chestGround.radius * 2},
 				center : {x : chestPosition.x + chestGround.radius, y : chestPosition.y + chestGround.radius},
@@ -169,6 +171,14 @@ CManager.prototype = {
 		// 		size : {width : resources.OBJ_CHEST_SIZE, height : resources.OBJ_CHEST_SIZE}
 		// 	});
 		// }
+	},
+	updateChest : function(locationID, HP){
+		for(var i=0; i<this.chests.length; i++){
+			if(this.chests[i].locationID === locationID){
+				this.chests[i].HP = HP;
+				break;
+			}
+		}
 	},
 	deleteChest : function(locationID){
 		for(var i=0; i<this.chests.length; i++){

@@ -131,6 +131,7 @@ function OBJChest(objectID, locationID){
 
   this.entityTreeEle = {}
 
+  this.onTakeDamage = new Function();
   this.onDestroy = new Function();
   this.onCreateExp = new Function();
   this.onCreateSkill = new Function();
@@ -144,6 +145,8 @@ OBJChest.prototype.takeDamage = function(attackUser, damage){
   console.log(this.HP);
   if(this.HP <= 0){
     this.destroy();
+  }else{
+    this.onTakeDamage(this.locationID, this.HP);
   }
 };
 OBJChest.prototype.destroy = function(){
@@ -185,7 +188,11 @@ OBJChest.prototype.setJewels = function(chestData){
 OBJChest.prototype.setSkills = function(chestData){
   var totalRate = 0;
   for(var i=0; i<20; i++){
-    totalRate += chestData['SkillDropRate' + (i + 1)];
+    if(chestData['SkillDropRate' + (i + 1)]){
+      totalRate += chestData['SkillDropRate' + (i + 1)];
+    }else{
+      break;
+    }
   }
   var skillCount = Math.floor(Math.random() * (chestData.maxSkillCount - chestData.minSkillCount + 1) + chestData.minSkillCount);
   for(var i=0; i<skillCount; i++){

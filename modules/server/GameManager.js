@@ -90,12 +90,14 @@ function GameManager(){
   this.onNeedInformUserReduceMP = new Function();
   this.onNeedInformUserGetExp = new Function();
   this.onNeedInformUserGetResource = new Function();
+  this.onNeedInformUserSkillChangeToResource = new Function();
   this.onNeedInformUserLevelUp = new Function();
   this.onNeedInformUserDeath = new Function();
 
   this.onNeedInformCreateObjs = new Function();
   this.onNeedInformDeleteObj = new Function();
   this.onNeedInformCreateChest = new Function();
+  this.onNeedInformChestDamaged = new Function();
   this.onNeedInformDeleteChest = new Function();
 
   this.onNeedInformSkillData = new Function();
@@ -179,12 +181,6 @@ GameManager.prototype.setObstacles = function(){
     this.obstacles.push(tempRock);
     staticEles.push(tempRock.staticEle);
   }
-  // for(var index in map.Trees){
-  //   var tempObstacle = new Obstacle(map.Trees[index].posX, map.Trees[index].posY,	resources.OBJ_TREE_SIZE, resources.OBJ_TREE_SIZE, map.Trees[index].id);
-  //
-  //   this.obstacles.push(tempObstacle);
-  //   staticEles.push(tempObstacle.staticEle);
-  // }
 };
 GameManager.prototype.setChestsLocation = function(){
   var chestGrounds = Object.assign({}, util.findAllDatas(obstacleTable, 'type', gameConfig.OBJ_TYPE_CHEST_GROUND));
@@ -194,34 +190,10 @@ GameManager.prototype.setChestsLocation = function(){
     this.chestLocations.push(tempGround);
     staticEles.push(tempGround.staticEle);
   }
-  // for(var i=0; i<map.Chests.length; i++){
-  //   var tempObj = new Obstacle(map.Chests[i].posX, map.Chests[i].posY,
-  //     resources.OBJ_CHEST_SIZE, resources.OBJ_CHEST_SIZE, map.Chests[i].id);
-  //
-  //   this.chestLocations.push(tempObj);
-  //   staticEles.push(tempObj.staticEle);
-  // }
 };
 GameManager.prototype.setStaticTreeEle = function(){
   staticTree.pushAll(staticEles);
 };
-// GameManager.prototype.setOBJExps = function(){
-//   for(var i=0; i<this.objExpsCount; i++){
-//     var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
-//     var objExp = new OBJExp(randomID);
-//     var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
-//     var radius = SUtil.expToRadius(expAmount);
-//     var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
-//                                       radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
-//
-//     objExp.initOBJExp(randomPos, radius, expAmount);
-//     objExp.setCollectionEle();
-//     // this.staticTree.push(food.staticEle);
-//     this.objExps.push(objExp);
-//     collectionEles.push(objExp.collectionEle);
-//     collectionTree.push(objExp.collectionEle);
-//   }
-// };
 GameManager.prototype.setOBJSkills = function(){
   for(var i=0; i<this.objSkillsCount; i++){
     var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
@@ -271,86 +243,14 @@ GameManager.prototype.createChest = function(chestLocationID){
       this.chests.push(chest);
       this.onNeedInformCreateChest(chest);
 
-      chest.onDestroy = onChestDestroyHandler.bind(this);
+      chest.onTakeDamage = SUtil.onChestDamaged.bind(this);
+      chest.onDestroy = SUtil.onChestDestroy.bind(this);
       break;
     }
   }
-  // //find chest data
-  // for(var i=0; i<chestGrounds.length; i++){
-  //   if(map.Chests[i].id === chestLocationID){
-  //     var chestResourceData = map.Chests[i]
-  //   }
-  // }
-  // //set grade of Chest
-  // if(chestResourceData){
-  //   var chestGrade = Math.floor(Math.random() * (chestResourceData.gradeMax - chestResourceData.gradeMin + 1) + chestResourceData.gradeMin);
-  //   console.log('chest grade : ' + chestGrade);
-  //   var chestData = Object.assign({}, util.findData(chestTable, 'grade', chestGrade));
-  //   var position = {x : chestResourceData.posX, y : chestResourceData.posY};
-  //   var chestID = SUtil.generateRandomUniqueID(this.chests, gameConfig.PREFIX_CHEST);
-  //   var radius = resources.OBJ_CHEST_SIZE;
-  //
-  //   var chest = new OBJChest(chestID, chestLocationID);
-  //   chest.initOBJChest(position, radius, chestData);
-  //   chest.setEntityEle();
-  //   this.chests.push(chest);
-  //   this.onNeedInformCreateChest(chest);
-  //
-  //   chest.onDestroy = onChestDestroyHandler.bind(this);
-  // }
-};
-var onChestDestroyHandler = function(cht){
-  var createdObjs = [];
-  for(var i=0; i<cht.golds.length; i++){
-    var objGold = this.createOBJs(1, gameConfig.PREFIX_OBJECT_GOLD, cht.golds[i], cht.position);
-    createdObjs.push(objGold[0]);
-  }
-  for(var i=0; i<cht.jewels.length; i++){
-    var objJewel = this.createOBJs(1, gameConfig.PREFIX_OBJECT_JEWEL, cht.jewels[i], cht.position);
-    createdObjs.push(objJewel[0]);
-  }
-  // for(var i=0; i<cht.exps.length; i++){
-  //   var objExp = this.createOBJs(1, gameConfig.PREFIX_OBJECT_EXP, cht.exps[i], cht.position);
-  //   createdObjs.push(objExp[0]);
-  // }
-  for(var i=0; i<cht.skills.length; i++){
-    var objSkill = this.createOBJs(1, gameConfig.PREFIX_OBJECT_SKILL, cht.skills[i], cht.position);
-    createdObjs.push(objSkill[0]);
-  }
-  for(var i=0; i<this.chests.length; i++){
-    if(this.chests[i].objectID === cht.objectID){
-      this.chests.splice(i, 1);
-    }
-  }
-  this.onNeedInformCreateObjs(createdObjs);
-  this.onNeedInformDeleteChest(cht.locationID);
 };
 GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
   var createdObjs =[];
-  // if(type === gameConfig.PREFIX_OBJECT_EXP){
-  //   for(var i=0; i<count; i++){
-  //     var randomID = SUtil.generateRandomUniqueID(this.objExps, gameConfig.PREFIX_OBJECT_EXP);
-  //     var objExp = new OBJExp(randomID);
-  //     if(expOrSkill){
-  //       var expAmount = expOrSkill;
-  //     }else{
-  //       var expAmount = SUtil.getRandomNum(serverConfig.OBJ_EXP_MIN_EXP_AMOUNT, serverConfig.OBJ_EXP_MAX_EXP_AMOUNT);
-  //     }
-  //     var radius = SUtil.expToRadius(expAmount);
-  //     if(nearPosition){
-  //       var randomPos = SUtil.generateNearPos(nearPosition, serverConfig.CHEST_NEAR_RANGE);
-  //     }else{
-  //       var randomPos = SUtil.generateRandomPos(collectionTree, 0, 0, gameConfig.CANVAS_MAX_SIZE.width - radius, gameConfig.CANVAS_MAX_SIZE.height - radius,
-  //                                         radius, serverConfig.OBJ_EXP_RANGE_WITH_OTHERS, randomID, staticTree);
-  //     }
-  //
-  //     objExp.initOBJExp(randomPos, radius, expAmount);
-  //     objExp.setCollectionEle();
-  //     this.objExps.push(objExp);
-  //     this.addedObjExps.push(objExp);
-  //     createdObjs.push(objExp);
-  //   }
-  // }else
   if(type === gameConfig.PREFIX_OBJECT_SKILL){
     for(var i=0; i<count; i++){
       var randomID = SUtil.generateRandomUniqueID(this.objSkills, gameConfig.PREFIX_OBJECT_SKILL);
@@ -445,7 +345,9 @@ GameManager.prototype.getObj = function(objID, affectNum, userID){
         if(this.objSkills[i].objectID === objID){
           if(userID in this.users){
             var possessSkills = this.users[userID].getSkill(affectNum);
-            this.onNeedInformSkillData(this.users[userID].socketID, possessSkills);
+            if(possessSkills){
+              this.onNeedInformSkillData(this.users[userID].socketID, possessSkills);
+            }
 
             this.objSkills.splice(i, 1);
             this.onNeedInformDeleteObj(objID);
@@ -510,7 +412,7 @@ GameManager.prototype.getObj = function(objID, affectNum, userID){
 GameManager.prototype.joinUser = function(user){
   this.users[user.objectID] = user;
   this.users[user.objectID].onBuffExchange = SUtil.onUserBuffExchange.bind(this);
-  this.users[user.objectID].onSkillUpgrade = SUtil.onUserSkillUpgrade.bind(this, user.socketID);
+  this.users[user.objectID].onSkillUpgrade = SUtil.onUserSkillUpgrade.bind(this);
   this.users[user.objectID].onMove = onMoveCalcCompelPos.bind(this);
   this.users[user.objectID].onChangePrivateStat = SUtil.onUserChangePrivateStat.bind(this);
   this.users[user.objectID].onChangeStat = SUtil.onUserChangeStat.bind(this);
@@ -518,6 +420,7 @@ GameManager.prototype.joinUser = function(user){
   this.users[user.objectID].onReduceMP = SUtil.onUserReduceMP.bind(this);
   this.users[user.objectID].onGetExp = SUtil.onUserGetExp.bind(this);
   this.users[user.objectID].onGetResource = SUtil.onUserGetResource.bind(this);
+  this.users[user.objectID].onSkillChangeToResource = SUtil.onUserSkillChangeToResource.bind(this);
   this.users[user.objectID].onLevelUP = SUtil.onUserLevelUP.bind(this);
   this.users[user.objectID].onDeath = SUtil.onUserDeath.bind(this);
   // this.setStartBuff(user);
@@ -680,6 +583,8 @@ GameManager.prototype.updateUserData = function(userData){
       this.users[userData.objectID].currentState = userData.currentState;
       this.users[userData.objectID].position = userData.position;
       this.users[userData.objectID].direction = userData.direction;
+
+      this.users[userData.objectID].setCenter();
       if(userData.latency){
         this.users[userData.objectID].latency = userData.latency;
       }
@@ -1018,6 +923,11 @@ GameManager.prototype.equipPassive = function(user, buffGroupIndex){
 GameManager.prototype.unequipPassive = function(user, buffGroupIndex){
   if(user.objectID in this.users){
     user.unequipPassive(buffGroupIndex);
+  }
+};
+GameManager.prototype.checkSkillPossession = function(userID, skillIndex){
+  if(userID in this.users){
+    return this.users[userID].checkSkillPossession(skillIndex);
   }
 };
 GameManager.prototype.cancelBlur = function(userID){

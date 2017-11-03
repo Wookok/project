@@ -624,22 +624,31 @@ User.prototype.getSkill = function(index){
     this.possessSkills.push(skillData.index);
     return this.possessSkills;
   }else{
-    if(possessSkill.nextSkillIndex !== -1){
-      var changeSkillIndex = this.possessSkills.indexOf(possessSkill.index);
-      if(changeSkillIndex === -1){
-        console.log('cant find skill index at possess skill array');
-        return this.possessSkills;
-      }else{
-        this.possessSkills[changeSkillIndex] = possessSkill.nextSkillIndex;
-        console.log('level up skill' + possessSkill.index);
-        console.log('currentPossessSkills');
-        console.log(this.possessSkills);
-        return this.possessSkills;
-      }
-    }else{
-      //do nothing
-      console.log('skill reach max level');
+    var goldAmount = skillData.exchangeToGold;
+    var jewelAmount = skillData.exchangeToJewel;
+    if(util.isNumeric(goldAmount)){
+      this.gold += goldAmount;
     }
+    if(util.isNumeric(jewelAmount)){
+      this.jewel += jewelAmount;
+    }
+    this.onSkillChangeToResource(this, index);
+    // if(possessSkill.nextSkillIndex !== -1){
+    //   var changeSkillIndex = this.possessSkills.indexOf(possessSkill.index);
+    //   if(changeSkillIndex === -1){
+    //     console.log('cant find skill index at possess skill array');
+    //     return this.possessSkills;
+    //   }else{
+    //     this.possessSkills[changeSkillIndex] = possessSkill.nextSkillIndex;
+    //     console.log('level up skill' + possessSkill.index);
+    //     console.log('currentPossessSkills');
+    //     console.log(this.possessSkills);
+    //     return this.possessSkills;
+    //   }
+    // }else{
+    //   //do nothing
+    //   console.log('skill reach max level');
+    // }
   }
 };
 User.prototype.upgradeSkill = function(skillIndex){
@@ -663,6 +672,8 @@ User.prototype.upgradeSkill = function(skillIndex){
     var nextSkillIndex = skillData.nextSkillIndex;
     if(nextSkillIndex !== -1){
       if(this.gold >= skillData.upgradeGoldAmount && this.jewel >= skillData.upgradeJewelAmount){
+        this.gold -= skillData.upgradeGoldAmount;
+        this.jewel -= skillData.upgradeJewelAmount;
         if(isBaseSkill){
           this.baseSkill = nextSkillIndex;
           this.onSkillUpgrade(skillIndex, nextSkillIndex);
@@ -683,7 +694,7 @@ User.prototype.upgradeSkill = function(skillIndex){
               break;
             }
           }
-          this.onSkillUpgrade(skillIndex, nextSkillIndex);
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
         }
       }else{
         //need more resource maybe cheat?
@@ -745,6 +756,18 @@ User.prototype.unequipPassive = function(buffGroupIndex){
     this.passiveList.splice(index, 1);
   }
   this.onBuffExchange(this);
+};
+User.prototype.checkSkillPossession = function(skillIndex){
+  if(this.baseSkill === skillIndex){
+    return true;
+  }
+  for(var i=0; i<this.possessSkills.length; i++){
+    if(this.possessSkills[i] === skillIndex){
+      return true;
+    }
+  }
+  console.log('dont have skill');
+  return false;
 };
 User.prototype.stop = function(){
   if(this.updateInterval){
@@ -915,9 +938,17 @@ User.prototype.death = function(attackUserID){
     this.buffUpdateInterval = false;
     this.regenInterval = false;
 
-    var exp = this.level *  10000;
-    this.onDeath(attackUserID, exp, this.objectID);
+    this.onDeath(this, attackUserID, this.objectID);
   }
+};
+User.prototype.decreaseLevel = function(level){
+  this.level = level;
+  this.exp = 0;
+};
+User.prototype.decreaseResource = function(rate){
+  var multiplyFactor = (100 - rate) / 100;
+  this.gold = Math.floor(this.gold * multiplyFactor);
+  this.jewel = Math.floor(this.jewel * multiplyFactor);
 };
 User.prototype.cancelBlur = function(){
   for(var i=this.buffList.length - 1; i>=0; i--){

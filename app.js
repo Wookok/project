@@ -65,6 +65,9 @@ GM.onNeedInformUserGetResource = function(user){
   var resourceData = GM.processUserResource(user);
   io.to(user.socketID).emit('getResource', resourceData);
 };
+GM.onNeedInformUserSkillChangeToResource = function(socketID, skillIndex){
+  io.to(socketID).emit('skillChangeToResource', skillIndex);
+};
 GM.onNeedInformUserLevelUp = function(user){
   var userData = GM.processChangedUserStat(user);
   io.sockets.emit('changeUserStat', userData);
@@ -75,8 +78,8 @@ GM.onNeedInformBuffUpdate = function(user){
   io.sockets.emit('updateBuff', buffData);
   // io.to(user.socketID).emit('updateBuff', buffData);
 };
-GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex){
-  io.to(socketID).emit('upgradeSkill', beforeSkillIndex, afterSkillIndex);
+GM.onNeedInformSkillUpgrade = function(socketID, beforeSkillIndex, afterSkillIndex, resourceData){
+  io.to(socketID).emit('upgradeSkill', beforeSkillIndex, afterSkillIndex, resourceData);
 };
 GM.onNeedInformUserChangePrivateStat = function(user){
   var statData = GM.processUserPrivateDataSetting(user);
@@ -90,6 +93,9 @@ GM.onNeedInformUserChangeStat = function(user){
 GM.onNeedInformCreateChest = function(chest){
   var chestData = GM.processChestDataSetting(chest);
   io.sockets.emit('createChest', chestData);
+};
+GM.onNeedInformChestDamaged = function(locationID, HP){
+  io.sockets.emit('chestDamaged', locationID, HP);
 };
 GM.onNeedInformDeleteChest = function(locationID){
   io.sockets.emit('deleteChest', locationID);
@@ -207,7 +213,7 @@ io.on('connection', function(socket){
     var rand = Math.floor(Math.random() * serverConfig.CHEAT_CHECK_RATE);
     if(rand === 1){
       if(GM.checkCheat(userData)){
-        console.log('is not cheating!');
+        console.log('do not cheating!');
       }else{
         console.log(userData.objectID + ' is cheating!!!!!');
       }
@@ -221,54 +227,60 @@ io.on('connection', function(socket){
     socket.broadcast.emit('userDataUpdate', userData);
   });
   socket.on('userUseSkill', function(userAndSkillData){
-    GM.updateUserData(userAndSkillData);
-    if(userAndSkillData.cancelBlur){
-      GM.cancelBlur(user.objectID);
+    if(GM.checkSkillPossession(userAndSkillData.objectID, userAndSkillData.skillIndex)){
+      GM.updateUserData(userAndSkillData);
+      if(userAndSkillData.cancelBlur){
+        GM.cancelBlur(user.objectID);
+      }
+      var userData = GM.processUserDataSetting(user);
+      userData.skillIndex = userAndSkillData.skillIndex;
+      userData.skillDirection = userAndSkillData.skillDirection;
+      userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
+      if(userAndSkillData.projectileIDs){
+        userData.skillProjectileIDs = userAndSkillData.projectileIDs;
+      }
+      socket.broadcast.emit('userDataUpdateAndUseSkill', userData);
     }
-    var userData = GM.processUserDataSetting(user);
-    userData.skillIndex = userAndSkillData.skillIndex;
-    userData.skillDirection = userAndSkillData.skillDirection;
-    userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
-    if(userAndSkillData.projectileIDs){
-      userData.skillProjectileIDs = userAndSkillData.projectileIDs;
-    }
-    socket.broadcast.emit('userDataUpdateAndUseSkill', userData);
   });
   socket.on('skillFired', function(data){
-    var skillData = Object.assign({}, util.findData(skillTable, 'index', data.skillIndex));
-    skillData.targetPosition = data.skillTargetPosition;
+    if(GM.checkSkillPossession(user.objectID, data.skillIndex)){
+      var skillData = Object.assign({}, util.findData(skillTable, 'index', data.skillIndex));
+      skillData.targetPosition = data.skillTargetPosition;
 
-    // skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3, user.objectID);
-    // skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3, user.objectID);
-    var timeoutTime = data.syncFireTime - Date.now();
-    if(timeoutTime < 0){
-      timeoutTime = 0;
+      // skillData.buffsToSelf = util.findAndSetBuffs(skillData, buffTable, 'buffToSelf', 3, user.objectID);
+      // skillData.buffsToTarget = util.findAndSetBuffs(skillData, buffTable, 'buffToTarget', 3, user.objectID);
+      var timeoutTime = data.syncFireTime - Date.now();
+      if(timeoutTime < 0){
+        timeoutTime = 0;
+      }
+      setTimeout(function(){
+        GM.applySkill(user.objectID, skillData);
+      }, timeoutTime);
+      io.sockets.emit('skillFired', data, user.objectID);
     }
-    setTimeout(function(){
-      GM.applySkill(user.objectID, skillData);
-    }, timeoutTime);
-    io.sockets.emit('skillFired', data, user.objectID);
   });
   socket.on('projectilesFired', function(datas, syncFireTime){
-    var timeoutTime = syncFireTime - Date.now();
-    if(timeoutTime <0){
-      timeoutTime = 0;
-    }
-    setTimeout(function(){
-      var projectiles = [];
-      for(var i=0; i<datas.length; i++){
-        var projectileData = Object.assign({}, util.findData(skillTable, 'index', datas[i].skillIndex));
-
-        projectileData.objectID = datas[i].objectID;
-        projectileData.position = datas[i].position;
-        projectileData.speed = datas[i].speed;
-        projectileData.startTime = Date.now();
-
-        projectiles.push(projectileData);
+    if(GM.checkSkillPossession(user.objectID, datas[0].skillIndex)){
+      var timeoutTime = syncFireTime - Date.now();
+      if(timeoutTime <0){
+        timeoutTime = 0;
       }
-      GM.applyProjectile(user.objectID, projectiles);
-    }, timeoutTime);
-    io.sockets.emit('projectilesFired', datas, syncFireTime, user.objectID);
+      setTimeout(function(){
+        var projectiles = [];
+        for(var i=0; i<datas.length; i++){
+          var projectileData = Object.assign({}, util.findData(skillTable, 'index', datas[i].skillIndex));
+
+          projectileData.objectID = datas[i].objectID;
+          projectileData.position = datas[i].position;
+          projectileData.speed = datas[i].speed;
+          projectileData.startTime = Date.now();
+
+          projectiles.push(projectileData);
+        }
+        GM.applyProjectile(user.objectID, projectiles);
+      }, timeoutTime);
+      io.sockets.emit('projectilesFired', datas, syncFireTime, user.objectID);
+    }
   });
   socket.on('castCanceled', function(userData){
     GM.updateUserData(userData);

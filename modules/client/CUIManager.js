@@ -31,7 +31,7 @@ var userStatPowerContainer, userStatMagicContainer, userStatSpeedContainer;
 var gameSceneHudTopCenter, selectSkillIcon, selectSkillInfo, btnSelectSkillCancel;
 var goldContainer, jewelContainer, gameSceneHudTopRight;
 var gameSceneDeadScene, deadSceneText;
-var flashMessageContainer;
+var DivFlashMessageContainer, flashMessageContainer;
 
 var popUpSkillChange, popUpSkillContainer, popUpBackground;
 var popUpSkillInfoIcon, popUpSkillInfoDesc, popUpSkillUpgradeCostGold, popUpSkillUpgradeCostJewel, popUpSkillUpgradeBtn;
@@ -210,6 +210,7 @@ UIManager.prototype = {
     gameSceneDeadScene = document.getElementById('gameSceneDeadScene');
     deadSceneText = document.getElementById('deadSceneText');
 
+    DivFlashMessageContainer = document.getElementById('DivFlashMessageContainer');
     flashMessageContainer = document.getElementById('flashMessageContainer');
   },
   drawStartScene : function(){
@@ -397,9 +398,22 @@ UIManager.prototype = {
       popChange(popUpSkillChange);
     }
   },
-  getResource : function(resourceData){
+  setResource : function(resourceData){
     goldContainer.innerHTML = resourceData.gold;
     jewelContainer.innerHTML = resourceData.jewel;
+  },
+  addResource : function(gold, jewel){
+    var goldAmount = parseInt(goldContainer.innerHTML);
+    var jewelAmount = parseInt(jewelContainer.innerHTML);
+    if(util.isNumeric(gold) && util.isNumeric(goldAmount)){
+      goldContainer.innerHTML = goldAmount + gold;
+    }
+    if(util.isNumeric(jewel) && util.isNumeric(jewelAmount)){
+      jewelContainer.innerHTML = jewelAmount + jewel;
+    }
+  },
+  makeDivFlashMessage : function(skillData){
+
   },
   updateBuffIcon : function(passiveList, buffList){
     while(gameSceneBuffsContainer.firstChild){
@@ -475,6 +489,42 @@ UIManager.prototype = {
     popUpEquipSkill3 = document.getElementById('popUpEquipSkill3');
     popUpEquipSkill4 = document.getElementById('popUpEquipSkill4');
     popUpEquipPassiveSkill = document.getElementById('popUpEquipPassiveSkill');
+  },
+  checkPopUpSkillChange : function(){
+    var needRefresh = false;
+
+    var equipSkillIndex1 = parseInt(popUpEquipSkill1.getAttribute('skillIndex'));
+    var equipSkillIndex2 = parseInt(popUpEquipSkill2.getAttribute('skillIndex'));
+    var equipSkillIndex3 = parseInt(popUpEquipSkill3.getAttribute('skillIndex'));
+    var equipSkillIndex4 = parseInt(popUpEquipSkill4.getAttribute('skillIndex'));
+    if(equipSkillIndex1 && equipSkillIndex1 !== equipSkills[0]){
+      needRefresh = true;
+    }
+    if(equipSkillIndex2 && equipSkillIndex2 !== equipSkills[1]){
+      needRefresh = true;
+    }
+    if(equipSkillIndex3 && equipSkillIndex3 !== equipSkills[2]){
+      needRefresh = true;
+    }
+    if(equipSkillIndex4 && equipSkillIndex4 !== equipSkills[3]){
+      needRefresh = true;
+    }
+
+    var containerItems = popUpSkillContainer.children;
+    for(var i=0; i<containerItems.length; i++){
+      var isExist = false;
+      var skillIndex = parseInt(containerItems[i].getAttribute('skillIndex'));
+      for(var j=0; j<possessSkills.length; j++){
+        if(skillIndex === possessSkills[j]){
+          isExist = true;
+          break;
+        }
+      }
+      if(!isExist){
+        needRefresh = true;
+      }
+    }
+    return needRefresh;
   },
   upgradeBaseSkill : function(afterSkillIndex, afterSkillData){
     var beforeSkillIndex = baseSkill;
@@ -631,13 +681,16 @@ UIManager.prototype = {
     }
   },
   updateSelectedPanel : function(skillIndex){
+    while(popUpSkillInfoIcon.firstChild){
+      popUpSkillInfoIcon.removeChild(popUpSkillInfoIcon.firstChild);
+    }
+    while(popUpSkillInfoDesc.firstChild){
+      popUpSkillInfoDesc.removeChild(popUpSkillInfoDesc.firstChild);
+    }
+    popUpSkillUpgradeCostGold.innerHTML = 0;
+    popUpSkillUpgradeCostJewel.innerHTML = 0;
+
     if(skillIndex){
-      while(popUpSkillInfoIcon.firstChild){
-        popUpSkillInfoIcon.removeChild(popUpSkillInfoIcon.firstChild);
-      }
-      while(popUpSkillInfoDesc.firstChild){
-        popUpSkillInfoDesc.removeChild(popUpSkillInfoDesc.firstChild);
-      }
       selectedSkillIndex = skillIndex;
 
       var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
@@ -773,6 +826,12 @@ UIManager.prototype = {
     deadSceneText.innerHTML = '';
     gameSceneDeadScene.classList.remove('deadSceneAni');
     gameSceneDeadScene.style.display = 'none';
+  },
+  getUserGold : function(){
+    return parseInt(goldContainer.innerHTML);
+  },
+  getUserJewel : function(){
+    return parseInt(jewelContainer.innerHTML);
   }
 };
 function popChange(popWindow){
@@ -788,7 +847,6 @@ function popChange(popWindow){
     popUpBackground.classList.remove('enable');
   }
 };
-
 function changeEquipSkillHandler(selectDiv, selectPanel){
   //clear selected and equipable class
   // if(selectedDiv){
@@ -1044,7 +1102,17 @@ function changeEquipSkillHandler(selectDiv, selectPanel){
       }
     }
   }
-  this.updateSelectedPanel(selectedSkillIndex);
+  if(this.checkPopUpSkillChange()){
+    this.setPopUpSkillChange();
+    selectedSkillIndex = null;
+    selectedPanel = null;
+    selectedDiv = null;
+    selectedEquipIndex = null;
+    clearPopSkillChangeClass();
+    this.updateSelectedPanel();
+  }else{
+    this.updateSelectedPanel(selectedSkillIndex);
+  }
   // //set info panel
   // while (popUpSkillInfoIcon.firstChild) {
   //   popUpSkillInfoIcon.removeChild(popUpSkillInfoIcon.firstChild);
