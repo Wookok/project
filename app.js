@@ -177,11 +177,9 @@ io.on('connection', function(socket){
     socket.emit('resStartGame', userDatas, objDatas, chestDatas);
     GM.setStartBuff(user);
   });
-  var count = 1;
   socket.on('reqRestartGame', function(charType, equipSkills){
     var level = GM.getLevel(user.objectID, charType);
 
-    console.log(count++);
     var userStat = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', charType, 'level', level));
     var userBase = Object.assign({}, util.findData(userBaseTable, 'type', charType));
     GM.setUserStat(user.objectID, userStat, userBase);
@@ -191,7 +189,9 @@ io.on('connection', function(socket){
     var inherentPassiveSkill = GM.getInherentPassiveSkill(user.objectID, charType);
 
     var userData = GM.processUserDataSetting(user);
-    socket.broadcast.emit('userJoined', userData);
+    var rankDatas = GM.processScoreDatas();
+
+    socket.broadcast.emit('userJoined', userData, rankDatas);
     GM.addSkillData(userData);
     GM.addPrivateData(userData);
     socket.emit('resRestartGame', userData);
@@ -225,6 +225,15 @@ io.on('connection', function(socket){
 
     var userData = GM.processUserDataSetting(user);
     socket.broadcast.emit('userDataUpdate', userData);
+  });
+  socket.on('userMoveAndAttack', function(userAndSkillData){
+    GM.updateUserData(userAndSkillData);
+    var userData = GM.processUserDataSetting(user);
+    userData.skillIndex = userAndSkillData.skillIndex;
+    userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
+    userData.moveBackward = userAndSkillData.moveBackward;
+    
+    socket.broadcast.emit('userMoveAndAttack', userData);
   });
   socket.on('userUseSkill', function(userAndSkillData){
     if(GM.checkSkillPossession(userAndSkillData.objectID, userAndSkillData.skillIndex)){

@@ -302,6 +302,7 @@ CManager.prototype = {
 		if(!(objID in this.users)){
 			console.log("user already out");
 		}else{
+			this.users[objID].stop();
 			delete this.users[objID];
 		}
 	},
@@ -320,6 +321,35 @@ CManager.prototype = {
 		this.user.setSpeed();
 
 		this.user.changeState(gameConfig.OBJECT_STATE_MOVE);
+	},
+	moveAndAttackUser : function(userID, userTargetPosition, skillData, moveBackward){
+		if(userID in this.users){
+			this.users[userID].targetPosition = userTargetPosition;
+			this.users[userID].setCenter();
+			if(moveBackward){
+				this.users[userID].setTargetDirection(moveBackward);
+				this.users[userID].setSpeed(gameConfig.MOVE_BACK_WARD_SPEED_DECREASE_RATE);
+			}else{
+				this.users[userID].setTargetDirection();
+				this.users[userID].setSpeed();
+			}
+
+			skillData.direction = this.users[userID].targetDirection;
+			var skillInstance = this.users[userID].makeSkillInstance(skillData);
+
+			var thisUser = this.user;
+			var mainUser = this.users[userID];
+			var thisOnSkillFire = this.onSkillFire;
+
+			skillInstance.onFire = function(syncFireTime){
+				if(thisUser === mainUser){
+					thisOnSkillFire(skillData);
+				}
+				mainUser.skillCastEffectPlay = false;
+			}
+			this.users[userID].changeState(gameConfig.OBJECT_STATE_MOVE_AND_ATTACK);
+			this.users[userID].setSkill(skillInstance);
+		}
 	},
 	useSkill : function(userID, skillData){
 		if(userID in this.users){
@@ -611,6 +641,8 @@ CManager.prototype = {
 		}
 	},
 	processUserData : function(){
+		if(this.user.currentState === gameConfig.OBJECT_STATE)
+		var currentState
 		return {
 			objectID : this.user.objectID,
 			currentState : this.user.currentState,

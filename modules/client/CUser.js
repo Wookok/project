@@ -97,6 +97,9 @@ User.prototype = {
       case gameConfig.OBJECT_STATE_DEATH:
         this.updateFunction = this.idle.bind(this);
         break;
+      case gameConfig.OBJECT_STATE_MOVE_AND_ATTACK:
+        this.updateFunction = this.rotate.bind(this);
+        break;
     }
     this.update();
   },
@@ -123,11 +126,11 @@ User.prototype = {
     }
     this.onMainUserMove();
   },
-  setTargetDirection : function(){
-    util.setTargetDirection.call(this);
+  setTargetDirection : function(moveBackward){
+    util.setTargetDirection.call(this, moveBackward);
   },
-  setSpeed : function(){
-    util.setSpeed.call(this);
+  setSpeed : function(decreaseRate){
+    util.setSpeed.call(this, decreaseRate);
   },
   moveOffset : function(){
     util.moveOffset.call(this);

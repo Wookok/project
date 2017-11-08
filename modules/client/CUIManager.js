@@ -27,6 +27,7 @@ var userHPProgressBar, userMPProgressBar, userExpProgressBar;
 var isUseableBaseSkill = true, isUseableEquipSkill1 = true, isUseableEquipSkill2 = true, isUseableEquipSkill3 = true, isUseableEquipSkill4 = true;
 var hudBaseSkillMask, hudEquipSkill1Mask, hudEquipSkill2Mask, hudEquipSkill3Mask, hudEquipSkill4Mask;
 var hudBaseSkillBlockMask, hudEquipSkill1BlockMask, hudEquipSkill2BlockMask, hudEquipSkill3BlockMask, hudEquipSkill4BlockMask, hudPassiveSkillBlockMask;
+var hudEquipSkill1ManaBlockMask, hudEquipSkill2ManaBlockMask, hudEquipSkill3ManaBlockMask, hudEquipSkill4ManaBlockMask;
 var userStatPowerContainer, userStatMagicContainer, userStatSpeedContainer;
 var gameSceneHudTopCenter, selectSkillIcon, selectSkillInfo, btnSelectSkillCancel;
 var goldContainer, jewelContainer, gameSceneHudTopRight;
@@ -174,6 +175,11 @@ UIManager.prototype = {
     hudEquipSkill3BlockMask = document.getElementById('hudEquipSkill3BlockMask');
     hudEquipSkill4BlockMask = document.getElementById('hudEquipSkill4BlockMask');
     hudPassiveSkillBlockMask = document.getElementById('hudPassiveSkillBlockMask');
+
+    hudEquipSkill1ManaBlockMask = document.getElementById('hudEquipSkill1ManaBlockMask');
+    hudEquipSkill2ManaBlockMask = document.getElementById('hudEquipSkill2ManaBlockMask');
+    hudEquipSkill3ManaBlockMask = document.getElementById('hudEquipSkill3ManaBlockMask');
+    hudEquipSkill4ManaBlockMask = document.getElementById('hudEquipSkill4ManaBlockMask');
 
     userStatPowerContainer = document.getElementById('userStatPowerContainer');
     userStatMagicContainer = document.getElementById('userStatMagicContainer');
@@ -324,6 +330,34 @@ UIManager.prototype = {
       percent = 100;
     }
     userExpProgressBar.style.width = percent + "%";
+  },
+  checkSkillsCounsumeMana : function(userMP){
+    hudEquipSkill1ManaBlockMask.classList.add('disable');
+    hudEquipSkill2ManaBlockMask.classList.add('disable');
+    hudEquipSkill3ManaBlockMask.classList.add('disable');
+    hudEquipSkill4ManaBlockMask.classList.add('disable');
+
+    for(var i=0; i<4; i++){
+      if(equipSkillDatas[i]){
+        if(equipSkillDatas[i].consumeMP > userMP){
+          switch (i) {
+            case 0:
+              hudEquipSkill1ManaBlockMask.classList.remove('disable');
+              break;
+            case 1:
+              hudEquipSkill2ManaBlockMask.classList.remove('disable');
+              break;
+            case 2:
+              hudEquipSkill3ManaBlockMask.classList.remove('disable');
+              break;
+            case 3:
+              hudEquipSkill4ManaBlockMask.classList.remove('disable');
+              break;
+            default:
+          }
+        }
+      }
+    }
   },
   applySkill : function(skillIndex){
     //check skill slot

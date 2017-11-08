@@ -4,7 +4,7 @@ var radianFactor = Math.PI/180;
 //must use with bind or call method
 exports.rotate = function(deltaTime){
   if(this.targetDirection === this.direction){
-    if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
+    if(this.currentState === gameConfig.OBJECT_STATE_MOVE || this.currentState === gameConfig.OBJECT_STATE_MOVE_AND_ATTACK){
       this.move(deltaTime);
     }else if(this.currentState === gameConfig.OBJECT_STATE_ATTACK){
     }else if(this.currentState === gameConfig.OBJECT_STATE_CAST){
@@ -54,7 +54,7 @@ exports.rotate = function(deltaTime){
         this.direction -= this.rotateSpeed * deltaTime;
       }
     }
-    if(this.currentState === gameConfig.OBJECT_STATE_MOVE){
+    if(this.currentState === gameConfig.OBJECT_STATE_MOVE || this.currentState === gameConfig.OBJECT_STATE_MOVE_AND_ATTACK){
       this.move(deltaTime, true);
     }
   }
@@ -68,20 +68,22 @@ exports.rotate = function(deltaTime){
 
 //must use with bind or call method
 exports.move = function(deltaTime, isMoveSlight){
-
   //calculate dist with target
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
 
-  if(distX == 0 && distY == 0){
+  var distSquare = Math.pow(distX, 2) + Math.pow(distY, 2);
+  if(distSquare < 100 && this.currentState === gameConfig.OBJECT_STATE_MOVE_AND_ATTACK){
+    this.executeSkill();
+  }else if(distSquare < 100){
     this.stop();
     this.changeState(gameConfig.OBJECT_STATE_IDLE);
   }
   if(Math.abs(distX) < Math.abs(this.speed.x) * deltaTime){
-    this.speed.x = distX;
+    this.speed.x = distX / deltaTime;
   }
   if(Math.abs(distY) < Math.abs(this.speed.y) * deltaTime){
-    this.speed.y = distY;
+    this.speed.y = distY / deltaTime;
   }
   var addPos = this.onMove(this);
   if(addPos){
@@ -114,7 +116,7 @@ exports.move = function(deltaTime, isMoveSlight){
 
 //must use with bind or call method
 //setup when click canvas for move
-exports.setSpeed = function(){
+exports.setSpeed = function(decreaseRate){
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
 
@@ -131,11 +133,16 @@ exports.setSpeed = function(){
     this.speed.x = (distX>=0?1:-1)* this.maxSpeed * Math.sqrt(distXSquare / (distXSquare + distYSquare));
     this.speed.y = (distY>=0?1:-1)* this.maxSpeed * Math.sqrt(distYSquare / (distXSquare + distYSquare));
   }
+
+  if(decreaseRate){
+    this.speed.x *= (1 - decreaseRate);
+    this.speed.y *= (1 - decreaseRate);
+  }
 };
 
 //must use with bind or call method
 // setup when click canvas for move or fire skill
-exports.setTargetDirection = function(){
+exports.setTargetDirection = function(moveBackward){
   var distX = this.targetPosition.x - this.center.x;
   var distY = this.targetPosition.y - this.center.y;
 
@@ -149,6 +156,14 @@ exports.setTargetDirection = function(){
       this.targetDirection = tangentDegree - 180;
     }else{
       this.targetDirection = tangentDegree;
+    }
+  }
+
+  if(moveBackward){
+    if(this.targetDirection >= 0){
+      this.targetDirection -= 180;
+    }else{
+      this.targetDirection += 180;
     }
   }
 };
@@ -170,6 +185,28 @@ exports.setTargetPosition = function(clickPosition, user){
   return {
     x : targetX,
     y : targetY
+  };
+};
+exports.setMoveAttackUserTargetPosition = function(clickPosition, baseSkillData, user){
+  var vecX = clickPosition.x - user.center.x;
+  var vecY = clickPosition.y - user.center.y;
+  var unitVecX = vecX / Math.sqrt(Math.pow(vecX, 2) + Math.pow(vecY, 2));
+  var unitVecY = vecY / Math.sqrt(Math.pow(vecX, 2) + Math.pow(vecY, 2));
+
+  var scale = baseSkillData.range;
+
+  var distVecX = vecX - unitVecX * scale;
+  var distVecY = vecY - unitVecY * scale;
+
+  if(Math.sqrt(Math.pow(vecX, 2) + Math.pow(vecY, 2)) < scale){
+    var moveBackward = true;
+  }else{
+    moveBackward = false;
+  }
+  return {
+    x : user.center.x + distVecX,
+    y : user.center.y + distVecY,
+    moveBackward : moveBackward
   };
 };
 //check obstacle collision
@@ -310,14 +347,14 @@ exports.isYInCanvas = function(y, gameConfig){
 //calcurate distance
 exports.distanceSquare = function(position1, position2){
   var distX = position1.x - position2.x;
-  var distY = position2.y - position2.y;
+  var distY = position1.y - position2.y;
 
   var distSquare = Math.pow(distX, 2) + Math.pow(distY, 2);
   return distSquare;
 };
 exports.distance = function(position1, position2){
-  var distSqure = exports.distanceSpuare(position1, position2);
-  return Math.sqrt(distSqure);
+  var distSquare = exports.distanceSpuare(position1, position2);
+  return Math.sqrt(distSquare);
 };
 //calcurate targetDirection;
 exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
@@ -343,8 +380,19 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
           y : clickPosition.y
         };
       }else{
-        var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
-        var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+        var distX = clickPosition.x - user.center.x;
+        var distY = clickPosition.y - user.center.y;
+        var radian = Math.atan(distY / distX);
+        if(isNaN(radian)){
+          radian = user.direction;
+        }else if(distX < 0 && distY >= 0){
+          radian += Math.PI;
+        }else if(distX < 0 && distY < 0){
+          radian -= Math.PI;
+        }
+
+        var addPosX = skillData.range * Math.cos(radian);
+        var addPosY = skillData.range * Math.sin(radian);
 
         return {
           x : user.center.x + addPosX,
@@ -369,8 +417,19 @@ exports.calcSkillTargetPosition = function(skillData, clickPosition, user){
           y : clickPosition.y
         };
       }else{
-        var addPosX = skillData.range * Math.cos(user.direction * radianFactor);
-        var addPosY = skillData.range * Math.sin(user.direction * radianFactor);
+        var distX = clickPosition.x - user.center.x;
+        var distY = clickPosition.y - user.center.y;
+        var radian = Math.atan(distY / distX);
+        if(isNaN(radian)){
+          radian = user.direction;
+        }else if(distX < 0 && distY >= 0){
+          radian += Math.PI;
+        }else if(distX < 0 && distY < 0){
+          radian -= Math.PI;
+        }
+
+        var addPosX = skillData.range * Math.cos(radian);
+        var addPosY = skillData.range * Math.sin(radian);
 
         return {
           x : user.center.x + addPosX,

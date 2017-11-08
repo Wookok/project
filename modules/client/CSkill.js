@@ -2,7 +2,7 @@ var util = require('../public/util.js');
 var gameConfig = require('../public/gameConfig.json');
 
 function CSkill(skillData, userAniStartTime){
-  this.startTime = Date.now();
+  // this.startTime = Date.now();
 
   this.index = skillData.index;
   this.type = skillData.type;

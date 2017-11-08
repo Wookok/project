@@ -550,47 +550,47 @@ function regenIntervalHandler(){
 };
 User.prototype.addBuff = function(buffGroupIndex, actorID){
   //check apply rate with resist
-  console.log('addBuff');
-  var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
-  console.log(buffGroupData);
-  if(buffGroupData){
-    var isApply = false;
-    var rate = Math.floor(Math.random() * 101);
-    if(buffGroupData.buffApplyRate > rate){
-      isApply = true;
-      buffGroupData.actorID = actorID;
-    }
+  if(!this.isDead && !this.conditions[gameConfig.USER_CONDITION_IMMORTAL]){
+    var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndex));
+    if(buffGroupData){
+      var isApply = false;
+      var rate = Math.floor(Math.random() * 101);
+      if(buffGroupData.buffApplyRate > rate){
+        isApply = true;
+        buffGroupData.actorID = actorID;
+      }
 
-    //set duration and startTime
-    //if duplicate condition, set as later condition buff. delete fore buff and debuff
-    //set buffTickTime
-    if(isApply){
-      var buffs = util.findAndSetBuffs(buffGroupData, buffTable, actorID);
-      for(var i=buffs.length-1; i>=0; i--){
-        if(buffs[i].hitUserCondition){
-          if(!this.conditions[buffs[i].hitUserCondition]){
-            buffs.splice(i, 1);
+      //set duration and startTime
+      //if duplicate condition, set as later condition buff. delete fore buff and debuff
+      //set buffTickTime
+      if(isApply){
+        var buffs = util.findAndSetBuffs(buffGroupData, buffTable, actorID);
+        for(var i=buffs.length-1; i>=0; i--){
+          if(buffs[i].hitUserCondition){
+            if(!this.conditions[buffs[i].hitUserCondition]){
+              buffs.splice(i, 1);
+            }
           }
         }
-      }
-      for(var i=0; i<serverConfig.BUFFGROUPTABLE_BUFF_LENGTH; i++){
-        buffGroupData['buff' + (i+1)] = undefined;
-      }
-      for(var i=0; i<buffs.length; i++){
-        // console.log(buffGroupData['buff' + (i+1)]);
-        buffGroupData['buff' + (i+1)] = buffs[i];
-      }
-      for(var i=0; i<this.buffList.length; i++){
-        if(this.buffList[i].index === buffGroupData.index){
-          this.buffList.splice(i, 1);
-          break;
+        for(var i=0; i<serverConfig.BUFFGROUPTABLE_BUFF_LENGTH; i++){
+          buffGroupData['buff' + (i+1)] = undefined;
         }
-      }
-      if(buffs.length > 0){
-        buffGroupData.startTime = Date.now();
-        buffGroupData.tickStartTime = Date.now();
-        this.buffList.push(buffGroupData);
-        this.onBuffExchange(this);
+        for(var i=0; i<buffs.length; i++){
+          // console.log(buffGroupData['buff' + (i+1)]);
+          buffGroupData['buff' + (i+1)] = buffs[i];
+        }
+        for(var i=0; i<this.buffList.length; i++){
+          if(this.buffList[i].index === buffGroupData.index){
+            this.buffList.splice(i, 1);
+            break;
+          }
+        }
+        if(buffs.length > 0){
+          buffGroupData.startTime = Date.now();
+          buffGroupData.tickStartTime = Date.now();
+          this.buffList.push(buffGroupData);
+          this.onBuffExchange(this);
+        }
       }
     }
   }
@@ -930,13 +930,13 @@ User.prototype.death = function(attackUserID){
     this.isDead = true;
 
     console.log(this.objectID + ' is dead by ' + attackUserID);
-    this.buffList = [];
-    this.passiveList = [];
     clearInterval(this.buffUpdateInterval);
     clearInterval(this.regenInterval);
-
     this.buffUpdateInterval = false;
     this.regenInterval = false;
+
+    this.buffList = [];
+    this.passiveList = [];
 
     this.onDeath(this, attackUserID, this.objectID);
   }
