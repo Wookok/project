@@ -194,7 +194,15 @@ canvas {
 
   background: rgba(70, 50, 70, 0.4);
   border-radius: 10px;
-  pointer-events: none;
+  /*pointer-events: none;*/
+}
+.standingSceneHudBottomRight .standingSceneBtnSkillChange{
+  position : absolute;
+  right: 0px;
+  bottom: 0px;
+  width: 150px;
+  height: 150px;
+  background: green;
 }
 .gameSceneHudTopCenter{
   position: absolute;
@@ -467,7 +475,6 @@ canvas {
   background: rgba(70, 50, 70, 0.4);
   border-radius: 10px;
 }
-
 .gameSceneHudBottomRight .hudBtnSkillChange{
   position : absolute;
   right: 0px;

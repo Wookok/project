@@ -563,7 +563,9 @@ CManager.prototype = {
 		}
 	},
 	updateSkillPossessions : function(userID, possessSkills){
-		this.users[userID].updateSkillPossessions(possessSkills);
+		if(userID in this.users){
+			this.users[userID].updateSkillPossessions(possessSkills);
+		}
 	},
 	updateUserData : function(userData){
 		if(userData.objectID in this.users){

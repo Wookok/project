@@ -181,7 +181,10 @@ io.on('connection', function(socket){
     var level = GM.getLevel(user.objectID, charType);
 
     var userStat = Object.assign({}, util.findDataWithTwoColumns(userStatTable, 'type', charType, 'level', level));
+    console.log('here');
+    console.log(userStat);
     var userBase = Object.assign({}, util.findData(userBaseTable, 'type', charType));
+    console.log(userBase);
     GM.setUserStat(user.objectID, userStat, userBase);
     GM.setUserSkill(user.objectID, charType, userBase.baseSkill, userBase.basePassiveSkill);
     GM.startUserUpdate(user.objectID);
@@ -232,7 +235,7 @@ io.on('connection', function(socket){
     userData.skillIndex = userAndSkillData.skillIndex;
     userData.skillTargetPosition = userAndSkillData.skillTargetPosition;
     userData.moveBackward = userAndSkillData.moveBackward;
-    
+
     socket.broadcast.emit('userMoveAndAttack', userData);
   });
   socket.on('userUseSkill', function(userAndSkillData){

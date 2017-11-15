@@ -851,7 +851,8 @@ GameManager.prototype.processOBJDataSettings = function(){
     objDatas.push({
       objectID : this.objSkills[i].objectID,
       position : this.objSkills[i].position,
-      radius : this.objSkills[i].size.width/2
+      radius : this.objSkills[i].size.width/2,
+      property : this.objSkills[i].skillProperty
     });
   }
   return objDatas;

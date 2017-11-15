@@ -23,18 +23,18 @@ function User(socketID, userStat, userBase, exp){
   this.killScore = 0;
   this.isDead = false;
 
-  this.gold = 0;
-  this.jewel = 0;
+  this.gold = 1000;
+  this.jewel = 10;
 
-  this.firoLevel = 0;
-  this.freezerLevel = 0;
-  this.mysterLevel = 0;
-  this.firoBaseSkill = 0;
-  this.firoInherentPassiveSkill = 0;
-  this.freezerBaseSkill = 0;
-  this.freezerInherentPassiveSkill = 0;
-  this.mysterBaseSkill = 0;
-  this.mysterInherentPassiveSkill = 0;
+  this.firoLevel = 1;
+  this.freezerLevel = 1;
+  this.mysterLevel = 1;
+  this.firoBaseSkill = gameConfig.SKILL_INDEX_FIRO_BASE;
+  this.firoInherentPassiveSkill = gameConfig.SKILL_INDEX_FIRO_PASSIVE;
+  this.freezerBaseSkill = gameConfig.SKILL_INDEX_FROST_BASE;
+  this.freezerInherentPassiveSkill = gameConfig.SKILL_INDEX_FROST_PASSIVE;
+  this.mysterBaseSkill = gameConfig.SKILL_INDEX_ARCANE_BASE;
+  this.mysterInherentPassiveSkill = gameConfig.SKILL_INDEX_ARCANE_PASSIVE;
 
   this.basePower = userStat.power;
   this.baseMagic = userStat.magic;
@@ -234,16 +234,16 @@ User.prototype.updateStatAndCondition = function(){
   var buffList = [];
 
   //set inherent passive buffs
-  // if(this.inherentPassiveSkill){
-  //   var inherentPassiveBuffGroupIndex = Object.assign({}, util.findData(skillTable, 'index', this.inherentPassiveSkill)).buffToSelf;
-  //   var inherentPassiveBuffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', inherentPassiveBuffGroupIndex));
-  //   var buffs = util.findAndSetBuffs(inherentPassiveBuffGroupData, buffTable, this.objectID);
-  //   for(var i=0; i<buffs.length; i++){
-  //     if(buffs[i].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL){
-  //       buffList.push(buffs[i]);
-  //     }
-  //   }
-  // }
+  if(this.inherentPassiveSkill){
+    var inherentPassiveBuffGroupIndex = Object.assign({}, util.findData(skillTable, 'index', this.inherentPassiveSkill)).buffToSelf;
+    var inherentPassiveBuffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', inherentPassiveBuffGroupIndex));
+    var buffs = util.findAndSetBuffs(inherentPassiveBuffGroupData, buffTable, this.objectID);
+    for(var i=0; i<buffs.length; i++){
+      if(buffs[i].buffAdaptTime === serverConfig.BUFF_ADAPT_TIME_NORMAL){
+        buffList.push(buffs[i]);
+      }
+    }
+  }
   //set passive buffs
   for(var i=0; i<this.passiveList.length; i++){
     buffs = util.findAndSetBuffs(this.passiveList[i], buffTable, this.objectID);
@@ -667,19 +667,21 @@ User.prototype.upgradeSkill = function(skillIndex){
       isPossession = true;
     }
   }
+  var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
+  var nextSkillIndex = skillData.nextSkillIndex;
   if(isBaseSkill || isInherentSkill || isPossession){
-    var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
-    var nextSkillIndex = skillData.nextSkillIndex;
     if(nextSkillIndex !== -1){
       if(this.gold >= skillData.upgradeGoldAmount && this.jewel >= skillData.upgradeJewelAmount){
         this.gold -= skillData.upgradeGoldAmount;
         this.jewel -= skillData.upgradeJewelAmount;
         if(isBaseSkill){
           this.baseSkill = nextSkillIndex;
-          this.onSkillUpgrade(skillIndex, nextSkillIndex);
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+          this.updateCharTypeSkill();
         }else if(isInherentSkill){
           this.inherentPassiveSkill = nextSkillIndex;
-          this.onSkillUpgrade(skillIndex, nextSkillIndex);
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+          this.updateCharTypeSkill();
         }else if(isPossession){
           var index = this.possessSkills.indexOf(skillIndex);
           this.possessSkills.splice(index, 1);
@@ -697,16 +699,57 @@ User.prototype.upgradeSkill = function(skillIndex){
           this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
         }
       }else{
-        //need more resource maybe cheat?
-        console.log('cheating!!!');
+          //need more resource maybe cheat?
+          console.log('cheating!!!');
       }
+    }else{
+      console.log('skill reach max level');
     }
   }else{
-    console.log('dont possess skill : ' + skillIndex);
+    if(nextSkillIndex !== -1){
+      if(this.gold >= skillData.upgradeGoldAmount && this.jewel >= skillData.upgradeJewelAmount){
+        if(this.firoBaseSkill === skillIndex){
+          this.gold -= skillData.upgradeGoldAmount;
+          this.jewel -= skillData.upgradeJewelAmount;
+          this.firoBaseSkill = nextSkillIndex;
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+        }else if(this.firoInherentPassiveSkill === skillIndex){
+          this.gold -= skillData.upgradeGoldAmount;
+          this.jewel -= skillData.upgradeJewelAmount;
+          this.firoInherentPassiveSkill = nextSkillIndex;
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+        }else if(this.freezerBaseSkill === skillIndex){
+          this.gold -= skillData.upgradeGoldAmount;
+          this.jewel -= skillData.upgradeJewelAmount;
+          this.freezerBaseSkill = nextSkillIndex;
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+        }else if(this.freezerInherentPassiveSkill === skillIndex){
+          this.gold -= skillData.upgradeGoldAmount;
+          this.jewel -= skillData.upgradeJewelAmount;
+          this.freezerInherentPassiveSkill = nextSkillIndex;
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+        }else if(this.mysterBaseSkill === skillIndex){
+          this.gold -= skillData.upgradeGoldAmount;
+          this.jewel -= skillData.upgradeJewelAmount;
+          this.mysterBaseSkill = nextSkillIndex;
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+        }else if(this.mysterInherentPassiveSkill === skillIndex){
+          this.gold -= skillData.upgradeGoldAmount;
+          this.jewel -= skillData.upgradeJewelAmount;
+          this.mysterInherentPassiveSkill = nextSkillIndex
+          this.onSkillUpgrade(this, skillIndex, nextSkillIndex);
+        }else{
+          console.log('dont possess skill : ' + skillIndex);
+        }
+      }else{
+          //need more resource maybe cheat?
+          console.log('cheating!!!');
+      }
+    }else if(nextSkillIndex === -1){
+      console.log('skill reach max level');
+    }
   }
-  if(isBaseSkill || isInherentSkill){
-    this.updateCharTypeSkill();
-  }
+
   this.onBuffExchange(this);
 };
 User.prototype.exchangePassive = function(beforeBuffGID, afterBuffGID){
@@ -728,11 +771,16 @@ User.prototype.exchangePassive = function(beforeBuffGID, afterBuffGID){
 }
 User.prototype.equipPassives = function(buffGroupIndexList){
   for(var i=0; i<buffGroupIndexList.length; i++){
+    var isDuplicate = false;
     for(var j=0; j<this.passiveList.length; j++){
-      if(this.passiveList.index !== buffGroupIndexList[i]){
-        var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndexList[i]));
-        this.passiveList.push(buffGroupData);
+      if(this.passiveList[j].index === buffGroupIndexList[i]){
+        isDuplicate = true;
+        break;
       }
+    }
+    var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', buffGroupIndexList[i]));
+    if(!isDuplicate){
+      this.passiveList.push(buffGroupData);
     }
   }
   if(this.passiveList.length){
@@ -1094,7 +1142,7 @@ User.prototype.getLevel = function(charType){
   switch (charType) {
     case gameConfig.CHAR_TYPE_FIRE:
       if(this.firoLevel){
-        this.level = this.firoLevell
+        this.level = this.firoLevel;
       }else{
         this.level = 1;
       }
