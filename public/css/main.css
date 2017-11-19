@@ -216,6 +216,12 @@ canvas {
   border-radius: 10px;
   z-index: 10;
 }
+.selectSkillImgContainer{
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
+  position: absolute;
+}
 .gameSceneHudTopRightCenter{
   position: absolute;
   top:20px;
@@ -331,6 +337,12 @@ canvas {
   width: 40px;
   height: 40px;
 }
+.buffImgContainer {
+  position: absolute;
+  overflow: hidden;
+  width: 60px;
+  height: 60px;
+}
 .gameSceneExpContainer{
   position: absolute;
   left:90px;
@@ -408,6 +420,9 @@ canvas {
 }
 .hudSkillImgContainer {
   position : absolute;
+  overflow: hidden;
+  width: 60px;
+  height: 60px;
 }
 .hudEquipSkills {
   position: absolute;
@@ -564,6 +579,7 @@ to{
   width: 85px;
   height: 85px;
   display : inline-block;
+  overflow: hidden;
 
   background: blue;
 }
@@ -583,6 +599,7 @@ to{
   margin-right: 0;
   width: 80px;
   height: 80px;
+  overflow: hidden;
 
   background: red;
 }
@@ -656,6 +673,12 @@ to{
   position: absolute;
 
   background: blue;
+}
+.popUpskillImgContainer {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
 }
 .popUpBackground {
   position : absolute;;

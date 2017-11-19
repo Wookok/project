@@ -3,11 +3,11 @@
   "INTERVAL" : 60,
   "FPS" : 60,
 
-  "RESOURCES_COUNT" : 3,
+  "RESOURCES_COUNT" : 4,
   "RESOURCE_SRC_CHARACTER" : "../images/Character.png",
   "RESOURCE_SRC_OBJECT" : "../images/Objects.png",
   "RESOURCE_SRC_SKILL_EFFECT" : "../images/SkillEffect.png",
-  "RESOURCE_SRC_UI" : "",
+  "RESOURCE_SRC_SKILL_ICON" : "../images/SkillIcon.png",
 
   "START_BUTTON" : 1,
   "RESTART_BUTTON" : 2,
@@ -25,8 +25,10 @@
   "SKILL_EFFECT_INTERPOLATION_FACTOR" : 0.6,
   "USER_ANI_TIME" : 300,
 
-  "CANVAS_MAX_SIZE" : {"width" : 6400 , "height" : 6400},
+  "CANVAS_MAX_SIZE" : {"width" : 6400, "height" : 6400},
   "CANVAS_MAX_LOCAL_SIZE" : {"width" : 1600, "height" : 1000},
+
+  "IMAGE_SOURCE_SIZE" : {"width" : 800, "height" : 600},
 
   "DRAW_MODE_NORMAL" : 1,
   "DRAW_MODE_SKILL_RANGE" : 2,
@@ -151,5 +153,9 @@
   "RESOURCE_INDEX_CHEST_GRADE_2" : 108,
   "RESOURCE_INDEX_CHEST_GRADE_3" : 109,
   "RESOURCE_INDEX_CHEST_GRADE_4" : 110,
-  "RESOURCE_INDEX_CHEST_GRADE_5" : 111
+  "RESOURCE_INDEX_CHEST_GRADE_5" : 111,
+
+  "UI_RESOURCE_INDEX_PASSIVE_FRAME" : 1001,
+  "UI_RESOURCE_INDEX_ACTIVE_FRAME" : 1002,
+  "UI_RESOURCE_INDEX_BLANK" : 1003
 }

@@ -328,7 +328,7 @@ GameManager.prototype.createOBJs = function(count, type, amount, nearPosition){
   return createdObjs;
 };
 GameManager.prototype.getObj = function(objID, affectNum, userID){
-  if(userID in this.users){
+  if(userID in this.users && !this.users[userID].isDead){
     // if(objID.substr(0, 3) === gameConfig.PREFIX_OBJECT_EXP){
     //   for(var i=0; i<this.objExps.length; i++){
     //     if(this.objExps[i].objectID === objID){

@@ -730,3 +730,25 @@ function generateRandomID(prefix){
   }
   return output;
 };
+exports.makeCssClipStyle = function(iconData, expandRate){
+  if(expandRate){
+    return "rect(" + (iconData.top * expandRate) + "px," + (iconData.right * expandRate) + "px," + (iconData.bottom * expandRate) + "px," + (iconData.left * expandRate) + "px)";
+  }else{
+    return "rect(" + iconData.top + "px," + iconData.right + "px," + iconData.bottom + "px," + iconData.left + "px)";
+  }
+};
+exports.setImgCssStyle = function(imgDiv, iconData, expandRate){
+  if(expandRate){
+    imgDiv.style.position = "absolute";
+    imgDiv.style.top = (-iconData.top * expandRate) + "px";
+    imgDiv.style.left = (-iconData.left * expandRate) + "px";
+    imgDiv.style.width = (gameConfig.IMAGE_SOURCE_SIZE.width * expandRate) + "px";
+    imgDiv.style.height = (gameConfig.IMAGE_SOURCE_SIZE.height * expandRate) + "px";
+  }else{
+    imgDiv.style.position = "absolute";
+    imgDiv.style.top = (-iconData.top) + "px";
+    imgDiv.style.left = (-iconData.left) + "px";
+    imgDiv.style.width = (gameConfig.IMAGE_SOURCE_SIZE.width) + "px";
+    imgDiv.style.height = (gameConfig.IMAGE_SOURCE_SIZE.height) + "px";
+  }
+};

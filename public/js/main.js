@@ -7,12 +7,14 @@ var gameConfig = require('../../modules/public/gameConfig.json');
 var csvJson = require('../../modules/public/csvjson.js');
 var dataJson = require('../../modules/public/data.json');
 
-var userStatTable = csvJson.toObject(dataJson.userStatData, {delimiter : ',', quote : '"'});
-var skillTable = csvJson.toObject(dataJson.skillData, {delimiter : ',', quote : '"'});
-var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, {delimiter : ',', quote : '"'});
-var resourceTable = csvJson.toObject(dataJson.resourceData, {delimiter : ',', quote : '"'});
-var obstacleTable = csvJson.toObject(dataJson.obstacleData, {delimiter : ',', quote : '"'});
-var effectGroupTable = csvJson.toObject(dataJson.effectGroupData, {delimiter : ',', quote : '"'});
+var csvJsonOption = {delimiter : ',', quote : '"'};
+var userStatTable = csvJson.toObject(dataJson.userStatData, csvJsonOption);
+var skillTable = csvJson.toObject(dataJson.skillData, csvJsonOption);
+var buffGroupTable = csvJson.toObject(dataJson.buffGroupData, csvJsonOption);
+var resourceTable = csvJson.toObject(dataJson.resourceData, csvJsonOption);
+var iconResourceTable = csvJson.toObject(dataJson.iconResourceData, csvJsonOption);
+var obstacleTable = csvJson.toObject(dataJson.obstacleData, csvJsonOption);
+var effectGroupTable = csvJson.toObject(dataJson.effectGroupData, csvJsonOption);
 
 var socket;
 
@@ -36,7 +38,7 @@ var Manager;
 // resource var
 var resources;
 var loadedResourcesCount = 0;
-var resourceObject, resourceCharacter, resourceUI, resourceSkillEffect;
+var resourceObject, resourceCharacter, resourceUI, resourceSkillEffect, resourceSkillIcon;
 
 var userHandImgData = new Array(5);
 var objGoldImgData, objJewelImgData, objSkillFireImgData, objSkillFrostImgData, objSkillArcaneImgData;
@@ -144,8 +146,9 @@ function stateFuncLoad(){
   window.onresize = function(){
     setCanvasSize();
   };
-  UIManager.setSkillChangeBtn();
-  loadResources();
+  // UIManager.setSkillChangeBtn();
+  // loadResources();
+  // UIManager.setSkillIconResource(resourceSkillIcon);
 };
 //when all resource loaded. just draw start scene
 function stateFuncStandby(){
@@ -195,7 +198,7 @@ function setBaseSetting(){
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
 
-  UIManager = new CUIManager(skillTable, buffGroupTable);
+  UIManager = new CUIManager(skillTable, buffGroupTable, iconResourceTable);
   UIManager.onStartBtnClick = function(charType, clickButton){
     characterType = charType;
     if(clickButton === gameConfig.START_BUTTON){
@@ -286,9 +289,9 @@ function setBaseSetting(){
     UIManager.syncSkills(baseSkill, baseSkillData, equipSkills, equipSkillDatas, possessSkills, inherentPassiveSkill, inherentPassiveSkillData);
     UIManager.setPopUpSkillChange(true);
   };
-  UIManager.initStartScene();
-  UIManager.initHUD();
-  UIManager.initPopUpSkillChanger();
+  // UIManager.initStartScene();
+  // UIManager.initHUD();
+  // UIManager.initPopUpSkillChanger();
 
   document.body.onmousedown = function(e){
     if(e.button === 2){
@@ -315,6 +318,7 @@ function setBaseSetting(){
   resourceCharacter = new Image();
   resourceUI = new Image();
   resourceSkillEffect = new Image();
+  resourceSkillIcon = new Image();
 
   userHandImgData[0] = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_USER_HAND_1));
   userHandImgData[1] = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_USER_HAND_2));
@@ -352,6 +356,12 @@ function setBaseSetting(){
   // conditionIgnite5ImgData = Object.assign({}, util.findData(resourceTable, 'index', gameConfig.RESOURCE_INDEX_CONDITION_IGNITE5));
   // grid = new Image();
   // grid.src = resources.GRID_SRC;
+  loadResources();
+  UIManager.setSkillIconResource(resourceSkillIcon);
+  UIManager.initStartScene();
+  UIManager.initHUD();
+  UIManager.initPopUpSkillChanger();
+  UIManager.setSkillChangeBtn();
 };
 function loadResources(){
   resourceObject.src = gameConfig.RESOURCE_SRC_OBJECT;
@@ -360,8 +370,8 @@ function loadResources(){
   resourceCharacter.onload = loadResourceHandler;
   resourceSkillEffect.src = gameConfig.RESOURCE_SRC_SKILL_EFFECT;
   resourceSkillEffect.onload = loadResourceHandler;
-  // resourceUI.src = gameConfig.RESOURCE_SRC_UI;
-  // resourceUI.onload = loadResourceHandler;
+  resourceSkillIcon.src = gameConfig.RESOURCE_SRC_SKILL_ICON;
+  resourceSkillIcon.onload = loadResourceHandler;
 };
 function loadResourceHandler(){
   loadedResourcesCount++;

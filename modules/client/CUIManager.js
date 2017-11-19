@@ -1,6 +1,10 @@
 var util = require('../public/util.js');
 var gameConfig = require('../public/gameConfig.json');
-var skillTable, buffGroupTable;
+
+var skillTable, buffGroupTable, iconResourceTable;
+var resourceSkillIcon;
+
+var passiveSkillFrameData, activeSkillFrameData, blankFrameData;
 
 var startScene, gameScene, standingScene;
 var startButton, restartButton;
@@ -48,9 +52,10 @@ var selectedSkillIndex = null;
 
 var isServerResponse = true;
 
-function UIManager(sTable, bTable){
+function UIManager(sTable, bTable, iTable){
   skillTable = sTable;
   buffGroupTable = bTable;
+  iconResourceTable = iTable;
 
   this.serverResponseTimeout = false;
 
@@ -154,6 +159,13 @@ UIManager.prototype = {
     hudEquipSkill4Img = document.getElementById('hudEquipSkill4Img');
     hudPassiveSkillImg = document.getElementById('hudPassiveSkillImg');
 
+    hudBaseSkillImg.src = resourceSkillIcon;
+    hudEquipSkill1Img.src = resourceSkillIcon;
+    hudEquipSkill2Img.src = resourceSkillIcon;
+    hudEquipSkill3Img.src = resourceSkillIcon;
+    hudEquipSkill4Img.src = resourceSkillIcon;
+    hudPassiveSkillImg.src = resourceSkillIcon;
+
     hudBaseSkillImg.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudBaseSkillImg, gameConfig.SKILL_BASIC_INDEX), false);
     hudEquipSkill1Img.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudEquipSkill1Img, gameConfig.SKILL_EQUIP1_INDEX), false);
     hudEquipSkill2Img.addEventListener('mouseover', bottomSkillTooltipOnHandler.bind(hudEquipSkill2Img, gameConfig.SKILL_EQUIP2_INDEX), false);
@@ -230,7 +242,9 @@ UIManager.prototype = {
     miniMapChest9 = document.getElementById('miniMapChest9');
 
     gameSceneHudTopCenter = document.getElementById('gameSceneHudTopCenter');
-    selectSkillIcon = document.getElementById('selectSkillIcon');
+    selectSkillImgContainer = document.getElementById('selectSkillImgContainer');
+    // selectSkillIcon = document.getElementById('selectSkillIcon');
+    // selectSkillIcon.src = resourceSkillIcon;
     selectSkillInfo = document.getElementById('selectSkillInfo');
     btnSelectSkillCancel = document.getElementById('btnSelectSkillCancel');
     btnSelectSkillCancel.onclick = onSelectSkillCancelBtnClickHandler.bind(this);
@@ -264,7 +278,15 @@ UIManager.prototype = {
     standingScene.classList.remove('disable');
   },
   enableSelectSkillInfo : function(skillData){
-    selectSkillIcon.src = skillData.skillIcon;
+    // selectSkillIcon.src = skillData.skillIcon;
+    var img = document.createElement('img');
+    var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', skillData.skillIcon));
+    img.src = resourceSkillIcon;
+    img.style.clip = util.makeCssClipStyle(iconData);
+    util.setImgCssStyle(img, iconData);
+    selectSkillImgContainer.appendChild(img);
+    // selectSkillIcon.style.clip = util.makeCssClipStyle(iconData);
+    // util.setImgCssStyle(selectSkillIcon, iconData);
     selectSkillInfo.innerHTML = skillData.name;
 
     gameSceneHudTopCenter.classList.add('enable');
@@ -310,7 +332,10 @@ UIManager.prototype = {
     }
   },
   disableSelectSkillInfo : function(){
-    selectSkillIcon.src = "";
+    // selectSkillIcon.src = "";
+    while (selectSkillImgContainer.firstChild) {
+      selectSkillImgContainer.removeChild(selectSkillImgContainer.firstChild);
+    }
     selectSkillInfo.innerHTML = "";
 
     gameSceneHudTopCenter.classList.add('disable');
@@ -445,12 +470,60 @@ UIManager.prototype = {
     }
   },
   setHUDSkills : function(){
-    hudBaseSkillImg.src = baseSkillData ? baseSkillData.skillIcon : blankImg;
-    hudEquipSkill1Img.src = equipSkillDatas[0] ? equipSkillDatas[0].skillIcon : blankImg;
-    hudEquipSkill2Img.src = equipSkillDatas[1] ? equipSkillDatas[1].skillIcon : blankImg;
-    hudEquipSkill3Img.src = equipSkillDatas[2] ? equipSkillDatas[2].skillIcon : blankImg;
-    hudEquipSkill4Img.src = equipSkillDatas[3] ? equipSkillDatas[3].skillIcon : blankImg;
-    hudPassiveSkillImg.src = inherentPassiveSkillData ? inherentPassiveSkillData.skillIcon : blankImg;
+    if(baseSkillData){
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', baseSkillData.skillIcon));
+      hudBaseSkillImg.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(hudBaseSkillImg, iconData);
+    }else{
+      hudBaseSkillImg.style.clip = util.makeCssClipStyle(blankFrameData);
+      util.setImgCssStyle(hudBaseSkillImg, blankFrameData);
+    }
+    if(inherentPassiveSkillData){
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', inherentPassiveSkillData.skillIcon));
+      hudPassiveSkillImg.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(hudPassiveSkillImg, iconData);
+    }else{
+      hudPassiveSkillImg.style.clip = util.makeCssClipStyle(blankFrameData);
+      util.setImgCssStyle(hudPassiveSkillImg, blankFrameData);
+    }
+    if(equipSkillDatas[0]){
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[0].skillIcon));
+      hudEquipSkill1Img.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(hudEquipSkill1Img, iconData);
+    }else{
+      hudEquipSkill1Img.style.clip = util.makeCssClipStyle(blankFrameData);
+      util.setImgCssStyle(hudEquipSkill1Img, blankFrameData);
+    }
+    if(equipSkillDatas[1]){
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[1].skillIcon));
+      hudEquipSkill2Img.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(hudEquipSkill2Img, iconData);
+    }else{
+      hudEquipSkill2Img.style.clip = util.makeCssClipStyle(blankFrameData);
+      util.setImgCssStyle(hudEquipSkill2Img, blankFrameData);
+    }
+    if(equipSkillDatas[2]){
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[2].skillIcon));
+      hudEquipSkill3Img.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(hudEquipSkill3Img, iconData);
+    }else{
+      hudEquipSkill3Img.style.clip = util.makeCssClipStyle(blankFrameData);
+      util.setImgCssStyle(hudEquipSkill3Img, blankFrameData);
+    }
+    if(equipSkillDatas[3]){
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[3].skillIcon));
+      hudEquipSkill4Img.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(hudEquipSkill4Img, iconData);
+    }else{
+      hudEquipSkill4Img.style.clip = util.makeCssClipStyle(blankFrameData);
+      util.setImgCssStyle(hudEquipSkill4Img, blankFrameData);
+    }
+    // hudBaseSkillImg.src = baseSkillData ? baseSkillData.skillIcon : blankImg;
+    // hudEquipSkill1Img.src = equipSkillDatas[0] ? equipSkillDatas[0].skillIcon : blankImg;
+    // hudEquipSkill2Img.src = equipSkillDatas[1] ? equipSkillDatas[1].skillIcon : blankImg;
+    // hudEquipSkill3Img.src = equipSkillDatas[2] ? equipSkillDatas[2].skillIcon : blankImg;
+    // hudEquipSkill4Img.src = equipSkillDatas[3] ? equipSkillDatas[3].skillIcon : blankImg;
+    // hudPassiveSkillImg.src = inherentPassiveSkillData ? inherentPassiveSkillData.skillIcon : blankImg;
   },
   setHUDStats : function(power, magic, speed){
     userStatPowerContainer.children[1].innerHTML = statPower = power;
@@ -476,6 +549,13 @@ UIManager.prototype = {
       clearPopSkillChangeClass();
       popChange(popUpSkillChange);
     }
+  },
+  setSkillIconResource : function(resource){
+    resourceSkillIcon = resource.src;
+
+    passiveSkillFrameData = Object.assign({}, util.findData(iconResourceTable, 'index', gameConfig.UI_RESOURCE_INDEX_PASSIVE_FRAME));
+    activeSkillFrameData = Object.assign({}, util.findData(iconResourceTable, 'index', gameConfig.UI_RESOURCE_INDEX_ACTIVE_FRAME));
+    blankFrameData = Object.assign({}, util.findData(iconResourceTable, 'index', gameConfig.UI_RESOURCE_INDEX_BLANK));
   },
   setResource : function(resourceData){
     goldContainer.innerHTML = resourceData.gold;
@@ -503,9 +583,17 @@ UIManager.prototype = {
       var buffGroupData = Object.assign({}, util.findData(buffGroupTable, 'index', inherentPassiveSkillData.buffToSelf));
       var div = document.createElement('div');
       div.setAttribute('buffGroupIndex', inherentPassiveSkillData.buffToSelf);
+      var imgContainer = document.createElement('div');
+      imgContainer.classList.add('buffImgContainer');
       var img = document.createElement('img');
-      img.src = buffGroupData.buffIcon;
-      div.appendChild(img);
+      // img.src = buffGroupData.buffIcon;
+      img.src = resourceSkillIcon;
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', buffGroupData.buffIcon));
+      img.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(img, iconData);
+
+      imgContainer.appendChild(img);
+      div.appendChild(imgContainer);
       gameSceneBuffsContainer.appendChild(div);
       div.addEventListener('mouseover', bottomTooltipOnHandler.bind(div, gameConfig.BUFF_ICON_INDEX));
       div.addEventListener('mouseout', bottomTooltipOffHandler.bind(div), false);
@@ -514,10 +602,18 @@ UIManager.prototype = {
       for(var i=0; i<passiveList.length; i++){
         var passiveData = Object.assign({}, util.findData(buffGroupTable, 'index', passiveList[i]));
         var div = document.createElement('div');
+        var imgContainer = document.createElement('div');
+        imgContainer.classList.add('buffImgContainer');
         div.setAttribute('buffGroupIndex', passiveData.index);
         var img = document.createElement('img');
-        img.src = passiveData.buffIcon;
-        div.appendChild(img);
+        // img.src = passiveData.buffIcon;
+        img.src = resourceSkillIcon;
+        var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', passiveData.buffIcon));
+        img.style.clip = util.makeCssClipStyle(iconData);
+        util.setImgCssStyle(img, iconData);
+
+        imgContainer.appendChild(img);
+        div.appendChild(imgContainer);
         gameSceneBuffsContainer.appendChild(div);
         div.addEventListener('mouseover', bottomTooltipOnHandler.bind(div, gameConfig.BUFF_ICON_INDEX));
         div.addEventListener('mouseout', bottomTooltipOffHandler.bind(div), false);
@@ -532,9 +628,17 @@ UIManager.prototype = {
 
         var div = document.createElement('div');
         div.setAttribute('buffGroupIndex', buffData.index);
+        var imgContainer = document.createElement('div');
+        imgContainer.classList.add('buffImgContainer');
         var img = document.createElement('img');
-        img.src = buffData.buffIcon;
-        div.appendChild(img);
+        // img.src = buffData.buffIcon;
+        img.src = resourceSkillIcon;
+        var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', buffData.buffIcon));
+        img.style.clip = util.makeCssClipStyle(iconData);
+        util.setImgCssStyle(img, iconData);
+
+        imgContainer.appendChild(img);
+        div.appendChild(imgContainer);
         gameSceneBuffsContainer.appendChild(div);
         div.addEventListener('mouseover', bottomTooltipOnHandler.bind(div, gameConfig.BUFF_ICON_INDEX));
         div.addEventListener('mouseout', bottomTooltipOffHandler.bind(div), false);
@@ -665,7 +769,12 @@ UIManager.prototype = {
     var afterData = Object.assign({}, util.findData(skillTable, 'index', afterSkillIndex));
     for(var i=0; i<divs.length; i++){
       divs[i].setAttribute('skillIndex', afterSkillIndex);
-      divs[i].getElementsByTagName('img')[0].src = afterData.skillIcon;
+      // divs[i].getElementsByTagName('img')[0].src = afterData.skillIcon;
+      // divs[i].getElementsByTagName('img')[0].src = resourceSkillIcon;
+
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', afterData.skillIcon));
+      divs[i].getElementsByTagName('img')[0].style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(divs[i].getElementsByTagName('img')[0], iconData);
     }
     this.setHUDSkills()
   },
@@ -696,41 +805,86 @@ UIManager.prototype = {
     popUpEquipSkill3.removeAttribute('skillIndex');
     popUpEquipSkill4.removeAttribute('skillIndex');
 
+    var imgContainer = document.createElement('div');
+    imgContainer.classList.add('popUpskillImgContainer');
     var baseImg = document.createElement('img');
-    baseImg.src = baseSkillData.skillIcon;
+    // baseImg.src = baseSkillData.skillIcon;
+    baseImg.src = resourceSkillIcon;
+    var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', baseSkillData.skillIcon));
+    baseImg.style.clip = util.makeCssClipStyle(iconData);
+    util.setImgCssStyle(baseImg, iconData);
+
     popUpEquipBaseSkill.setAttribute('skillIndex', baseSkill);
-    popUpEquipBaseSkill.appendChild(baseImg);
+    imgContainer.appendChild(baseImg);
+    popUpEquipBaseSkill.appendChild(imgContainer);
     popUpEquipBaseSkill.onclick = changeEquipSkillHandler.bind(this, popUpEquipBaseSkill, gameConfig.SKILL_CHANGE_PANEL_EQUIP, dontUpdateEquip);
 
+    var imgContainer = document.createElement('div');
+    imgContainer.classList.add('popUpskillImgContainer');
     var inherentPassiveSkillImg = document.createElement('img');
-    inherentPassiveSkillImg.src = inherentPassiveSkillData.skillIcon;
+    // inherentPassiveSkillImg.src = inherentPassiveSkillData.skillIcon;
+    inherentPassiveSkillImg.src = resourceSkillIcon;
+    var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', inherentPassiveSkillData.skillIcon));
+    inherentPassiveSkillImg.style.clip = util.makeCssClipStyle(iconData);
+    util.setImgCssStyle(inherentPassiveSkillImg, iconData);
+
     popUpEquipPassiveSkill.setAttribute('skillIndex', inherentPassiveSkill);
-    popUpEquipPassiveSkill.appendChild(inherentPassiveSkillImg);
+    imgContainer.appendChild(inherentPassiveSkillImg);
+    popUpEquipPassiveSkill.appendChild(imgContainer);
     popUpEquipPassiveSkill.onclick = changeEquipSkillHandler.bind(this, popUpEquipPassiveSkill, gameConfig.SKILL_CHANGE_PANEL_EQUIP, dontUpdateEquip);
 
     if(equipSkillDatas[0]){
       var equipSkills1 = document.createElement('img');
-      equipSkills1.src = equipSkillDatas[0].skillIcon;
+      var imgContainer = document.createElement('div');
+      imgContainer.classList.add('popUpskillImgContainer');
+      // equipSkills1.src = equipSkillDatas[0].skillIcon;
+      equipSkills1.src = resourceSkillIcon;
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[0].skillIcon));
+      equipSkills1.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(equipSkills1, iconData);
+
       popUpEquipSkill1.setAttribute('skillIndex', equipSkillDatas[0].index);
-      popUpEquipSkill1.appendChild(equipSkills1);
+      imgContainer.appendChild(equipSkills1);
+      popUpEquipSkill1.appendChild(imgContainer);
     }
     if(equipSkillDatas[1]){
+      var imgContainer = document.createElement('div');
+      imgContainer.classList.add('popUpskillImgContainer');
       var equipSkills2 = document.createElement('img');
-      equipSkills2.src = equipSkillDatas[1].skillIcon;
+      // equipSkills2.src = equipSkillDatas[1].skillIcon;
+      equipSkills2.src = resourceSkillIcon;
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[1].skillIcon));
+      equipSkills2.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(equipSkills2, iconData);
       popUpEquipSkill2.setAttribute('skillIndex', equipSkillDatas[1].index);
-      popUpEquipSkill2.appendChild(equipSkills2);
+      imgContainer.appendChild(equipSkills2);
+      popUpEquipSkill2.appendChild(imgContainer);
     }
     if(equipSkillDatas[2]){
+      var imgContainer = document.createElement('div');
+      imgContainer.classList.add('popUpskillImgContainer');
       var equipSkills3 = document.createElement('img');
-      equipSkills3.src = equipSkillDatas[2].skillIcon;
+      // equipSkills3.src = equipSkillDatas[2].skillIcon;
+      equipSkills3.src = resourceSkillIcon;
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[2].skillIcon));
+      equipSkills3.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(equipSkills3, iconData);
       popUpEquipSkill3.setAttribute('skillIndex', equipSkillDatas[2].index);
-      popUpEquipSkill3.appendChild(equipSkills3);
+      imgContainer.appendChild(equipSkills3);
+      popUpEquipSkill3.appendChild(imgContainer);
       }
     if(equipSkillDatas[3]){
+      var imgContainer = document.createElement('div');
+      imgContainer.classList.add('popUpskillImgContainer');
       var equipSkills4 = document.createElement('img');
-      equipSkills4.src = equipSkillDatas[3].skillIcon;
+      // equipSkills4.src = equipSkillDatas[3].skillIcon;
+      equipSkills4.src = resourceSkillIcon;
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', equipSkillDatas[3].skillIcon));
+      equipSkills4.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(equipSkills4, iconData);
       popUpEquipSkill4.setAttribute('skillIndex', equipSkillDatas[3].index);
-      popUpEquipSkill4.appendChild(equipSkills4);
+      imgContainer.appendChild(equipSkills4);
+      popUpEquipSkill4.appendChild(imgContainer);
     }
     popUpEquipSkill1.onclick = changeEquipSkillHandler.bind(this, popUpEquipSkill1, gameConfig.SKILL_CHANGE_PANEL_EQUIP, dontUpdateEquip);
     popUpEquipSkill2.onclick = changeEquipSkillHandler.bind(this, popUpEquipSkill2, gameConfig.SKILL_CHANGE_PANEL_EQUIP, dontUpdateEquip);
@@ -738,7 +892,7 @@ UIManager.prototype = {
     popUpEquipSkill4.onclick = changeEquipSkillHandler.bind(this, popUpEquipSkill4, gameConfig.SKILL_CHANGE_PANEL_EQUIP, dontUpdateEquip);
 
     var equipSkillIndexes = [];
-    equipSkillIndexes.push(baseSkill);
+    // equipSkillIndexes.push(baseSkill);
     for(var i=0; i<equipSkills.length; i++){
       equipSkillIndexes.push(equipSkills[i]);
     }
@@ -754,13 +908,21 @@ UIManager.prototype = {
       if(!isEquipSkill){
         var skillData = Object.assign({}, util.findData(skillTable, 'index', possessSkills[i]));
         var skillDiv = document.createElement('div');
+        var imgContainer = document.createElement('div');
+        imgContainer.classList.add('popUpskillImgContainer');
         var skillImg = document.createElement('img');
 
         skillDiv.setAttribute('skillIndex', possessSkills[i]);
 
         skillDiv.classList.add('popUpSkillContainerItem');
-        skillImg.src = skillData.skillIcon;
-        skillDiv.appendChild(skillImg);
+        // skillImg.src = skillData.skillIcon;
+        skillImg.src = resourceSkillIcon;
+        var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', skillData.skillIcon));
+        skillImg.style.clip = util.makeCssClipStyle(iconData);
+        util.setImgCssStyle(skillImg, iconData);
+
+        imgContainer.appendChild(skillImg);
+        skillDiv.appendChild(imgContainer);
         popUpSkillContainer.appendChild(skillDiv);
 
         skillDiv.onclick = changeEquipSkillHandler.bind(this, skillDiv, gameConfig.SKILL_CHANGE_PANEL_CONTAINER, dontUpdateEquip);
@@ -784,7 +946,12 @@ UIManager.prototype = {
       var skillImg = document.createElement('img');
       var skillDesc = document.createElement('p');
 
-      skillImg.src = skillData.skillIcon;
+      // skillImg.src = skillData.skillIcon;
+      skillImg.src = resourceSkillIcon;
+      var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', skillData.skillIcon));
+      skillImg.style.clip = util.makeCssClipStyle(iconData);
+      util.setImgCssStyle(skillImg, iconData);
+
       skillDesc.innerHTML = skillData.clientName;
       popUpSkillUpgradeCostGold.innerHTML = skillData.upgradeGoldAmount;
       popUpSkillUpgradeCostJewel.innerHTML = skillData.upgradeJewelAmount;
@@ -988,12 +1155,20 @@ function changeEquipSkillHandler(selectDiv, selectPanel, dontUpdateEquip){
           if(skillIndex){
             var beforeSkillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
             var skillDiv = document.createElement('div');
+            var imgContainer = document.createElement('div');
+            imgContainer.classList.add('popUpskillImgContainer');
             var skillImg = document.createElement('img');
             skillDiv.setAttribute('skillIndex', skillIndex);
 
             skillDiv.classList.add('popUpSkillContainerItem');
-            skillImg.src = beforeSkillData.skillIcon;
-            skillDiv.appendChild(skillImg);
+            // skillImg.src = beforeSkillData.skillIcon;
+            skillImg.src = resourceSkillIcon;
+            var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', beforeSkillData.skillIcon));
+            skillImg.style.clip = util.makeCssClipStyle(iconData);
+            util.setImgCssStyle(skillImg, iconData);
+
+            imgContainer.appendChild(skillImg);
+            skillDiv.appendChild(imgContainer);
 
             popUpSkillContainer.insertBefore(skillDiv, popUpSkillContainer.childNodes[nodeIndex]);
             // popUpSkillContainer.appendChild(skillDiv);
@@ -1013,10 +1188,19 @@ function changeEquipSkillHandler(selectDiv, selectPanel, dontUpdateEquip){
           var skillData = Object.assign({}, util.findData(skillTable, 'index', selectedSkillIndex));
           equipSkillDatas.splice(selectEquipIndex, 0, skillData);
 
+          var imgContainer = document.createElement('div');
+          imgContainer.classList.add('popUpskillImgContainer');
+
           var skillImg = document.createElement('img');
-          skillImg.src = skillData.skillIcon;
+          // skillImg.src = skillData.skillIcon;
+          skillImg.src = resourceSkillIcon;
+          var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', skillData.skillIcon));
+          skillImg.style.clip = util.makeCssClipStyle(iconData);
+          util.setImgCssStyle(skillImg, iconData);
+
           selectDiv.setAttribute('skillIndex', skillData.index);
-          selectDiv.appendChild(skillImg);
+          imgContainer.appendChild(skillImg);
+          selectDiv.appendChild(imgContainer);
         }
       }else{
         if(selectedEquipIndex === -1){
@@ -1034,13 +1218,21 @@ function changeEquipSkillHandler(selectDiv, selectPanel, dontUpdateEquip){
           if(selectedSkillIndex){
             var beforeSkillData = Object.assign({}, util.findData(skillTable, 'index', selectedSkillIndex));
             var skillDiv = document.createElement('div');
+            var imgContainer = document.createElement('div');
+            imgContainer.classList.add('popUpskillImgContainer');
             var skillImg = document.createElement('img');
 
             skillDiv.setAttribute('skillIndex', selectedSkillIndex);
 
             skillDiv.classList.add('popUpSkillContainerItem');
-            skillImg.src = beforeSkillData.skillIcon;
-            skillDiv.appendChild(skillImg);
+            // skillImg.src = beforeSkillData.skillIcon;
+            skillImg.src = resourceSkillIcon;
+            var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', beforeSkillData.skillIcon));
+            skillImg.style.clip = util.makeCssClipStyle(iconData);
+            util.setImgCssStyle(skillImg, iconData);
+
+            imgContainer.appendChild(skillImg);
+            skillDiv.appendChild(imgContainer);
             popUpSkillContainer.insertBefore(skillDiv, popUpSkillContainer.childNodes[nodeIndex]);
             // popUpSkillContainer.appendChild(skillDiv);
 
@@ -1059,10 +1251,19 @@ function changeEquipSkillHandler(selectDiv, selectPanel, dontUpdateEquip){
           var skillData = Object.assign({}, util.findData(skillTable, 'index', skillIndex));
           equipSkillDatas.splice(selectedEquipIndex, 0, skillData);
 
+          var imgContainer = document.createElement('div');
+          imgContainer.classList.add('popUpskillImgContainer');
+
           var skillImg = document.createElement('img');
-          skillImg.src = skillData.skillIcon;
+          // skillImg.src = skillData.skillIcon;
+          skillImg.src = resourceSkillIcon;
+          var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', skillData.skillIcon));
+          skillImg.style.clip = util.makeCssClipStyle(iconData);
+          util.setImgCssStyle(skillImg, iconData);
+
           selectedDiv.setAttribute('skillIndex', skillData.index);
-          selectedDiv.appendChild(skillImg);
+          imgContainer.appendChild(skillImg);
+          selectedDiv.appendChild(imgContainer);
         }
       }
       this.onExchangeSkill(characterType);
@@ -1106,13 +1307,21 @@ function changeEquipSkillHandler(selectDiv, selectPanel, dontUpdateEquip){
       if(selectPanel === gameConfig.SKILL_CHANGE_PANEL_EQUIP && selectEquipIndex !== -1){
         var skillData = Object.assign({}, util.findData(skillTable, 'index', selectedSkillIndex));
         var skillDiv = document.createElement('div');
+        var imgContainer = document.createElement('div');
+        imgContainer.classList.add('popUpskillImgContainer');
         var skillImg = document.createElement('img');
 
         skillDiv.setAttribute('skillIndex', selectedSkillIndex);
 
         skillDiv.classList.add('popUpSkillContainerItem');
-        skillImg.src = skillData.skillIcon;
-        skillDiv.appendChild(skillImg);
+        // skillImg.src = skillData.skillIcon;
+        skillImg.src = resourceSkillIcon;
+        var iconData = Object.assign({}, util.findData(iconResourceTable, 'index', skillData.skillIcon));
+        skillImg.style.clip = util.makeCssClipStyle(iconData);
+        util.setImgCssStyle(skillImg, iconData);
+
+        imgContainer.appendChild(skillImg);
+        skillDiv.appendChild(imgContainer);
         popUpSkillContainer.appendChild(skillDiv);
 
         skillDiv.onclick = changeEquipSkillHandler.bind(this, skillDiv, gameConfig.SKILL_CHANGE_PANEL_CONTAINER);
@@ -1202,32 +1411,6 @@ function changeEquipSkillHandler(selectDiv, selectPanel, dontUpdateEquip){
   }else{
     this.updateSelectedPanel(selectedSkillIndex);
   }
-  // //set info panel
-  // while (popUpSkillInfoIcon.firstChild) {
-  //   popUpSkillInfoIcon.removeChild(popUpSkillInfoIcon.firstChild);
-  // }
-  // while (popUpSkillInfoDesc.firstChild) {
-  //   popUpSkillInfoDesc.removeChild(popUpSkillInfoDesc.firstChild);
-  // }
-  // if(selectedSkillIndex){
-  //   var skillData = Object.assign({}, util.findData(skillTable, 'index', selectedSkillIndex));
-  //   var skillImg = document.createElement('img');
-  //   var skillDesc = document.createElement('p');
-  //
-  //   skillImg.src = skillData.skillIcon;
-  //   skillDesc.innerHTML = skillData.clientName;
-  //   popUpSkillUpgradeCostGold.innerHTML = skillData.upgradeGoldAmount;
-  //   popUpSkillUpgradeCostJewel.innerHTML = skillData.upgradeJewelAmount;
-  //
-  //   popUpSkillInfoIcon.appendChild(skillImg);
-  //   popUpSkillInfoDesc.appendChild(skillDesc);
-  //   // popUpSkillUpgradeBtn.addEventListener('click', skillUpgradeBtnHandler, false);
-  //   popUpSkillUpgradeBtn.onclick = skillUpgradeBtnHandler.bind(this)
-  // }else{
-  //   popUpSkillUpgradeBtn.onclick = new Function();
-  //   // popUpSkillUpgradeBtn.removeEventListener('click', skillUpgradeBtnHandler, false);
-  // }
-  // console.log(selectedSkillIndex);
 };
 function skillUpgradeBtnHandler(skillData){
   if(isServerResponse){
